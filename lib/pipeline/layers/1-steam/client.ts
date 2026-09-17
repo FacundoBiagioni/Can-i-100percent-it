@@ -32,6 +32,8 @@ export type SteamAppDetails = {
   dlcAppIds: number[];
   multiplayerRequired: boolean;
   releaseDate?: string;
+  isFree: boolean;
+  priceCents: number | null;
 };
 
 export async function getAppDetails(appId: number): Promise<SteamAppDetails | null> {
@@ -52,6 +54,8 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
       dlcAppIds: entry.data.dlc,
       multiplayerRequired: categories.some((c) => MULTIPLAYER_CATEGORY_MARKERS.includes(c)),
       releaseDate: entry.data.release_date?.date,
+      isFree: entry.data.is_free ?? false,
+      priceCents: entry.data.price_overview?.final ?? null,
     };
   });
 }
@@ -64,7 +68,7 @@ export async function getDlcDetails(dlcAppId: number): Promise<DlcDetails> {
     // DLC page pulled/delisted — appdetails returns success:false for it.
     return { appId: dlcAppId, name: `Unknown DLC (${dlcAppId})`, priceCents: null, isFree: false };
   }
-  return { appId: dlcAppId, name: details.name, priceCents: null, isFree: false };
+  return { appId: dlcAppId, name: details.name, priceCents: details.priceCents, isFree: details.isFree };
 }
 
 export async function getAchievementSchema(
