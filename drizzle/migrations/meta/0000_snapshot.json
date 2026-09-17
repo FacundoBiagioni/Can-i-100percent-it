@@ -1,5 +1,5 @@
 {
-  "id": "3e61cf48-55ca-4ad2-8714-a4817e6fb6cf",
+  "id": "3d68fd45-1997-4c97-8e8b-4f7eb19f8319",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -766,7 +766,7 @@
         },
         "trigger": {
           "name": "trigger",
-          "type": "trigger",
+          "type": "verification_trigger",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -894,8 +894,8 @@
         "yellow"
       ]
     },
-    "public.trigger": {
-      "name": "trigger",
+    "public.verification_trigger": {
+      "name": "verification_trigger",
       "schema": "public",
       "values": [
         "initial",

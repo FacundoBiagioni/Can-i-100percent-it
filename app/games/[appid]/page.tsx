@@ -1,5 +1,12 @@
 import { notFound } from "next/navigation";
 import { getOrCreateGame } from "@/lib/db/queries/games";
+import { getOrRunAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
+import { getEvidenceForGame } from "@/lib/db/queries/evidence";
+import StatusBadge from "@/components/result/StatusBadge";
+import ConfidencePill from "@/components/result/ConfidencePill";
+import RequirementsSummary from "@/components/result/RequirementsSummary";
+import AchievementFlagList from "@/components/result/AchievementFlagList";
+import EvidenceAccordion from "@/components/result/EvidenceAccordion";
 
 export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const { appid } = await props.params;
@@ -9,51 +16,39 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const game = await getOrCreateGame(appId);
   if (!game) notFound();
 
+  const outcome = await getOrRunAnalysis(appId);
+  const evidence = outcome.state === "ready" ? await getEvidenceForGame(appId) : [];
+
   return (
-    <main className="flex flex-1 flex-col items-center gap-8 bg-zinc-50 px-6 py-16 dark:bg-black">
-      <div className="flex w-full max-w-xl flex-col items-center gap-4 text-center">
+    <main className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
+      <div className="flex w-full max-w-xl flex-col items-center gap-3 text-center">
         {game.headerImageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={game.headerImageUrl}
-            alt={game.name}
-            className="w-full max-w-md rounded-xl"
-          />
+          <img src={game.headerImageUrl} alt={game.name} className="w-full max-w-md rounded-xl" />
         )}
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {game.name}
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">{game.name}</h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           Steam AppID {game.id}
           {game.releaseDate ? ` · Released ${game.releaseDate}` : ""}
         </p>
       </div>
 
-      <section className="w-full max-w-xl rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <h2 className="mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-          DLC ({game.dlc.length})
-        </h2>
-        {game.dlc.length === 0 ? (
-          <p className="text-sm text-zinc-400">No DLC.</p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {game.dlc.map((d) => (
-              <li key={d.id} className="flex items-center justify-between text-sm">
-                <span className="text-zinc-800 dark:text-zinc-200">{d.name}</span>
-                {d.isDelisted && (
-                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-700 dark:bg-red-950 dark:text-red-300">
-                    delisted
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {outcome.state === "pending" ? (
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Another request is analyzing this game right now — refresh in a few seconds.
+        </p>
+      ) : (
+        <div className="flex w-full max-w-xl flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-3">
+            <StatusBadge status={outcome.analysis.status} />
+            <ConfidencePill confidence={outcome.analysis.confidence} />
+          </div>
 
-      <p className="text-xs text-zinc-400">
-        Verdict engine not wired up yet — this is raw Steam data only.
-      </p>
+          <RequirementsSummary analysis={outcome.analysis} />
+          <AchievementFlagList analysis={outcome.analysis} />
+          <EvidenceAccordion items={evidence} />
+        </div>
+      )}
     </main>
   );
 }

@@ -4,7 +4,7 @@ CREATE TYPE "public"."report_type" AS ENUM('confirmation', 'dispute', 'bug_repor
 CREATE TYPE "public"."server_status" AS ENUM('online', 'offline', 'unknown');--> statement-breakpoint
 CREATE TYPE "public"."source_key" AS ENUM('steam_api', 'truesteamachievements', 'achievement_scouts', 'steamhunters', 'community', 'ai_resolver');--> statement-breakpoint
 CREATE TYPE "public"."status" AS ENUM('green', 'red', 'yellow');--> statement-breakpoint
-CREATE TYPE "public"."trigger" AS ENUM('initial', 'manual', 'cron');--> statement-breakpoint
+CREATE TYPE "public"."verification_trigger" AS ENUM('initial', 'manual', 'cron');--> statement-breakpoint
 CREATE TABLE "achievements" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"game_id" integer NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE "verification_history" (
 	"game_id" integer NOT NULL,
 	"snapshot" jsonb NOT NULL,
 	"status" "status" NOT NULL,
-	"trigger" "trigger" NOT NULL,
+	"trigger" "verification_trigger" NOT NULL,
 	"pipeline_version" text NOT NULL,
 	"started_at" timestamp with time zone NOT NULL,
 	"finished_at" timestamp with time zone,

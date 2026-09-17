@@ -1,0 +1,173 @@
+import type { Facts, EvidenceClaim, DlcRequirement, ServerStatus, AnalysisStatus, ConfidenceLevel } from "../../types";
+
+type BaseFacts = {
+  gameId: number;
+  gameName: string;
+  foundOnSteam: boolean;
+  dlcNeeded: DlcRequirement[];
+  multiplayerRequired: boolean;
+};
+
+/** Pure function: combines every analyzer's claims into one Facts object. */
+export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
+  const dlcRequiredSignal = allClaims.some(
+    (c) => c.claim.type === "dlc_required" && c.claim.value === true,
+  );
+  // MVP heuristic: we can't attribute a "required" signal to a specific DLC
+  // without per-achievement→DLC mapping, so a positive signal marks every
+  // owned DLC as required. Refine once evidence carries a dlcAppId.
+  const dlcNeeded: DlcRequirement[] = base.dlcNeeded.map((d) => ({
+    ...d,
+    required: d.required || dlcRequiredSignal,
+  }));
+
+  const multiplayerRequired =
+    base.multiplayerRequired ||
+    allClaims.some((c) => c.claim.type === "multiplayer_required" && c.claim.value === true);
+
+  const missableAchievements = [
+    ...new Set(
+      allClaims
+        .filter((c) => c.claim.type === "missable" && c.achievementApiName)
+        .map((c) => c.achievementApiName!),
+    ),
+  ];
+  const buggedAchievements = [
+    ...new Set(
+      allClaims
+        .filter((c) => c.claim.type === "bugged" && c.achievementApiName)
+        .map((c) => c.achievementApiName!),
+    ),
+  ];
+
+  const estimatedHoursValues = allClaims
+    .filter((c) => c.claim.type === "estimated_hours" && typeof c.claim.value === "number")
+    .map((c) => c.claim.value as number);
+  const estimatedHours =
+    estimatedHoursValues.length > 0
+      ? estimatedHoursValues.reduce((a, b) => a + b, 0) / estimatedHoursValues.length
+      : null;
+
+  const currentPlayersClaim = allClaims.find((c) => c.claim.type === "current_players");
+  const currentPlayers =
+    currentPlayersClaim && typeof currentPlayersClaim.claim.value === "number"
+      ? (currentPlayersClaim.claim.value as number)
+      : null;
+
+  let serversStatus: ServerStatus = "unknown";
+  if (multiplayerRequired) {
+    if (currentPlayers !== null) serversStatus = currentPlayers > 0 ? "online" : "offline";
+  } else {
+    serversStatus = "online"; // no multiplayer dependency to worry about
+  }
+
+  return {
+    gameId: base.gameId,
+    gameName: base.gameName,
+    foundOnSteam: base.foundOnSteam,
+    dlcNeeded,
+    multiplayerRequired,
+    minPlayers: null,
+    serversStatus,
+    missableAchievements,
+    buggedAchievements,
+    estimatedHours,
+    claims: allClaims,
+  };
+}
+
+export type ConflictGroup = { key: string; claims: EvidenceClaim[] };
+
+/** Groups claims by fact key and flags any group with disagreeing boolean values. */
+export function detectConflicts(claims: EvidenceClaim[]): ConflictGroup[] {
+  const byKey = new Map<string, EvidenceClaim[]>();
+  for (const claim of claims) {
+    const type = claim.claim.type;
+    if (typeof type !== "string" || typeof claim.claim.value !== "boolean") continue;
+    const key = claim.achievementApiName ? `${type}:${claim.achievementApiName}` : type;
+    byKey.set(key, [...(byKey.get(key) ?? []), claim]);
+  }
+
+  const conflicts: ConflictGroup[] = [];
+  for (const [key, group] of byKey) {
+    const values = new Set(group.map((c) => c.claim.value));
+    if (values.size > 1) conflicts.push({ key, claims: group });
+  }
+  return conflicts;
+}
+
+export type StatusDerivation = {
+  status: AnalysisStatus;
+  confidence: ConfidenceLevel;
+  reasoning: string;
+};
+
+const CONFIDENCE_RANK: Record<ConfidenceLevel, number> = { high: 3, medium: 2, low: 1 };
+
+export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
+  if (!facts.foundOnSteam) {
+    return { status: "yellow", confidence: "high", reasoning: "This AppID was not found on Steam." };
+  }
+
+  const delistedRequiredDlc = facts.dlcNeeded.filter((d) => d.required && d.isDelisted);
+  if (delistedRequiredDlc.length > 0) {
+    return {
+      status: "red",
+      confidence: "high",
+      reasoning: `Requires delisted DLC that can no longer be purchased: ${delistedRequiredDlc.map((d) => d.name).join(", ")}.`,
+    };
+  }
+
+  if (facts.multiplayerRequired && facts.serversStatus === "offline") {
+    return {
+      status: "red",
+      confidence: "medium",
+      reasoning: "Requires multiplayer, and the current player count is zero — servers appear inactive.",
+    };
+  }
+
+  const buggedReportClaim = facts.claims.find((c) => c.claim.type === "bugged_achievements_reported");
+  if (facts.buggedAchievements.length > 0 || buggedReportClaim) {
+    return {
+      status: "yellow",
+      confidence: "low",
+      reasoning: buggedReportClaim
+        ? String(buggedReportClaim.reasoning ?? "Some completers report broken achievement unlocks.")
+        : `Reported bugged achievements: ${facts.buggedAchievements.join(", ")}.`,
+    };
+  }
+
+  // Only claims that actually gate the verdict count toward the confidence
+  // floor — informational metadata (estimated playtime, raw player counts,
+  // per-achievement unlock rarity) shouldn't turn a clean result yellow.
+  const INFORMATIONAL_CLAIM_TYPES = new Set(["estimated_hours", "current_players", "global_unlock_percent"]);
+  const verdictRelevantClaims = facts.claims.filter(
+    (c) => typeof c.claim.type !== "string" || !INFORMATIONAL_CLAIM_TYPES.has(c.claim.type),
+  );
+
+  const lowestConfidence = verdictRelevantClaims.reduce<ConfidenceLevel>(
+    (worst, c) => (CONFIDENCE_RANK[c.confidence] < CONFIDENCE_RANK[worst] ? c.confidence : worst),
+    "high",
+  );
+
+  if (lowestConfidence === "low" && !aiUsed) {
+    return {
+      status: "yellow",
+      confidence: "low",
+      reasoning: "Evidence is thin or unverified for at least one requirement — treat this result as provisional.",
+    };
+  }
+
+  const requirements: string[] = [];
+  if (facts.dlcNeeded.some((d) => d.required)) requirements.push("DLC");
+  if (facts.multiplayerRequired) requirements.push("multiplayer");
+
+  return {
+    status: "green",
+    confidence: lowestConfidence,
+    reasoning:
+      requirements.length > 0
+        ? `100% appears obtainable. Requires: ${requirements.join(", ")}.`
+        : "100% appears obtainable with no known blockers.",
+  };
+}

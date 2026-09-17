@@ -24,7 +24,10 @@ export const sourceKeyEnum = pgEnum("source_key", [
   "community",
   "ai_resolver",
 ]);
-export const triggerEnum = pgEnum("trigger", ["initial", "manual", "cron"]);
+// Named "verification_trigger", not "trigger" — that name collides with
+// Postgres's reserved pseudo-type for trigger functions and silently
+// resolves columns to the wrong type.
+export const triggerEnum = pgEnum("verification_trigger", ["initial", "manual", "cron"]);
 export const reportTypeEnum = pgEnum("report_type", [
   "confirmation",
   "dispute",

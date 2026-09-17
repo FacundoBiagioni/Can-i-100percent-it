@@ -92,3 +92,36 @@ export const currentPlayersResponseSchema = z.object({
     result: z.number(),
   }),
 });
+
+// --- Achievement Scouts internal API (achievement-scouts.com/api/v1) —
+// verified live against real endpoints. This is an undocumented internal
+// API (not a public contract), kept behind safeParse everywhere so a
+// silent shape change degrades to an empty claim instead of throwing.
+export const scoutStatsResponseSchema = z.object({
+  players: z.number(),
+  completers: z.number(),
+  fastest_completion: z.number().nullable().optional(), // minutes
+  median_completion: z.number().nullable().optional(), // minutes
+});
+
+export const communityTagResponseSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  is_applied: z.boolean(),
+  vote_count: z.number(),
+});
+
+export const communityTagsResponseSchema = z.array(communityTagResponseSchema);
+
+export const steamHuntersPlayerSchema = z.object({
+  rank: z.number(),
+  achievements_unlocked: z.number(),
+  achievements_total: z.number(),
+  unlocked_broken: z.number(),
+  is_completed: z.boolean(),
+  completion_time: z.number().nullable(), // minutes
+});
+
+export const steamHuntersPlayersResponseSchema = z.object({
+  items: z.array(steamHuntersPlayerSchema),
+});
