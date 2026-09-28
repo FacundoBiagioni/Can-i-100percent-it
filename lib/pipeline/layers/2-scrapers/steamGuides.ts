@@ -1,9 +1,7 @@
 import { load } from "cheerio";
-import { Type } from "@google/genai";
-import { z } from "zod";
 import { getOrFetch } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
-import { generateJson } from "@/lib/ai/gemini";
+import { classifyUnobtainableSignal } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
 import type { ScraperAdapter } from "./types";
 
@@ -69,22 +67,6 @@ async function fetchRelevantGuides(appId: number): Promise<Guide[]> {
   });
 }
 
-const classificationSchema = {
-  type: Type.OBJECT,
-  properties: {
-    hasUnobtainableSignal: { type: Type.BOOLEAN },
-    confidence: { type: Type.STRING, enum: ["high", "medium", "low"] },
-    reasoning: { type: Type.STRING },
-  },
-  required: ["hasUnobtainableSignal", "confidence", "reasoning"],
-};
-
-const classificationZodSchema = z.object({
-  hasUnobtainableSignal: z.boolean(),
-  confidence: z.enum(["high", "medium", "low"]),
-  reasoning: z.string(),
-});
-
 async function classifyGuides(gameName: string, guides: Guide[]) {
   if (guides.length === 0) return null;
 
@@ -92,22 +74,12 @@ async function classifyGuides(gameName: string, guides: Guide[]) {
     .map((g, i) => `--- Guide ${i + 1}: "${g.title}" ---\n${g.body}`)
     .join("\n\n");
 
-  const prompt = `You are checking whether the Steam game "${gameName}" has any achievements that are permanently unobtainable — for example because required DLC/content was delisted, a companion app or online feature was discontinued, or multiplayer servers were shut down. This is NOT about achievements that are merely difficult, missable-but-still-possible, or grindy.
-
-Here are community-written achievement guides for this game:
-
-${guideSections}
-
-Decide: do these guides state, anywhere, that some achievement can no longer be obtained? Community guide authors are usually well-informed and often note this explicitly with a reason and sometimes a date. If the guides say every achievement is obtainable and don't flag any exceptions, that's meaningful evidence too — report hasUnobtainableSignal as false with medium/high confidence in that case rather than leaving it ambiguous.`;
-
-  const text = await generateJson(prompt, classificationSchema);
-  if (!text) return null;
-  try {
-    const parsed = classificationZodSchema.safeParse(JSON.parse(text));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
+  return classifyUnobtainableSignal(
+    gameName,
+    "community-written achievement guides",
+    guideSections,
+    "Community guide authors are usually well-informed and often note this explicitly with a reason and sometimes a date. If the guides say every achievement is obtainable and don't flag any exceptions, that's meaningful evidence too — report hasUnobtainableSignal as false with medium/high confidence in that case rather than leaving it ambiguous.",
+  );
 }
 
 export const steamGuidesAdapter: ScraperAdapter = {

@@ -6,7 +6,8 @@ export type SourceKey =
   | "community"
   | "ai_resolver"
   | "steam_forums"
-  | "steam_guides";
+  | "steam_guides"
+  | "wikipedia";
 
 export type ConfidenceLevel = "high" | "medium" | "low";
 export type ServerStatus = "online" | "offline" | "unknown";

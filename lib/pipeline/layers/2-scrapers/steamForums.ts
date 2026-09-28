@@ -1,9 +1,7 @@
 import { load } from "cheerio";
-import { Type } from "@google/genai";
-import { z } from "zod";
 import { getOrFetch } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
-import { generateJson } from "@/lib/ai/gemini";
+import { classifyUnobtainableSignal } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
 import type { ScraperAdapter } from "./types";
 
@@ -60,22 +58,6 @@ async function fetchForumPosts(appId: number): Promise<ForumPost[]> {
   });
 }
 
-const classificationSchema = {
-  type: Type.OBJECT,
-  properties: {
-    hasUnobtainableSignal: { type: Type.BOOLEAN },
-    confidence: { type: Type.STRING, enum: ["high", "medium", "low"] },
-    reasoning: { type: Type.STRING },
-  },
-  required: ["hasUnobtainableSignal", "confidence", "reasoning"],
-};
-
-const classificationZodSchema = z.object({
-  hasUnobtainableSignal: z.boolean(),
-  confidence: z.enum(["high", "medium", "low"]),
-  reasoning: z.string(),
-});
-
 async function classifyPosts(gameName: string, posts: ForumPost[]) {
   if (posts.length === 0) return null;
 
@@ -83,22 +65,12 @@ async function classifyPosts(gameName: string, posts: ForumPost[]) {
     .map((p, i) => `${i + 1}. "${p.title}" — "${p.excerpt}"${p.timestampMs ? ` (posted ${new Date(p.timestampMs).toISOString().slice(0, 10)})` : ""}`)
     .join("\n");
 
-  const prompt = `You are checking whether the Steam game "${gameName}" has any achievements that are permanently unobtainable — for example because required DLC/content was delisted, a companion app or online feature was discontinued, or multiplayer servers were shut down. This is NOT about achievements that are merely difficult, missable-but-still-possible, or grindy.
-
-Here are Steam Community forum posts that matched a search for complaints about unobtainable/impossible/bugged achievements for this game:
-
-${postLines}
-
-Decide: do these posts provide credible evidence that some achievement is now PERMANENTLY unobtainable through normal means? Ignore posts that are about difficulty, skill issues, or bugs that were later patched (check dates — older complaints may be outdated). Only report high confidence if multiple posts agree or a post clearly explains a structural reason (delisted content, discontinued feature, shut-down servers). If posts are ambiguous or contradictory, say so and use low/medium confidence.`;
-
-  const text = await generateJson(prompt, classificationSchema);
-  if (!text) return null;
-  try {
-    const parsed = classificationZodSchema.safeParse(JSON.parse(text));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
+  return classifyUnobtainableSignal(
+    gameName,
+    "Steam Community forum posts that matched a search for complaints about unobtainable/impossible/bugged achievements",
+    postLines,
+    "Ignore posts that are about difficulty, skill issues, or bugs that were later patched (check dates — older complaints may be outdated). Only report high confidence if multiple posts agree or a post clearly explains a structural reason (delisted content, discontinued feature, shut-down servers). If posts are ambiguous or contradictory, say so and use low/medium confidence.",
+  );
 }
 
 export const steamForumsAdapter: ScraperAdapter = {

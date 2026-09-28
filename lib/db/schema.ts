@@ -25,6 +25,7 @@ export const sourceKeyEnum = pgEnum("source_key", [
   "ai_resolver",
   "steam_forums",
   "steam_guides",
+  "wikipedia",
 ]);
 // Named "verification_trigger", not "trigger" — that name collides with
 // Postgres's reserved pseudo-type for trigger functions and silently
