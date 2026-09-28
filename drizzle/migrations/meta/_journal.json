@@ -15,6 +15,13 @@
       "when": 1790636515011,
       "tag": "0001_thankful_sugar_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790638102235,
+      "tag": "0002_skinny_adam_destine",
+      "breakpoints": true
     }
   ]
 }

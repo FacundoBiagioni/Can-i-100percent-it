@@ -5,7 +5,8 @@ export type SourceKey =
   | "steamhunters"
   | "community"
   | "ai_resolver"
-  | "steam_forums";
+  | "steam_forums"
+  | "steam_guides";
 
 export type ConfidenceLevel = "high" | "medium" | "low";
 export type ServerStatus = "online" | "offline" | "unknown";

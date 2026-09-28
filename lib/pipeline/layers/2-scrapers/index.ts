@@ -4,12 +4,14 @@ import { achievementScoutsAdapter } from "./achievementScouts";
 import { trueSteamAchievementsAdapter } from "./truesteamachievements";
 import { steamHuntersAdapter } from "./steamhunters";
 import { steamForumsAdapter } from "./steamForums";
+import { steamGuidesAdapter } from "./steamGuides";
 
 export const scraperAdapters: ScraperAdapter[] = [
   achievementScoutsAdapter,
   trueSteamAchievementsAdapter,
   steamHuntersAdapter,
   steamForumsAdapter,
+  steamGuidesAdapter,
 ];
 
 /** Runs every scraper in parallel; one adapter failing never blocks the others. */

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."source_key" ADD VALUE 'steam_guides';

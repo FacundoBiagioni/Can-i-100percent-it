@@ -9,6 +9,7 @@ const SOURCES: { key: (typeof sources.$inferInsert)["key"]; displayName: string;
   { key: "community", displayName: "Community reports", baseUrl: null },
   { key: "ai_resolver", displayName: "AI conflict resolver", baseUrl: null },
   { key: "steam_forums", displayName: "Steam Community Discussions", baseUrl: "https://steamcommunity.com" },
+  { key: "steam_guides", displayName: "Steam Community Guides", baseUrl: "https://steamcommunity.com" },
 ];
 
 async function seed() {
