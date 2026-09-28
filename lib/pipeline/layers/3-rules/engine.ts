@@ -126,6 +126,22 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
     };
   }
 
+  // AI-classified signal from Steam forum discussions — e.g. an achievement
+  // tied to delisted/never-released promo DLC that Steam's own metadata
+  // doesn't expose at all (appdetails.dlc is empty for these).
+  const unobtainableClaim = facts.claims.find(
+    (c) => c.claim.type === "achievement_unobtainable_signal" && c.claim.value === true,
+  );
+  if (unobtainableClaim) {
+    return {
+      status: unobtainableClaim.confidence === "high" ? "red" : "yellow",
+      confidence: unobtainableClaim.confidence,
+      reasoning: String(
+        unobtainableClaim.reasoning ?? "Steam Community discussions suggest an achievement may be permanently unobtainable.",
+      ),
+    };
+  }
+
   const buggedReportClaim = facts.claims.find((c) => c.claim.type === "bugged_achievements_reported");
   if (facts.buggedAchievements.length > 0 || buggedReportClaim) {
     return {
@@ -141,9 +157,27 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
   // floor — informational metadata (estimated playtime, raw player counts,
   // per-achievement unlock rarity) shouldn't turn a clean result yellow.
   const INFORMATIONAL_CLAIM_TYPES = new Set(["estimated_hours", "current_players", "global_unlock_percent"]);
-  const verdictRelevantClaims = facts.claims.filter(
-    (c) => typeof c.claim.type !== "string" || !INFORMATIONAL_CLAIM_TYPES.has(c.claim.type),
-  );
+  // Community tags describing mechanics rather than completion risk (a
+  // single stray vote on "Steam Inventory" shouldn't make a clean game
+  // provisional the same way "MP Required" should).
+  const NON_BLOCKING_TAG_SLUGS = new Set([
+    "controller-required",
+    "multiple-playthroughs",
+    "chapter-select",
+    "new-game-plus",
+    "cheese-available",
+    "steam-inventory",
+    "mobile-cross-save",
+    "completion-achievement",
+  ]);
+  const verdictRelevantClaims = facts.claims.filter((c) => {
+    if (typeof c.claim.type !== "string") return true;
+    if (INFORMATIONAL_CLAIM_TYPES.has(c.claim.type)) return false;
+    if (c.claim.type === "community_tag" && typeof c.claim.slug === "string" && NON_BLOCKING_TAG_SLUGS.has(c.claim.slug)) {
+      return false;
+    }
+    return true;
+  });
 
   const lowestConfidence = verdictRelevantClaims.reduce<ConfidenceLevel>(
     (worst, c) => (CONFIDENCE_RANK[c.confidence] < CONFIDENCE_RANK[worst] ? c.confidence : worst),

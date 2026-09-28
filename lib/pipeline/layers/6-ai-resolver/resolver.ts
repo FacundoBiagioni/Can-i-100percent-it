@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { generateJson } from "@/lib/ai/gemini";
 import type { EvidenceClaim } from "../../types";
 import { conflictResolutionSchema, resolutionResponseZodSchema, buildConflictPrompt } from "./prompt";
 
@@ -11,8 +11,6 @@ export type Resolution = {
   reasoning: string;
 };
 
-const MODEL = "gemini-3.6-flash";
-
 /**
  * Only called when layer 3 detects disagreeing claims for the same fact key.
  * One call resolves every conflict for this pipeline run — bounds Gemini
@@ -21,39 +19,26 @@ const MODEL = "gemini-3.6-flash";
 export async function resolveConflicts(gameName: string, conflicts: ConflictGroup[]): Promise<Resolution[]> {
   if (conflicts.length === 0) return [];
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const prompt = buildConflictPrompt(
-      gameName,
-      conflicts.map((c) => ({
-        key: c.key,
-        claims: c.claims.map((cl) => ({
-          sourceKey: cl.sourceKey,
-          value: cl.claim.value,
-          confidence: cl.confidence,
-          reasoning: cl.reasoning,
-        })),
+  const prompt = buildConflictPrompt(
+    gameName,
+    conflicts.map((c) => ({
+      key: c.key,
+      claims: c.claims.map((cl) => ({
+        sourceKey: cl.sourceKey,
+        value: cl.claim.value,
+        confidence: cl.confidence,
+        reasoning: cl.reasoning,
       })),
-    );
+    })),
+  );
 
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: conflictResolutionSchema,
-      },
-    });
+  const text = await generateJson(prompt, conflictResolutionSchema);
+  if (!text) return [];
 
-    const text = response.text;
-    if (!text) return [];
-
+  try {
     const parsed = resolutionResponseZodSchema.safeParse(JSON.parse(text));
-    if (!parsed.success) return [];
-
-    return parsed.data.resolutions;
+    return parsed.success ? parsed.data.resolutions : [];
   } catch {
-    // AI resolver is a best-effort tiebreaker — never fail the pipeline over it.
     return [];
   }
 }

@@ -4,7 +4,8 @@ export type SourceKey =
   | "achievement_scouts"
   | "steamhunters"
   | "community"
-  | "ai_resolver";
+  | "ai_resolver"
+  | "steam_forums";
 
 export type ConfidenceLevel = "high" | "medium" | "low";
 export type ServerStatus = "online" | "offline" | "unknown";
