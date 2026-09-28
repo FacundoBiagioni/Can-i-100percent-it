@@ -33,11 +33,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
         </p>
       </div>
 
-      {outcome.state === "pending" ? (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Another request is analyzing this game right now — refresh in a few seconds.
-        </p>
-      ) : (
+      {outcome.state === "ready" ? (
         <div className="flex w-full max-w-xl flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-3">
             <StatusBadge status={outcome.analysis.status} />
@@ -48,6 +44,10 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
           <AchievementFlagList analysis={outcome.analysis} />
           <EvidenceAccordion items={evidence} />
         </div>
+      ) : (
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Another request is analyzing this game right now — refresh in a few seconds.
+        </p>
       )}
     </main>
   );

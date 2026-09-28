@@ -11,6 +11,9 @@ export async function GET(
   }
 
   const outcome = await getOrRunAnalysis(appId);
+  if (outcome.state === "not_found") {
+    return Response.json({ error: "not_found" }, { status: 404 });
+  }
   if (outcome.state === "pending") {
     return Response.json({ status: "pending" }, { status: 202 });
   }
