@@ -79,6 +79,7 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
         icon={structuralBlock ? Ban : CircleOff}
         state={structuralBlock ? "warning" : "off"}
         label={structuralBlock ? analysis.reasoning : "No confirmed permanent blockers found"}
+        badge={structuralBlock && analysis.unobtainableAchievementCount > 0 ? analysis.unobtainableAchievementCount : undefined}
       />
       {analysis.estimatedHours !== null && (
         <StatusIcon icon={Clock} state="on" label={`~${Math.round(analysis.estimatedHours)}h estimated to 100%`} />

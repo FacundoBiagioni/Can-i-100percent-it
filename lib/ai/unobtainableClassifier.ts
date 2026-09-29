@@ -1,6 +1,7 @@
 import { Type } from "@google/genai";
 import { z } from "zod";
 import { generateJson } from "./gemini";
+import type { EvidenceClaim, SourceKey, ConfidenceLevel } from "@/lib/pipeline/types";
 
 export const unobtainableClassificationSchema = {
   type: Type.OBJECT,
@@ -8,14 +9,28 @@ export const unobtainableClassificationSchema = {
     hasUnobtainableSignal: { type: Type.BOOLEAN },
     confidence: { type: Type.STRING, enum: ["high", "medium", "low"] },
     reasoning: { type: Type.STRING },
+    affectedAchievements: {
+      type: Type.ARRAY,
+      description:
+        "Specific achievement name(s) the text says are unobtainable, if any are named. Empty if the signal is about the game generally (e.g. servers down affecting several unnamed achievements) or if hasUnobtainableSignal is false.",
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          name: { type: Type.STRING, description: "The achievement's name/title as written in the source text" },
+          reason: { type: Type.STRING, description: "One sentence on why this specific achievement is unobtainable" },
+        },
+        required: ["name", "reason"],
+      },
+    },
   },
-  required: ["hasUnobtainableSignal", "confidence", "reasoning"],
+  required: ["hasUnobtainableSignal", "confidence", "reasoning", "affectedAchievements"],
 };
 
 const unobtainableClassificationZodSchema = z.object({
   hasUnobtainableSignal: z.boolean(),
   confidence: z.enum(["high", "medium", "low"]),
   reasoning: z.string(),
+  affectedAchievements: z.array(z.object({ name: z.string(), reason: z.string() })),
 });
 
 export type UnobtainableClassification = z.infer<typeof unobtainableClassificationZodSchema>;
@@ -42,7 +57,7 @@ Here are ${sourceLabel} for this game:
 
 ${content}
 
-Decide: is there credible evidence that some CURRENT achievement is now PERMANENTLY unobtainable through normal means? ${closingInstruction}`;
+Decide: is there credible evidence that some CURRENT achievement is now PERMANENTLY unobtainable through normal means? ${closingInstruction} If the text names specific achievement(s) affected, list them in affectedAchievements with the exact name as written and a one-sentence reason each; leave it empty if no specific achievement is named.`;
 
   const text = await generateJson(prompt, unobtainableClassificationSchema);
   if (!text) return null;
@@ -52,4 +67,44 @@ Decide: is there credible evidence that some CURRENT achievement is now PERMANEN
   } catch {
     return null;
   }
+}
+
+/**
+ * Turns a classification into the game-level claim plus one extra claim per
+ * named achievement (if any). The per-achievement claims carry a free-text
+ * `name` — not Steam's internal apiName, since that's not something forum
+ * posts or guides ever mention — matched against the game's own achievement
+ * list at evidence-insertion time (see lib/db/queries/evidence.ts), where
+ * that list is actually available.
+ */
+export function buildClaimsFromClassification(
+  sourceKey: SourceKey,
+  classification: UnobtainableClassification,
+  rawUrl: string | undefined,
+  checkedAt: Date,
+): EvidenceClaim[] {
+  const confidence: ConfidenceLevel = classification.confidence;
+  const claims: EvidenceClaim[] = [
+    {
+      sourceKey,
+      claim: { type: "achievement_unobtainable_signal", value: classification.hasUnobtainableSignal },
+      confidence,
+      reasoning: classification.reasoning,
+      rawUrl,
+      checkedAt,
+    },
+  ];
+
+  for (const affected of classification.affectedAchievements) {
+    claims.push({
+      sourceKey,
+      claim: { type: "achievement_unobtainable", name: affected.name },
+      confidence,
+      reasoning: affected.reason,
+      rawUrl,
+      checkedAt,
+    });
+  }
+
+  return claims;
 }

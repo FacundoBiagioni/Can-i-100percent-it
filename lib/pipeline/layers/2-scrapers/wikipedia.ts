@@ -1,6 +1,6 @@
 import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
-import { classifyUnobtainableSignal } from "@/lib/ai/unobtainableClassifier";
+import { classifyUnobtainableSignal, buildClaimsFromClassification } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
 import type { ScraperAdapter } from "./types";
 
@@ -66,16 +66,8 @@ export const wikipediaAdapter: ScraperAdapter = {
       const classification = await classifyArticle(gameName, article.title, article.extract);
       if (!classification) return [];
 
-      return [
-        {
-          sourceKey: "wikipedia",
-          claim: { type: "achievement_unobtainable_signal", value: classification.hasUnobtainableSignal },
-          confidence: classification.confidence,
-          reasoning: classification.reasoning,
-          rawUrl: `https://en.wikipedia.org/wiki/${encodeURIComponent(article.title.replace(/ /g, "_"))}`,
-          checkedAt,
-        },
-      ];
+      const rawUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(article.title.replace(/ /g, "_"))}`;
+      return buildClaimsFromClassification("wikipedia", classification, rawUrl, checkedAt);
     } catch {
       return [];
     }

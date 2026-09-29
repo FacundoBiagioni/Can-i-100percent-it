@@ -73,9 +73,15 @@ export async function getDlcDetails(dlcAppId: number): Promise<DlcDetails> {
   return { appId: dlcAppId, name: details.name, priceCents: details.priceCents, isFree: details.isFree };
 }
 
-export async function getAchievementSchema(
-  appId: number,
-): Promise<{ name: string; displayName: string; hidden: boolean; description?: string }[]> {
+export type SteamAchievementSchema = {
+  name: string;
+  displayName: string;
+  hidden: boolean;
+  description?: string;
+  icon?: string;
+};
+
+export async function getAchievementSchema(appId: number): Promise<SteamAchievementSchema[]> {
   return getOrFetch(CacheKeys.steamSchema(appId), CacheTTL.steamSchema, async () => {
     const url = `${STEAM_ENDPOINTS.schemaForGame}?key=${process.env.STEAM_API_KEY}&appid=${appId}&l=english`;
     const res = await fetch(url);
@@ -88,6 +94,7 @@ export async function getAchievementSchema(
       displayName: a.displayName || a.name,
       hidden: a.hidden === 1,
       description: a.description,
+      icon: a.icon,
     }));
   });
 }

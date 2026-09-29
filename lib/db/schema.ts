@@ -147,6 +147,7 @@ export const analysisResults = pgTable("analysis_results", {
   serversStatus: serverStatusEnum("servers_status").notNull().default("unknown"),
   missableAchievementCount: integer("missable_achievement_count").notNull().default(0),
   buggedAchievementCount: integer("bugged_achievement_count").notNull().default(0),
+  unobtainableAchievementCount: integer("unobtainable_achievement_count").notNull().default(0),
   estimatedHours: numeric("estimated_hours", { precision: 6, scale: 1 }),
   reasoning: text("reasoning").notNull(),
   aiUsed: boolean("ai_used").notNull().default(false),

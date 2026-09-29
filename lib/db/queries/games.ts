@@ -1,7 +1,12 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { games, dlc } from "@/lib/db/schema";
-import { getAppDetails, getDlcDetails } from "@/lib/pipeline/layers/1-steam/client";
+import { games, dlc, achievements } from "@/lib/db/schema";
+import {
+  getAppDetails,
+  getDlcDetails,
+  getAchievementSchema,
+  getGlobalAchievementPercentages,
+} from "@/lib/pipeline/layers/1-steam/client";
 
 export async function getGameWithDlc(appId: number) {
   const game = await db.query.games.findFirst({
@@ -11,13 +16,43 @@ export async function getGameWithDlc(appId: number) {
   return game ?? null;
 }
 
+export async function getAchievementsForGame(appId: number) {
+  return db.query.achievements.findMany({ where: eq(achievements.gameId, appId) });
+}
+
+async function persistAchievements(appId: number) {
+  const [achievementSchema, globalPct] = await Promise.all([
+    getAchievementSchema(appId),
+    getGlobalAchievementPercentages(appId),
+  ]);
+  if (achievementSchema.length === 0) return;
+
+  await db.insert(achievements).values(
+    achievementSchema.map((a) => ({
+      gameId: appId,
+      apiName: a.name,
+      displayName: a.displayName,
+      description: a.description,
+      iconUrl: a.icon,
+      hidden: a.hidden,
+      globalUnlockPercent: globalPct[a.name]?.toFixed(2),
+    })),
+  ).onConflictDoNothing();
+}
+
 /**
  * Returns the game row, fetching from Steam and persisting on first lookup.
  * Returns null if the AppID doesn't exist on Steam at all.
  */
 export async function getOrCreateGame(appId: number) {
   const existing = await getGameWithDlc(appId);
-  if (existing) return existing;
+  if (existing) {
+    // Backfills games created before achievement persistence existed —
+    // self-heals on next visit instead of needing a one-off migration.
+    const achievementCount = await db.$count(achievements, eq(achievements.gameId, appId));
+    if (achievementCount === 0) await persistAchievements(appId);
+    return existing;
+  }
 
   const details = await getAppDetails(appId);
   if (!details) return null;
@@ -46,6 +81,8 @@ export async function getOrCreateGame(appId: number) {
       })),
     ).onConflictDoNothing();
   }
+
+  await persistAchievements(appId);
 
   return getGameWithDlc(appId);
 }

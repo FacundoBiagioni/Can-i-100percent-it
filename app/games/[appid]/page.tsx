@@ -63,7 +63,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
             <StatusIconRow analysis={analysis} />
 
             <RequirementsSummary analysis={analysis} />
-            <AchievementFlagList analysis={analysis} />
+            <AchievementFlagList appId={appId} analysis={analysis} />
             <EvidenceAccordion items={evidence} />
           </div>
         ) : (

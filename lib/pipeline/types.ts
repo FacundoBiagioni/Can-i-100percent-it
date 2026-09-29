@@ -41,6 +41,7 @@ export type Facts = {
   serversStatus: ServerStatus;
   missableAchievements: string[]; // apiNames
   buggedAchievements: string[]; // apiNames
+  unobtainableAchievements: string[]; // apiNames — confirmed permanently blocked (delisted/discontinued/shutdown), not just reported buggy
   estimatedHours: number | null;
   claims: EvidenceClaim[];
 };
@@ -67,6 +68,7 @@ export type AnalysisResult = {
   serversStatus: ServerStatus;
   missableAchievementCount: number;
   buggedAchievementCount: number;
+  unobtainableAchievementCount: number;
   estimatedHours: number | null;
   reasoning: string;
   aiUsed: boolean;

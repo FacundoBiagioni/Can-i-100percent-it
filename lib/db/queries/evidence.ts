@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { sources, evidence } from "@/lib/db/schema";
+import { sources, evidence, achievements } from "@/lib/db/schema";
 import type { EvidenceClaim } from "@/lib/pipeline/types";
 
 let sourceIdCache: Map<string, number> | null = null;
@@ -21,6 +21,18 @@ export async function insertEvidence(gameId: number, claims: EvidenceClaim[]) {
   if (claims.length === 0) return;
   const sourceIds = await getSourceIdMap();
 
+  const apiNames = [...new Set(claims.map((c) => c.achievementApiName).filter((n): n is string => !!n))];
+  const achievementIdByApiName = new Map<string, number>();
+  if (apiNames.length > 0) {
+    const rows = await db.query.achievements.findMany({
+      where: and(eq(achievements.gameId, gameId)),
+      columns: { id: true, apiName: true },
+    });
+    for (const r of rows) {
+      if (apiNames.includes(r.apiName)) achievementIdByApiName.set(r.apiName, r.id);
+    }
+  }
+
   const rows = claims
     .map((c) => {
       const sourceId = sourceIds.get(c.sourceKey);
@@ -28,6 +40,7 @@ export async function insertEvidence(gameId: number, claims: EvidenceClaim[]) {
       return {
         gameId,
         sourceId,
+        achievementId: c.achievementApiName ? (achievementIdByApiName.get(c.achievementApiName) ?? null) : null,
         claim: c.claim,
         reasoning: c.reasoning,
         confidence: c.confidence,

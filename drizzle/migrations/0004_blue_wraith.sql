@@ -1,0 +1,1 @@
+ALTER TABLE "analysis_results" ADD COLUMN "unobtainable_achievement_count" integer DEFAULT 0 NOT NULL;

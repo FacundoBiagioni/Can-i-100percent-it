@@ -2,12 +2,14 @@ import { redis } from "@/lib/cache/redis";
 import { CacheKeys } from "@/lib/cache/keys";
 import { upsertAnalysisResult, insertVerificationHistory } from "@/lib/db/queries/analysis";
 import { insertEvidence } from "@/lib/db/queries/evidence";
+import { getAchievementsForGame } from "@/lib/db/queries/games";
 import { steamAnalyzer } from "./layers/1-steam/client";
 import { runAllScrapers } from "./layers/2-scrapers";
 import { applyRules, detectConflicts, deriveStatus } from "./layers/3-rules/engine";
 import { applyRecencyDecay } from "./layers/4-recency/scorer";
 import { fetchAcceptedCommunityClaims } from "./layers/5-community/reports";
 import { resolveConflicts } from "./layers/6-ai-resolver/resolver";
+import { matchAchievementName } from "./achievementMatcher";
 import type { AnalysisResult, EvidenceClaim, DlcRequirement } from "./types";
 
 export const PIPELINE_VERSION = "1";
@@ -42,6 +44,21 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
       fetchAcceptedCommunityClaims(appId),
     ]);
     allClaims = [...allClaims, ...scraperClaims, ...communityClaims];
+
+    // AI-extracted "achievement_unobtainable" claims only carry the
+    // free-text name a source used — resolve it to a real achievement now
+    // that the game's own list is available, so layer 3 and the detail
+    // view can attribute the claim to a specific achievement record.
+    const achievementRows = await getAchievementsForGame(appId);
+    if (achievementRows.length > 0) {
+      allClaims = allClaims.map((c) => {
+        if (c.claim.type !== "achievement_unobtainable" || c.achievementApiName) return c;
+        const name = c.claim.name;
+        if (typeof name !== "string") return c;
+        const matched = matchAchievementName(name, achievementRows);
+        return matched ? { ...c, achievementApiName: matched.apiName } : c;
+      });
+    }
   }
 
   allClaims = applyRecencyDecay(allClaims);
@@ -81,6 +98,7 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
     serversStatus: facts.serversStatus,
     missableAchievementCount: facts.missableAchievements.length,
     buggedAchievementCount: facts.buggedAchievements.length,
+    unobtainableAchievementCount: facts.unobtainableAchievements.length,
     estimatedHours: facts.estimatedHours,
     reasoning,
     aiUsed,

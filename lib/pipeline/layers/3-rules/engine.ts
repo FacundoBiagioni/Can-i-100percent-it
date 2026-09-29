@@ -39,6 +39,13 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
         .map((c) => c.achievementApiName!),
     ),
   ];
+  const unobtainableAchievements = [
+    ...new Set(
+      allClaims
+        .filter((c) => c.claim.type === "achievement_unobtainable" && c.achievementApiName)
+        .map((c) => c.achievementApiName!),
+    ),
+  ];
 
   const estimatedHoursValues = allClaims
     .filter((c) => c.claim.type === "estimated_hours" && typeof c.claim.value === "number")
@@ -71,6 +78,7 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
     serversStatus,
     missableAchievements,
     buggedAchievements,
+    unobtainableAchievements,
     estimatedHours,
     claims: allClaims,
   };

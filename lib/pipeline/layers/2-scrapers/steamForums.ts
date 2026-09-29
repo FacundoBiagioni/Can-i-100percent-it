@@ -1,7 +1,7 @@
 import { load } from "cheerio";
 import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
-import { classifyUnobtainableSignal } from "@/lib/ai/unobtainableClassifier";
+import { classifyUnobtainableSignal, buildClaimsFromClassification } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
 import type { ScraperAdapter } from "./types";
 
@@ -95,16 +95,7 @@ export const steamForumsAdapter: ScraperAdapter = {
       if (!classification) return [];
 
       const mostRelevant = posts[0];
-      return [
-        {
-          sourceKey: "steam_forums",
-          claim: { type: "achievement_unobtainable_signal", value: classification.hasUnobtainableSignal },
-          confidence: classification.confidence,
-          reasoning: classification.reasoning,
-          rawUrl: mostRelevant?.url,
-          checkedAt,
-        },
-      ];
+      return buildClaimsFromClassification("steam_forums", classification, mostRelevant?.url, checkedAt);
     } catch {
       return [];
     }
