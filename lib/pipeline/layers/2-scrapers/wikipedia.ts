@@ -1,4 +1,4 @@
-import { getOrFetch } from "@/lib/cache/redis";
+import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
 import { classifyUnobtainableSignal } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
@@ -15,28 +15,33 @@ import type { ScraperAdapter } from "./types";
 // shut down on January 12, 2026, rendering the game unplayable").
 const WIKI_API = "https://en.wikipedia.org/w/api.php";
 
-async function findArticleExtract(gameName: string): Promise<{ title: string; extract: string } | null> {
+type ArticleResult = { article: { title: string; extract: string } | null; failed: boolean };
+
+async function findArticleExtract(gameName: string): Promise<ArticleResult> {
   const searchUrl = `${WIKI_API}?action=query&list=search&srsearch=${encodeURIComponent(`${gameName} video game`)}&format=json&srlimit=1`;
   const searchRes = await fetch(searchUrl, { headers: { "User-Agent": "can-i-100-it/1.0" } });
-  if (!searchRes.ok) return null;
+  if (!searchRes.ok) return { article: null, failed: true };
   const searchData = await searchRes.json();
   const pageId = searchData?.query?.search?.[0]?.pageid;
-  if (!pageId) return null;
+  if (!pageId) return { article: null, failed: false }; // genuinely no matching article
 
   const extractUrl = `${WIKI_API}?action=query&prop=extracts&explaintext=1&pageids=${pageId}&format=json`;
   const extractRes = await fetch(extractUrl, { headers: { "User-Agent": "can-i-100-it/1.0" } });
-  if (!extractRes.ok) return null;
+  if (!extractRes.ok) return { article: null, failed: true };
   const extractData = await extractRes.json();
   const page = extractData?.query?.pages?.[String(pageId)];
-  if (!page?.extract) return null;
+  if (!page?.extract) return { article: null, failed: true }; // found the page but extraction broke — suspicious
 
-  return { title: page.title, extract: page.extract };
+  return { article: { title: page.title, extract: page.extract }, failed: false };
 }
 
 async function fetchArticle(appId: number, gameName: string) {
-  return getOrFetch(CacheKeys.scrape("wikipedia", appId), CacheTTL.scrapeSuccess, () =>
-    findArticleExtract(gameName),
+  const result = await getOrFetchWithTtl(
+    CacheKeys.scrape("wikipedia", appId),
+    () => findArticleExtract(gameName),
+    (r) => (r.article === null && r.failed ? CacheTTL.scrapeFailure : CacheTTL.scrapeSuccess),
   );
+  return result.article;
 }
 
 async function classifyArticle(gameName: string, articleTitle: string, extract: string) {

@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import { getOrFetch } from "@/lib/cache/redis";
+import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
 import { classifyUnobtainableSignal } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
@@ -23,9 +23,10 @@ const MAX_GUIDE_CHARS = 80000;
 type GuideListing = { title: string; url: string };
 type Guide = { title: string; url: string; body: string };
 
-async function listTopGuides(appId: number): Promise<GuideListing[]> {
+/** null distinguishes a real fetch failure from "200 OK, no guides listed". */
+async function listTopGuides(appId: number): Promise<GuideListing[] | null> {
   const res = await fetch(`https://steamcommunity.com/app/${appId}/guides/?browsefilter=toprated&p=1`);
-  if (!res.ok) return [];
+  if (!res.ok) return null;
 
   const $ = load(await res.text());
   const guides: GuideListing[] = [];
@@ -52,19 +53,24 @@ async function fetchGuideBody(url: string): Promise<string> {
 }
 
 async function fetchRelevantGuides(appId: number): Promise<Guide[]> {
-  return getOrFetch(CacheKeys.scrape("steam_guides", appId), CacheTTL.scrapeSuccess, async () => {
-    const listing = await listTopGuides(appId);
-    const matches = listing
-      .filter((g) => TITLE_KEYWORDS.some((kw) => g.title.toLowerCase().includes(kw)))
-      .slice(0, MAX_GUIDES_TO_READ);
+  return getOrFetchWithTtl(
+    CacheKeys.scrape("steam_guides", appId),
+    async () => {
+      const listing = await listTopGuides(appId);
+      const matches = (listing ?? [])
+        .filter((g) => TITLE_KEYWORDS.some((kw) => g.title.toLowerCase().includes(kw)))
+        .slice(0, MAX_GUIDES_TO_READ);
 
-    const guides: Guide[] = [];
-    for (const match of matches) {
-      const body = await fetchGuideBody(match.url);
-      if (body) guides.push({ ...match, body });
-    }
-    return guides;
-  });
+      const guides: Guide[] = [];
+      for (const match of matches) {
+        const body = await fetchGuideBody(match.url);
+        if (body) guides.push({ ...match, body });
+      }
+      return { guides, listingFailed: listing === null };
+    },
+    ({ guides, listingFailed }) =>
+      guides.length === 0 && listingFailed ? CacheTTL.scrapeFailure : CacheTTL.scrapeSuccess,
+  ).then((r) => r.guides);
 }
 
 async function classifyGuides(gameName: string, guides: Guide[]) {

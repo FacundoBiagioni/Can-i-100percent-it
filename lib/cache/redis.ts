@@ -34,6 +34,31 @@ export async function getOrFetch<T>(
   return fresh;
 }
 
+/**
+ * Same as getOrFetch, but the caller picks the TTL from the result — used
+ * when a suspiciously-empty result (e.g. a scraper finding zero matches
+ * across every query it tried) is more likely a transient failure/rate
+ * limit than a genuine "nothing there," and shouldn't get cached for as
+ * long as a confident result would. Confirmed this matters in practice: a
+ * burst of requests during testing got Steam's forum search to return an
+ * empty page for one game, which then silently poisoned that game's result
+ * for a full day under the flat-TTL version of this helper.
+ */
+export async function getOrFetchWithTtl<T>(
+  key: string,
+  fetchFn: () => Promise<T>,
+  selectTtlSeconds: (result: T) => number,
+): Promise<T> {
+  if (!redis) return fetchFn();
+
+  const cached = await redis.get<T>(key);
+  if (cached !== null) return cached;
+
+  const fresh = await fetchFn();
+  await redis.set(key, fresh, { ex: selectTtlSeconds(fresh) });
+  return fresh;
+}
+
 /** SET NX EX mutex so a game's pipeline never runs twice concurrently. */
 export async function acquireLock(key: string, ttlSeconds: number): Promise<boolean> {
   if (!redis) return true; // no Redis configured yet — don't block local dev on the lock

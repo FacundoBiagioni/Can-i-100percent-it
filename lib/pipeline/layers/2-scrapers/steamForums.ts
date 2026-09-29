@@ -1,5 +1,5 @@
 import { load } from "cheerio";
-import { getOrFetch } from "@/lib/cache/redis";
+import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
 import { classifyUnobtainableSignal } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
@@ -15,10 +15,12 @@ const MAX_POSTS_PER_QUERY = 8;
 
 type ForumPost = { title: string; excerpt: string; url: string; timestampMs: number | null };
 
-async function searchDiscussions(appId: number, query: string): Promise<ForumPost[]> {
+/** Returns null on a non-2xx response — distinct from "200 OK, zero matches" — so the
+ * caller can tell a real failure/rate-limit apart from a genuinely quiet game. */
+async function searchDiscussions(appId: number, query: string): Promise<ForumPost[] | null> {
   const url = `https://steamcommunity.com/app/${appId}/discussions/search/?q=${encodeURIComponent(query)}`;
   const res = await fetch(url);
-  if (!res.ok) return [];
+  if (!res.ok) return null;
 
   const $ = load(await res.text());
   const posts: ForumPost[] = [];
@@ -45,17 +47,23 @@ async function searchDiscussions(appId: number, query: string): Promise<ForumPos
 }
 
 async function fetchForumPosts(appId: number): Promise<ForumPost[]> {
-  return getOrFetch(CacheKeys.scrape("steam_forums", appId), CacheTTL.scrapeSuccess, async () => {
-    const results = await Promise.all(SEARCH_QUERIES.map((q) => searchDiscussions(appId, q)));
-    const seen = new Set<string>();
-    const merged: ForumPost[] = [];
-    for (const post of results.flat()) {
-      if (seen.has(post.url)) continue;
-      seen.add(post.url);
-      merged.push(post);
-    }
-    return merged;
-  });
+  return getOrFetchWithTtl(
+    CacheKeys.scrape("steam_forums", appId),
+    async () => {
+      const results = await Promise.all(SEARCH_QUERIES.map((q) => searchDiscussions(appId, q)));
+      const anyQueryFailed = results.some((r) => r === null);
+      const seen = new Set<string>();
+      const merged: ForumPost[] = [];
+      for (const post of results.flatMap((r) => r ?? [])) {
+        if (seen.has(post.url)) continue;
+        seen.add(post.url);
+        merged.push(post);
+      }
+      return { merged, anyQueryFailed };
+    },
+    ({ merged, anyQueryFailed }) =>
+      merged.length === 0 && anyQueryFailed ? CacheTTL.scrapeFailure : CacheTTL.scrapeSuccess,
+  ).then((r) => r.merged);
 }
 
 async function classifyPosts(gameName: string, posts: ForumPost[]) {
