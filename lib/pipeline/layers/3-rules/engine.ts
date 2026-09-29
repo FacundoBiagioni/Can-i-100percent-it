@@ -179,17 +179,21 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
   // Only claims that actually gate the verdict count toward the confidence
   // floor — informational metadata (estimated playtime, raw player counts,
   // per-achievement unlock rarity) shouldn't turn a clean result yellow.
-  // DLC requirement is here too: unlike delisted DLC (its own red path
-  // above) or missable/bugged achievements, a required-but-purchasable DLC
-  // is disclosed (icon + cost) but never itself a blocker, so an unsure
-  // reading of it (e.g. a Wikipedia article that just doesn't discuss DLC)
-  // shouldn't make an otherwise-clean game provisional.
+  // DLC requirement and missable achievements are here too: unlike delisted
+  // DLC (its own red path above) or true unobtainable/bugged achievements,
+  // required-but-purchasable DLC and missable-but-recoverable achievements
+  // are disclosed (icon + list) but never themselves a blocker — a player
+  // can still reach 100%, so an unsure reading of either (e.g. a Wikipedia
+  // article that doesn't discuss DLC, or a source that doesn't mention any
+  // missable achievement) shouldn't make an otherwise-clean game provisional.
   const INFORMATIONAL_CLAIM_TYPES = new Set([
     "estimated_hours",
     "current_players",
     "global_unlock_percent",
     "dlc_required_signal",
     "dlc_achievement_requirement",
+    "missable_signal",
+    "missable",
   ]);
   // Community tags describing mechanics rather than completion risk (a
   // single stray vote on "Steam Inventory" shouldn't make a clean game

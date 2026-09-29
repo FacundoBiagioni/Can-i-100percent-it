@@ -1,11 +1,15 @@
 import type { LucideIcon } from "lucide-react";
 import Tooltip from "./Tooltip";
 
-export type IconState = "off" | "on" | "warning";
+export type IconState = "off" | "on" | "warning" | "caution";
 
 const TILE_STYLES: Record<IconState, string> = {
   off: "border-zinc-800 bg-zinc-900 text-zinc-700",
   on: "border-indigo-900 bg-indigo-950 text-indigo-400",
+  // Distinct from "warning" (red) on purpose — this marks something to be
+  // aware of that does NOT block reaching 100% (e.g. a missable achievement
+  // recoverable on a new playthrough), so it must not read as a blocker.
+  caution: "border-amber-900 bg-amber-950 text-amber-400",
   warning: "border-red-900 bg-red-950 text-red-400",
 };
 

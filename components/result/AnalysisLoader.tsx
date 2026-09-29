@@ -2,19 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AnalysisResult } from "@/lib/pipeline/types";
+import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 import StatusBadge from "./StatusBadge";
 import ConfidencePill from "./ConfidencePill";
 import StatusIconRow from "./StatusIconRow";
 import RequirementsSummary from "./RequirementsSummary";
-import AchievementFlagList from "./AchievementFlagList";
-import EvidenceAccordion, { type EvidenceItem } from "./EvidenceAccordion";
+import AchievementsTable from "./AchievementsTable";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 30; // 90s ceiling — first analysis is normally done in a few seconds
 
 export default function AnalysisLoader({ appId }: { appId: number }) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [evidence, setEvidence] = useState<EvidenceItem[]>([]);
+  const [achievements, setAchievements] = useState<FlaggedAchievement[]>([]);
   const [timedOut, setTimedOut] = useState(false);
   const attempts = useRef(0);
 
@@ -32,7 +32,7 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
           const data = await res.json();
           if (!cancelled) {
             setAnalysis(data.analysis);
-            setEvidence(data.evidence ?? []);
+            setAchievements(data.achievements ?? []);
           }
           return;
         }
@@ -65,8 +65,7 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
         </div>
         <StatusIconRow analysis={analysis} />
         <RequirementsSummary analysis={analysis} />
-        <AchievementFlagList appId={appId} analysis={analysis} />
-        <EvidenceAccordion items={evidence} />
+        <AchievementsTable achievements={achievements} />
       </div>
     );
   }

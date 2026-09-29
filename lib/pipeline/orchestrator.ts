@@ -46,14 +46,17 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
     ]);
     allClaims = [...allClaims, ...scraperClaims, ...communityClaims];
 
-    // AI-extracted "achievement_unobtainable" claims only carry the
-    // free-text name a source used — resolve it to a real achievement now
-    // that the game's own list is available, so layer 3 and the detail
+    // AI-extracted "achievement_unobtainable"/"missable" claims only carry
+    // the free-text name a source used — resolve it to a real achievement
+    // now that the game's own list is available, so layer 3 and the detail
     // view can attribute the claim to a specific achievement record.
+    const NAMED_ACHIEVEMENT_CLAIM_TYPES = new Set(["achievement_unobtainable", "missable"]);
     const achievementRows = await getAchievementsForGame(appId);
     if (achievementRows.length > 0) {
       allClaims = allClaims.map((c) => {
-        if (c.claim.type !== "achievement_unobtainable" || c.achievementApiName) return c;
+        if (typeof c.claim.type !== "string" || !NAMED_ACHIEVEMENT_CLAIM_TYPES.has(c.claim.type) || c.achievementApiName) {
+          return c;
+        }
         const name = c.claim.name;
         if (typeof name !== "string") return c;
         const matched = matchAchievementName(name, achievementRows);

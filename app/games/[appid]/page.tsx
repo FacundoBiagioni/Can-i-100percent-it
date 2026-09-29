@@ -2,13 +2,12 @@ import { notFound } from "next/navigation";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
-import { getEvidenceForGame } from "@/lib/db/queries/evidence";
+import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 import StatusBadge from "@/components/result/StatusBadge";
 import ConfidencePill from "@/components/result/ConfidencePill";
 import StatusIconRow from "@/components/result/StatusIconRow";
 import RequirementsSummary from "@/components/result/RequirementsSummary";
-import AchievementFlagList from "@/components/result/AchievementFlagList";
-import EvidenceAccordion from "@/components/result/EvidenceAccordion";
+import AchievementsTable from "@/components/result/AchievementsTable";
 import AnalysisLoader from "@/components/result/AnalysisLoader";
 
 export default async function GamePage(props: PageProps<"/games/[appid]">) {
@@ -27,7 +26,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   // If nothing's cached yet, AnalysisLoader kicks the run off client-side
   // and swaps itself for the real result once it lands, no manual reload.
   const analysis = await getCachedAnalysis(appId);
-  const evidence = analysis ? await getEvidenceForGame(appId) : [];
+  const achievements = analysis ? await getFlaggedAchievements(appId) : [];
 
   return (
     <main className="flex flex-1 flex-col bg-black">
@@ -63,8 +62,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
             <StatusIconRow analysis={analysis} />
 
             <RequirementsSummary analysis={analysis} />
-            <AchievementFlagList appId={appId} analysis={analysis} />
-            <EvidenceAccordion items={evidence} />
+            <AchievementsTable achievements={achievements} />
           </div>
         ) : (
           <AnalysisLoader appId={appId} />

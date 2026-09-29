@@ -1,5 +1,5 @@
 import { getOrRunAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
-import { getEvidenceForGame } from "@/lib/db/queries/evidence";
+import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 
 export async function GET(
   _request: Request,
@@ -18,6 +18,6 @@ export async function GET(
   if (outcome.state === "pending") {
     return Response.json({ status: "pending" }, { status: 202 });
   }
-  const evidence = await getEvidenceForGame(appId);
-  return Response.json({ analysis: outcome.analysis, evidence });
+  const achievements = await getFlaggedAchievements(appId);
+  return Response.json({ analysis: outcome.analysis, achievements });
 }

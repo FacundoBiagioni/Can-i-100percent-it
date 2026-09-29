@@ -31,10 +31,13 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
         ? "Multiplayer required — servers online"
         : "Multiplayer required — server status unknown";
 
-  const missableState = analysis.missableAchievementCount > 0 ? "warning" : "off";
+  // "caution", not "warning" — missable achievements don't block 100%, they
+  // just need a second playthrough/save, so they shouldn't read as red like
+  // an actual blocker does.
+  const missableState = analysis.missableAchievementCount > 0 ? "caution" : "off";
   const missableLabel =
     analysis.missableAchievementCount > 0
-      ? `${analysis.missableAchievementCount} missable achievement(s) — check a guide before playing`
+      ? `${analysis.missableAchievementCount} missable achievement(s) — obtainable, but may need a separate playthrough/save`
       : "No missable achievements reported";
 
   const buggedState = analysis.buggedAchievementCount > 0 ? "warning" : "off";
