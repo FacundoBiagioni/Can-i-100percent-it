@@ -4,17 +4,17 @@ const STATUS_CONFIG: Record<AnalysisStatus, { emoji: string; label: string; clas
   green: {
     emoji: "🟢",
     label: "100% obtainable",
-    className: "bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+    className: "bg-emerald-950 text-emerald-300 ring-1 ring-inset ring-emerald-800",
   },
   red: {
     emoji: "🔴",
     label: "100% impossible",
-    className: "bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-300",
+    className: "bg-red-950 text-red-300 ring-1 ring-inset ring-red-800",
   },
   yellow: {
     emoji: "🟡",
     label: "Insufficient info",
-    className: "bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+    className: "bg-amber-950 text-amber-300 ring-1 ring-inset ring-amber-800",
   },
 };
 

@@ -26,6 +26,7 @@ export const appDetailsDataSchema = z.object({
   is_free: z.boolean().optional(),
   dlc: z.array(z.number()).optional().default([]),
   header_image: z.string().optional(),
+  background_raw: z.string().optional(),
   categories: z.array(appDetailsCategorySchema).optional().default([]),
   release_date: z
     .object({ coming_soon: z.boolean(), date: z.string() })

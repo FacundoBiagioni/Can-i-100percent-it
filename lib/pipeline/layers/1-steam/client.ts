@@ -29,6 +29,7 @@ export type SteamAppDetails = {
   appId: number;
   name: string;
   headerImage?: string;
+  backgroundImage?: string;
   dlcAppIds: number[];
   multiplayerRequired: boolean;
   releaseDate?: string;
@@ -51,6 +52,7 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
       appId,
       name: entry.data.name,
       headerImage: entry.data.header_image,
+      backgroundImage: entry.data.background_raw,
       dlcAppIds: entry.data.dlc,
       multiplayerRequired: categories.some((c) => MULTIPLAYER_CATEGORY_MARKERS.includes(c)),
       releaseDate: entry.data.release_date?.date,

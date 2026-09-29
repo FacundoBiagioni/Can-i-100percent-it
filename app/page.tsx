@@ -1,17 +1,21 @@
 import SearchBox from "@/components/search/SearchBox";
+import GameCollageBackground from "@/components/home/GameCollageBackground";
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-8 bg-zinc-50 px-6 dark:bg-black">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          Can i 100% it?
-        </h1>
-        <p className="max-w-sm text-sm text-zinc-500 dark:text-zinc-400">
-          Search a Steam game to see if getting 100% of the achievements is realistically possible today.
-        </p>
+    <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-24">
+      <GameCollageBackground />
+      <div className="relative z-10 flex flex-col items-center gap-8 text-center">
+        <div className="flex flex-col items-center gap-3">
+          <h1 className="text-4xl font-extrabold tracking-tight text-white drop-shadow-lg sm:text-5xl">
+            Can i 100% it?
+          </h1>
+          <p className="max-w-sm text-sm text-zinc-300 sm:text-base">
+            Search a Steam game to see if getting 100% of the achievements is realistically possible today.
+          </p>
+        </div>
+        <SearchBox size="lg" />
       </div>
-      <SearchBox />
     </main>
   );
 }

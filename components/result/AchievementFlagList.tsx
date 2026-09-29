@@ -4,7 +4,7 @@ import type { AnalysisResult } from "@/lib/pipeline/types";
 export default function AchievementFlagList({ analysis }: { analysis: AnalysisResult }) {
   if (analysis.missableAchievementCount === 0 && analysis.buggedAchievementCount === 0) {
     return (
-      <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5">
         <Accordion summary="No missable or bugged achievements reported">
           <p>No sources flagged missable steps or broken unlocks for this game.</p>
         </Accordion>
@@ -13,7 +13,7 @@ export default function AchievementFlagList({ analysis }: { analysis: AnalysisRe
   }
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5">
       {analysis.missableAchievementCount > 0 && (
         <Accordion summary={`${analysis.missableAchievementCount} missable achievement(s) reported`}>
           <p>These require specific choices earlier in a playthrough — check a guide before starting.</p>

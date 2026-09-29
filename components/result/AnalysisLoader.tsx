@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { AnalysisResult } from "@/lib/pipeline/types";
 import StatusBadge from "./StatusBadge";
 import ConfidencePill from "./ConfidencePill";
+import StatusIconRow from "./StatusIconRow";
 import RequirementsSummary from "./RequirementsSummary";
 import AchievementFlagList from "./AchievementFlagList";
 import EvidenceAccordion, { type EvidenceItem } from "./EvidenceAccordion";
@@ -62,6 +63,7 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
           <StatusBadge status={analysis.status} />
           <ConfidencePill confidence={analysis.confidence} />
         </div>
+        <StatusIconRow analysis={analysis} />
         <RequirementsSummary analysis={analysis} />
         <AchievementFlagList analysis={analysis} />
         <EvidenceAccordion items={evidence} />
@@ -70,21 +72,22 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
   }
 
   if (timedOut) {
-    return (
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">
-        This is taking longer than expected. Reload the page to check again.
-      </p>
-    );
+    return <p className="text-sm text-zinc-400">This is taking longer than expected. Reload the page to check again.</p>;
   }
 
   return (
     <div className="flex w-full max-w-xl flex-col items-center gap-6">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-14 w-56 animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
-        <div className="h-6 w-32 animate-pulse rounded-full bg-zinc-200 dark:bg-zinc-800" />
+        <div className="h-14 w-56 animate-pulse rounded-2xl bg-zinc-800" />
+        <div className="h-6 w-32 animate-pulse rounded-full bg-zinc-800" />
       </div>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400">Analyzing this game for the first time…</p>
-      <div className="h-24 w-full animate-pulse rounded-2xl bg-zinc-200 dark:bg-zinc-800" />
+      <div className="flex gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="h-12 w-12 animate-pulse rounded-2xl bg-zinc-800" />
+        ))}
+      </div>
+      <p className="text-sm text-zinc-400">Analyzing this game for the first time…</p>
+      <div className="h-24 w-full animate-pulse rounded-2xl bg-zinc-800" />
     </div>
   );
 }

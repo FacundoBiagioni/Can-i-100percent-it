@@ -22,8 +22,8 @@ export default function EvidenceAccordion({ items }: { items: EvidenceItem[] }) 
   if (items.length === 0) return null;
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 dark:border-zinc-800 dark:bg-zinc-900">
-      <div className="border-b border-zinc-100 py-3 text-sm font-medium text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
+    <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5">
+      <div className="border-b border-zinc-800 py-3 text-sm font-medium text-zinc-400">
         Evidence ({items.length})
       </div>
       {items.map((item) => (

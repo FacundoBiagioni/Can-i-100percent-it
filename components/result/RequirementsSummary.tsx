@@ -9,7 +9,7 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
 
   return (
-    <div className="w-full rounded-2xl border border-zinc-200 bg-white px-5 dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 px-5">
       <Accordion
         summary={
           requiredDlc.length > 0
@@ -25,7 +25,7 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
               <li key={d.dlcAppId} className="flex justify-between">
                 <span>
                   {d.name}
-                  {d.isDelisted && <span className="ml-2 text-red-600 dark:text-red-400">(delisted)</span>}
+                  {d.isDelisted && <span className="ml-2 text-red-400">(delisted)</span>}
                 </span>
                 {d.priceCents !== null && <span>{formatCents(d.priceCents)}</span>}
               </li>

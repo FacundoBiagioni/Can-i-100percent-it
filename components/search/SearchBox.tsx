@@ -5,7 +5,20 @@ import { useRouter } from "next/navigation";
 
 type SearchResult = { appId: number; name: string; image?: string };
 
-export default function SearchBox() {
+const SIZE_CLASSES = {
+  lg: "px-5 py-3 text-base rounded-full",
+  sm: "px-4 py-2 text-sm rounded-full",
+};
+
+export default function SearchBox({
+  size = "lg",
+  autoFocus = size === "lg",
+  placeholder = "Search a Steam game…",
+}: {
+  size?: "lg" | "sm";
+  autoFocus?: boolean;
+  placeholder?: string;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -38,11 +51,12 @@ export default function SearchBox() {
 
   function goToGame(appId: number) {
     setOpen(false);
+    setQuery("");
     router.push(`/games/${appId}`);
   }
 
   return (
-    <div className="relative w-full max-w-md">
+    <div className={`relative w-full ${size === "lg" ? "max-w-md" : "max-w-xs"}`}>
       <input
         value={query}
         onChange={(e) => {
@@ -54,31 +68,29 @@ export default function SearchBox() {
           }
         }}
         onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder="Search a Steam game…"
-        className="w-full rounded-full border border-zinc-200 bg-white px-5 py-3 text-base text-zinc-900 shadow-sm outline-none transition focus:border-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-50"
-        autoFocus
+        placeholder={placeholder}
+        className={`w-full border border-zinc-700 bg-zinc-900/80 text-zinc-50 shadow-sm outline-none backdrop-blur transition placeholder:text-zinc-500 focus:border-zinc-500 ${SIZE_CLASSES[size]}`}
+        autoFocus={autoFocus}
       />
 
       {open && (
-        <div className="absolute left-0 right-0 top-full mt-2 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
-          {loading && (
-            <div className="px-5 py-3 text-sm text-zinc-500 dark:text-zinc-400">Searching…</div>
-          )}
+        <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900 shadow-xl">
+          {loading && <div className="px-5 py-3 text-sm text-zinc-400">Searching…</div>}
           {!loading && results.length === 0 && (
-            <div className="px-5 py-3 text-sm text-zinc-500 dark:text-zinc-400">No games found</div>
+            <div className="px-5 py-3 text-sm text-zinc-400">No games found</div>
           )}
           {!loading &&
             results.map((r) => (
               <button
                 key={r.appId}
                 onClick={() => goToGame(r.appId)}
-                className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm text-zinc-900 transition hover:bg-zinc-50 dark:text-zinc-50 dark:hover:bg-zinc-800"
+                className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm text-zinc-50 transition hover:bg-zinc-800"
               >
                 {r.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={r.image} alt="" className="h-8 w-16 rounded object-cover" />
                 )}
-                <span>{r.name}</span>
+                <span className="line-clamp-1">{r.name}</span>
               </button>
             ))}
         </div>
