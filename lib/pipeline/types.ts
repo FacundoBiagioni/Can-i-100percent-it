@@ -16,6 +16,7 @@ export type AnalysisStatus = "green" | "red" | "yellow";
 export type EvidenceClaim = {
   sourceKey: SourceKey;
   achievementApiName?: string;
+  dlcAppId?: number;
   claim: Record<string, unknown>;
   confidence: ConfidenceLevel;
   reasoning?: string;

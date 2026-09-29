@@ -10,6 +10,7 @@ import { applyRecencyDecay } from "./layers/4-recency/scorer";
 import { fetchAcceptedCommunityClaims } from "./layers/5-community/reports";
 import { resolveConflicts } from "./layers/6-ai-resolver/resolver";
 import { matchAchievementName } from "./achievementMatcher";
+import { matchDlcName } from "./dlcMatcher";
 import type { AnalysisResult, EvidenceClaim, DlcRequirement } from "./types";
 
 export const PIPELINE_VERSION = "1";
@@ -57,6 +58,20 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
         if (typeof name !== "string") return c;
         const matched = matchAchievementName(name, achievementRows);
         return matched ? { ...c, achievementApiName: matched.apiName } : c;
+      });
+    }
+
+    // Same idea as above, but for "dlc_achievement_requirement" claims —
+    // sources only ever name a DLC by its store title, so resolve that
+    // free text against this game's actual owned-DLC list (from layer 1)
+    // now that it's available.
+    if (dlcNeeded.length > 0) {
+      allClaims = allClaims.map((c) => {
+        if (c.claim.type !== "dlc_achievement_requirement" || c.dlcAppId) return c;
+        const name = c.claim.name;
+        if (typeof name !== "string") return c;
+        const matched = matchDlcName(name, dlcNeeded);
+        return matched ? { ...c, dlcAppId: matched.dlcAppId } : c;
       });
     }
   }

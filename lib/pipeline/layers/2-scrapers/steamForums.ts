@@ -9,8 +9,17 @@ import type { ScraperAdapter } from "./types";
 // first-party Steam, server-rendered HTML, no Cloudflare challenge.
 // "servers shut down" / "discontinued" added after testing found the first
 // 3 queries alone missed companion-app-discontinued cases (e.g. Watch_Dogs'
-// ctOS Mobile app) that a differently-worded query does surface.
-const SEARCH_QUERIES = ["unobtainable", "achievement bugged", "servers shut down", "discontinued"];
+// ctOS Mobile app) that a differently-worded query does surface. "dlc
+// achievements" added 2026-09-30 for DLC-requirement detection — verified
+// live against Graveyard Keeper (599140), surfaces threads like "Stranger
+// Sins DLC achievements" and "Do the dlc contain achievements?".
+const SEARCH_QUERIES = [
+  "unobtainable",
+  "achievement bugged",
+  "servers shut down",
+  "discontinued",
+  "dlc achievements",
+];
 const MAX_POSTS_PER_QUERY = 8;
 
 type ForumPost = { title: string; excerpt: string; url: string; timestampMs: number | null };

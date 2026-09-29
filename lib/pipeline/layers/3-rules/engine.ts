@@ -10,15 +10,30 @@ type BaseFacts = {
 
 /** Pure function: combines every analyzer's claims into one Facts object. */
 export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
-  const dlcRequiredSignal = allClaims.some(
-    (c) => c.claim.type === "dlc_required" && c.claim.value === true,
+  // Precise signal: a "dlc_achievement_requirement" claim whose free-text
+  // DLC name the orchestrator matched against this game's own DLC list —
+  // marks just that DLC as required.
+  const specificallyRequiredDlcAppIds = new Set(
+    allClaims
+      .filter((c) => c.claim.type === "dlc_achievement_requirement" && c.dlcAppId)
+      .map((c) => c.dlcAppId!),
   );
-  // MVP heuristic: we can't attribute a "required" signal to a specific DLC
-  // without per-achievement→DLC mapping, so a positive signal marks every
-  // owned DLC as required. Refine once evidence carries a dlcAppId.
+  // Fallback signal: "some paid DLC is required" with nothing specific
+  // named — from the achievement-scouts community tag, or the AI
+  // classifier saying so without naming a DLC. Only trusted when no DLC
+  // was specifically identified, since we'd otherwise be guessing which
+  // owned DLC (if more than one) is the actual gate.
+  const generalDlcRequiredSignal = allClaims.some(
+    (c) =>
+      (c.claim.type === "dlc_required" || c.claim.type === "dlc_required_signal") &&
+      c.claim.value === true,
+  );
   const dlcNeeded: DlcRequirement[] = base.dlcNeeded.map((d) => ({
     ...d,
-    required: d.required || dlcRequiredSignal,
+    required:
+      d.required ||
+      specificallyRequiredDlcAppIds.has(d.dlcAppId) ||
+      (specificallyRequiredDlcAppIds.size === 0 && generalDlcRequiredSignal),
   }));
 
   const multiplayerRequired =
@@ -164,7 +179,18 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
   // Only claims that actually gate the verdict count toward the confidence
   // floor — informational metadata (estimated playtime, raw player counts,
   // per-achievement unlock rarity) shouldn't turn a clean result yellow.
-  const INFORMATIONAL_CLAIM_TYPES = new Set(["estimated_hours", "current_players", "global_unlock_percent"]);
+  // DLC requirement is here too: unlike delisted DLC (its own red path
+  // above) or missable/bugged achievements, a required-but-purchasable DLC
+  // is disclosed (icon + cost) but never itself a blocker, so an unsure
+  // reading of it (e.g. a Wikipedia article that just doesn't discuss DLC)
+  // shouldn't make an otherwise-clean game provisional.
+  const INFORMATIONAL_CLAIM_TYPES = new Set([
+    "estimated_hours",
+    "current_players",
+    "global_unlock_percent",
+    "dlc_required_signal",
+    "dlc_achievement_requirement",
+  ]);
   // Community tags describing mechanics rather than completion risk (a
   // single stray vote on "Steam Inventory" shouldn't make a clean game
   // provisional the same way "MP Required" should).
