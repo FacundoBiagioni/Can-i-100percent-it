@@ -24,12 +24,16 @@ export async function getOrCreateGame(appId: number) {
 
   const dlcDetails = await Promise.all(details.dlcAppIds.map(getDlcDetails));
 
+  // onConflictDoNothing: two requests can both see "not found" and race to
+  // insert the same game (e.g. quick double-navigation, prefetch + click) —
+  // whichever loses just no-ops instead of throwing on the PK/unique
+  // constraint, and the final read below returns the winner's row either way.
   await db.insert(games).values({
     id: details.appId,
     name: details.name,
     headerImageUrl: details.headerImage,
     releaseDate: details.releaseDate,
-  });
+  }).onConflictDoNothing();
 
   if (dlcDetails.length > 0) {
     await db.insert(dlc).values(
@@ -40,7 +44,7 @@ export async function getOrCreateGame(appId: number) {
         priceCents: d.priceCents,
         isDelisted: d.name.startsWith("Unknown DLC"),
       })),
-    );
+    ).onConflictDoNothing();
   }
 
   return getGameWithDlc(appId);
