@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import { getOrCreateGame } from "@/lib/db/queries/games";
-import { getOrRunAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
+import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import { getEvidenceForGame } from "@/lib/db/queries/evidence";
 import StatusBadge from "@/components/result/StatusBadge";
 import ConfidencePill from "@/components/result/ConfidencePill";
 import RequirementsSummary from "@/components/result/RequirementsSummary";
 import AchievementFlagList from "@/components/result/AchievementFlagList";
 import EvidenceAccordion from "@/components/result/EvidenceAccordion";
+import AnalysisLoader from "@/components/result/AnalysisLoader";
 
 export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const { appid } = await props.params;
@@ -16,8 +17,11 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const game = await getOrCreateGame(appId);
   if (!game) notFound();
 
-  const outcome = await getOrRunAnalysis(appId);
-  const evidence = outcome.state === "ready" ? await getEvidenceForGame(appId) : [];
+  // Read-only check — never blocks the page on a first-time pipeline run.
+  // If nothing's cached yet, AnalysisLoader kicks the run off client-side
+  // and swaps itself for the real result once it lands, no manual reload.
+  const analysis = await getCachedAnalysis(appId);
+  const evidence = analysis ? await getEvidenceForGame(appId) : [];
 
   return (
     <main className="flex flex-1 flex-col items-center gap-6 bg-zinc-50 px-6 py-16 dark:bg-black">
@@ -33,21 +37,19 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
         </p>
       </div>
 
-      {outcome.state === "ready" ? (
+      {analysis ? (
         <div className="flex w-full max-w-xl flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-3">
-            <StatusBadge status={outcome.analysis.status} />
-            <ConfidencePill confidence={outcome.analysis.confidence} />
+            <StatusBadge status={analysis.status} />
+            <ConfidencePill confidence={analysis.confidence} />
           </div>
 
-          <RequirementsSummary analysis={outcome.analysis} />
-          <AchievementFlagList analysis={outcome.analysis} />
+          <RequirementsSummary analysis={analysis} />
+          <AchievementFlagList analysis={analysis} />
           <EvidenceAccordion items={evidence} />
         </div>
       ) : (
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-          Another request is analyzing this game right now — refresh in a few seconds.
-        </p>
+        <AnalysisLoader appId={appId} />
       )}
     </main>
   );

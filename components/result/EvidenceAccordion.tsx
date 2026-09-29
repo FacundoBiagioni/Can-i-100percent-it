@@ -6,7 +6,7 @@ export type EvidenceItem = {
   reasoning: string | null;
   confidence: "high" | "medium" | "low";
   rawUrl: string | null;
-  checkedAt: Date;
+  checkedAt: Date | string;
   source: { displayName: string };
 };
 
