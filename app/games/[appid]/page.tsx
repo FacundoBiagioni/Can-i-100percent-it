@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
+import { getArgentinaDeal } from "@/lib/pricing/itad";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 import StatusBadge from "@/components/result/StatusBadge";
@@ -35,7 +36,20 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const analysis = await getCachedAnalysis(appId);
   const achievements = analysis ? await getFlaggedAchievements(appId) : [];
   const heroImage = details?.heroImage || game.headerImageUrl;
-  const arPricing = await getArgentinaPricing(appId);
+
+  // getArgentinaDeal (IsThereAnyDeal) gives the real ARS price and the
+  // genuine historical-low discount %; getArgentinaPricing (Steam directly)
+  // is the fallback for games ITAD hasn't catalogued — still a real
+  // discounted AR price, just USD-denominated since our server isn't seen
+  // as Argentina-based.
+  const [arPricing, arDeal] = await Promise.all([getArgentinaPricing(appId), getArgentinaDeal(appId)]);
+  const isFree = arPricing?.isFree ?? false;
+  const currentPrice = arDeal?.current
+    ? { priceCents: arDeal.current.priceCents, currency: arDeal.current.currency }
+    : arPricing && !arPricing.isFree && arPricing.priceCents !== null
+      ? { priceCents: arPricing.priceCents, currency: arPricing.currency }
+      : null;
+  const historicalLow = arDeal?.historicalLow && arDeal.historicalLow.cut > 0 ? arDeal.historicalLow : null;
 
   return (
     <main className="relative flex-1 bg-black">
@@ -58,13 +72,22 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
           </h1>
         </div>
 
-        {arPricing && (
-          <div className="flex items-center gap-3 text-sm text-zinc-300 drop-shadow">
-            {arPricing.isFree ? (
+        {(isFree || currentPrice) && (
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-zinc-300 drop-shadow">
+            {isFree ? (
               <span>Free to play</span>
-            ) : arPricing.priceCents !== null ? (
-              <span>{formatPrice(arPricing.priceCents, arPricing.currency)} in Argentina</span>
-            ) : null}
+            ) : (
+              currentPrice && <span>{formatPrice(currentPrice.priceCents, currentPrice.currency)} in Argentina</span>
+            )}
+            {historicalLow && (
+              <>
+                <span className="text-zinc-600">·</span>
+                <span>
+                  Lowest ever: <span className="font-semibold text-emerald-400">-{historicalLow.cut}%</span> (
+                  {formatPrice(historicalLow.priceCents, historicalLow.currency)})
+                </span>
+              </>
+            )}
           </div>
         )}
 

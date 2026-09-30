@@ -9,6 +9,8 @@ export const CacheTTL = {
   scrapeFailure: 60 * 60, // 1h, negative cache
   analysis: 60 * 10, // 10m
   pipelineLock: 60 * 5, // 5m
+  itadLookup: 60 * 60 * 24 * 30, // 30d — appid->uuid mapping is effectively permanent
+  itadDeal: 60 * 60 * 12, // 12h
 } as const;
 
 export const CacheKeys = {
@@ -21,4 +23,6 @@ export const CacheKeys = {
   scrape: (source: string, appId: number) => `scrape:${source}:${appId}`,
   analysis: (appId: number) => `analysis:${appId}`,
   pipelineLock: (appId: number) => `lock:pipeline:${appId}`,
+  itadLookup: (appId: number) => `itad:lookup:${appId}`,
+  itadDeal: (appId: number) => `itad:deal:ar:${appId}`,
 };
