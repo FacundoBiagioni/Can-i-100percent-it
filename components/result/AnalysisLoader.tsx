@@ -6,8 +6,7 @@ import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 import StatusBadge from "./StatusBadge";
 import ConfidencePill from "./ConfidencePill";
 import StatusIconRow from "./StatusIconRow";
-import RequirementsSummary from "./RequirementsSummary";
-import AchievementsTable from "./AchievementsTable";
+import BottomSheet from "./BottomSheet";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 30; // 90s ceiling — first analysis is normally done in a few seconds
@@ -58,15 +57,16 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
 
   if (analysis) {
     return (
-      <div className="flex w-full max-w-xl flex-col items-center gap-6">
-        <div className="flex flex-col items-center gap-3">
-          <StatusBadge status={analysis.status} />
-          <ConfidencePill confidence={analysis.confidence} />
+      <>
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center gap-3">
+            <StatusBadge status={analysis.status} />
+            <ConfidencePill confidence={analysis.confidence} />
+          </div>
+          <StatusIconRow analysis={analysis} />
         </div>
-        <StatusIconRow analysis={analysis} />
-        <RequirementsSummary analysis={analysis} />
-        <AchievementsTable achievements={achievements} />
-      </div>
+        <BottomSheet analysis={analysis} achievements={achievements} />
+      </>
     );
   }
 
@@ -75,7 +75,7 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
   }
 
   return (
-    <div className="flex w-full max-w-xl flex-col items-center gap-6">
+    <div className="flex flex-col items-center gap-4">
       <div className="flex flex-col items-center gap-3">
         <div className="h-14 w-56 animate-pulse rounded-2xl bg-zinc-800" />
         <div className="h-6 w-32 animate-pulse rounded-full bg-zinc-800" />
@@ -86,7 +86,6 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
         ))}
       </div>
       <p className="text-sm text-zinc-400">Analyzing this game for the first time…</p>
-      <div className="h-24 w-full animate-pulse rounded-2xl bg-zinc-800" />
     </div>
   );
 }

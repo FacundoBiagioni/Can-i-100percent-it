@@ -19,6 +19,10 @@ export const appDetailsCategorySchema = z.object({
   description: z.string(),
 });
 
+export const appDetailsScreenshotSchema = z.object({
+  path_full: z.string(),
+});
+
 export const appDetailsDataSchema = z.object({
   type: z.string(),
   name: z.string(),
@@ -27,6 +31,11 @@ export const appDetailsDataSchema = z.object({
   dlc: z.array(z.number()).optional().default([]),
   header_image: z.string().optional(),
   background_raw: z.string().optional(),
+  // background_raw is a deliberately faint store-page background (meant to
+  // sit behind store text at low opacity) — too muted for a bold full-bleed
+  // hero. A real gameplay screenshot looks far better full-screen; verified
+  // live against Hollow Knight's appdetails response.
+  screenshots: z.array(appDetailsScreenshotSchema).optional().default([]),
   categories: z.array(appDetailsCategorySchema).optional().default([]),
   release_date: z
     .object({ coming_soon: z.boolean(), date: z.string() })
