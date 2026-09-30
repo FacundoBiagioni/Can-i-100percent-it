@@ -4,12 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-type SearchResult = { appId: number; name: string; image?: string };
+type SearchResult = { appId: number; name: string; image?: string; isFree: boolean; priceCents: number | null };
 
 const SIZE_CLASSES = {
   lg: "px-5 py-3 text-base rounded-full",
   sm: "px-4 py-2 text-sm rounded-full",
 };
+
+function formatUsd(cents: number) {
+  return `$${(cents / 100).toFixed(2)}`;
+}
 
 export default function SearchBox({
   size = "lg",
@@ -88,7 +92,13 @@ export default function SearchBox({
 
       {open && (
         <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900 shadow-xl">
-          {loading && <div className="px-5 py-3 text-sm text-zinc-400">Searching…</div>}
+          {loading &&
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex w-full items-center gap-3 px-5 py-3">
+                <div className="h-8 w-16 shrink-0 animate-pulse rounded bg-zinc-800" />
+                <div className="h-4 w-32 animate-pulse rounded bg-zinc-800" />
+              </div>
+            ))}
           {!loading && results.length === 0 && (
             <div className="px-5 py-3 text-sm text-zinc-400">No games found</div>
           )}
@@ -102,7 +112,10 @@ export default function SearchBox({
                 {r.image && (
                   <Image src={r.image} alt="" width={64} height={32} className="rounded object-cover" />
                 )}
-                <span className="line-clamp-1">{r.name}</span>
+                <span className="line-clamp-1 flex-1">{r.name}</span>
+                <span className="shrink-0 text-xs text-zinc-400">
+                  {r.isFree ? "Free" : r.priceCents !== null ? formatUsd(r.priceCents) : ""}
+                </span>
               </button>
             ))}
         </div>

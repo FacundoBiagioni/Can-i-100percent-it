@@ -10,28 +10,13 @@ import {
 } from "@/lib/validation/schemas";
 import type { Analyzer, AnalyzerContext, Facts, EvidenceClaim, DlcRequirement } from "../../types";
 
-export type SteamGameSummary = { appId: number; name: string; image?: string };
-
-/**
- * storesearch's own `type` field is always "app" for every result — verified
- * live it doesn't distinguish a game from its DLC or soundtrack (Graveyard
- * Keeper's "Stranger Sins" DLC and Hollow Knight's "Official Soundtrack"
- * both report type "app" there). The real classification ("game", "dlc",
- * "music", ...) only comes from appdetails. Filters=basic keeps this call
- * light since search-time classification doesn't need pricing/DLC/screenshots.
- */
-async function getAppType(appId: number): Promise<string | null> {
-  return getOrFetch(CacheKeys.steamAppType(appId), CacheTTL.steamAppType, async () => {
-    const url = `${STEAM_ENDPOINTS.appDetails}?appids=${appId}&cc=us&l=english&filters=basic`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const parsed = appDetailsResponseSchema(appId).safeParse(await res.json());
-    if (!parsed.success) return null;
-    const entry = parsed.data[String(appId)];
-    if (!entry.success || !entry.data) return null;
-    return entry.data.type;
-  });
-}
+export type SteamGameSummary = {
+  appId: number;
+  name: string;
+  image?: string;
+  isFree: boolean;
+  priceCents: number | null;
+};
 
 export async function searchGames(query: string): Promise<SteamGameSummary[]> {
   return getOrFetch(CacheKeys.steamSearch(query), CacheTTL.steamSearch, async () => {
@@ -42,25 +27,39 @@ export async function searchGames(query: string): Promise<SteamGameSummary[]> {
     if (!parsed.success) return [];
     const candidates = parsed.data.items.filter((item) => item.type === "app");
 
-    // Games always kept. Non-game software (Steam's own "application" type,
-    // e.g. Wallpaper Engine) only kept if it actually has achievements —
-    // otherwise there's nothing for this app to do with it. Everything else
-    // (dlc, music, demo, video, ...) is dropped.
+    // storesearch's own `type` field is always "app" for every result —
+    // verified live it doesn't distinguish a game from its DLC or
+    // soundtrack (Graveyard Keeper's "Stranger Sins" DLC and Hollow
+    // Knight's "Official Soundtrack" both report type "app" there). Real
+    // classification ("game", "dlc", "music", ...) only comes from
+    // appdetails — reusing the full getAppDetails call (already cached
+    // 24h) instead of a separate lighter one, since we want its price too.
+    // Games always kept. Non-game software (Steam's own "application"
+    // type, e.g. Wallpaper Engine) only kept if it actually has
+    // achievements — otherwise there's nothing for this app to do with
+    // it. Everything else (dlc, music, demo, video, ...) is dropped.
     const classified = await Promise.all(
       candidates.map(async (item) => {
-        const type = await getAppType(item.id);
-        if (type === "game") return item;
-        if (type === "application") {
+        const details = await getAppDetails(item.id);
+        if (!details) return null;
+        if (details.type === "game") return { item, details };
+        if (details.type === "application") {
           const achievements = await getAchievementSchema(item.id);
-          if (achievements.length > 0) return item;
+          if (achievements.length > 0) return { item, details };
         }
         return null;
       }),
     );
 
     return classified
-      .filter((item): item is NonNullable<typeof item> => item !== null)
-      .map((item) => ({ appId: item.id, name: item.name, image: item.tiny_image }));
+      .filter((c): c is NonNullable<typeof c> => c !== null)
+      .map(({ item, details }) => ({
+        appId: item.id,
+        name: item.name,
+        image: item.tiny_image,
+        isFree: details.isFree,
+        priceCents: details.priceCents,
+      }));
   });
 }
 
