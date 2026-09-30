@@ -27,14 +27,16 @@ export default async function GameCollageBackground() {
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="grid h-full grid-cols-3 gap-1 opacity-40 sm:grid-cols-5 md:grid-cols-7">
+      <div
+        className="absolute inset-0 grid grid-cols-3 gap-1 opacity-80 sm:grid-cols-5 md:grid-cols-7"
+        style={{ animation: "slow-pan 50s ease-in-out infinite alternate" }}
+      >
         {images.map((game) => (
           // eslint-disable-next-line @next/next/no-img-element
           <img key={game.appId} src={game.headerImage} alt="" className="h-full w-full object-cover" />
         ))}
       </div>
-      <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/85 to-black" />
-      <div className="absolute inset-0 bg-black/30" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/55 to-black/95" />
     </div>
   );
 }
