@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 type SearchResult = { appId: number; name: string; image?: string };
 
@@ -99,8 +100,7 @@ export default function SearchBox({
                 className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm text-zinc-50 transition hover:bg-zinc-800"
               >
                 {r.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.image} alt="" className="h-8 w-16 rounded object-cover" />
+                  <Image src={r.image} alt="" width={64} height={32} className="rounded object-cover" />
                 )}
                 <span className="line-clamp-1">{r.name}</span>
               </button>

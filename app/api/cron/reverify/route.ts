@@ -1,8 +1,6 @@
 import { type NextRequest } from "next/server";
 import { selectStaleGames } from "@/lib/pipeline/layers/7-cron/selectStaleGames";
 import { runPipeline } from "@/lib/pipeline/orchestrator";
-import { redis } from "@/lib/cache/redis";
-import { CacheKeys } from "@/lib/cache/keys";
 
 // Processes up to 10 games sequentially (Steam + scraper + occasional AI
 // calls each) — generous headroom under Vercel's default budget.
@@ -19,8 +17,8 @@ export async function GET(request: NextRequest) {
 
   for (const appId of staleAppIds) {
     try {
+      // runPipeline already invalidates the analysis:{appId} cache key itself.
       const result = await runPipeline(appId, "cron");
-      if (redis) await redis.del(CacheKeys.analysis(appId));
       results.push({ appId, status: result.status });
     } catch (err) {
       results.push({ appId, status: `error: ${err instanceof Error ? err.message : "unknown"}` });

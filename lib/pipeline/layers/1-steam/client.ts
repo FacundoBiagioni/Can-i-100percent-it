@@ -67,6 +67,8 @@ export async function searchGames(query: string): Promise<SteamGameSummary[]> {
 export type SteamAppDetails = {
   appId: number;
   name: string;
+  /** Steam's own classification — "game", "dlc", "music", "application", ... */
+  type: string;
   headerImage?: string;
   /** A real gameplay screenshot when one exists — far more vivid than
    * background_raw, which Steam intentionally fades for use behind store
@@ -94,6 +96,7 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
     return {
       appId,
       name: entry.data.name,
+      type: entry.data.type,
       headerImage: entry.data.header_image,
       heroImage: entry.data.screenshots[0]?.path_full ?? entry.data.background_raw,
       dlcAppIds: entry.data.dlc,
@@ -148,15 +151,21 @@ export async function getArgentinaPricing(appId: number): Promise<ArPricing | nu
   });
 }
 
-export type DlcDetails = { appId: number; name: string; priceCents: number | null; isFree: boolean };
+export type DlcDetails = { appId: number; name: string; priceCents: number | null; isFree: boolean; type: string };
 
 export async function getDlcDetails(dlcAppId: number): Promise<DlcDetails> {
   const details = await getAppDetails(dlcAppId);
   if (!details) {
     // DLC page pulled/delisted — appdetails returns success:false for it.
-    return { appId: dlcAppId, name: `Unknown DLC (${dlcAppId})`, priceCents: null, isFree: false };
+    return { appId: dlcAppId, name: `Unknown DLC (${dlcAppId})`, priceCents: null, isFree: false, type: "dlc" };
   }
-  return { appId: dlcAppId, name: details.name, priceCents: details.priceCents, isFree: details.isFree };
+  return {
+    appId: dlcAppId,
+    name: details.name,
+    priceCents: details.priceCents,
+    isFree: details.isFree,
+    type: details.type,
+  };
 }
 
 export type SteamAchievementSchema = {
@@ -239,13 +248,22 @@ export const steamAnalyzer: Analyzer = {
     }
 
     const dlcDetails = await Promise.all(details.dlcAppIds.map(getDlcDetails));
-    const dlcNeeded: DlcRequirement[] = dlcDetails.map((d) => ({
-      dlcAppId: d.appId,
-      name: d.name,
-      priceCents: d.priceCents,
-      required: false, // layer 3 decides "required" from achievement->DLC links + scraper evidence
-      isDelisted: d.name.startsWith("Unknown DLC"),
-    }));
+    // Soundtracks/other non-gameplay "dlc" entries (type "music") never
+    // gate achievements — excluded entirely so a scraper/AI claim naming a
+    // real expansion can't get fuzzy-matched onto its same-named soundtrack
+    // instead (confirmed live: The Witcher 3's remastered SKU only lists
+    // "Hearts of Stone Soundtrack"/"Blood and Wine Soundtrack" as owned DLC,
+    // not the expansions themselves, which wrongly matched "Hearts of
+    // Stone" from a Wikipedia-derived claim onto the soundtrack).
+    const dlcNeeded: DlcRequirement[] = dlcDetails
+      .filter((d) => d.type !== "music")
+      .map((d) => ({
+        dlcAppId: d.appId,
+        name: d.name,
+        priceCents: d.priceCents,
+        required: false, // layer 3 decides "required" from achievement->DLC links + scraper evidence
+        isDelisted: d.name.startsWith("Unknown DLC"),
+      }));
 
     claims.push({
       sourceKey: "steam_api",

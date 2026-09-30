@@ -52,20 +52,3 @@ export async function insertEvidence(gameId: number, claims: EvidenceClaim[]) {
 
   if (rows.length > 0) await db.insert(evidence).values(rows);
 }
-
-// Fired once per achievement (can be 50-1000+ rows) — genuine supporting
-// data, but too granular for the "no information overload" evidence panel.
-const EVIDENCE_PANEL_EXCLUDED_TYPES = new Set(["global_unlock_percent"]);
-
-export async function getEvidenceForGame(gameId: number) {
-  const rows = await db.query.evidence.findMany({
-    where: eq(evidence.gameId, gameId),
-    with: { source: true },
-    orderBy: (t, { desc }) => desc(t.checkedAt),
-  });
-
-  return rows.filter((r) => {
-    const type = typeof r.claim === "object" && r.claim !== null ? (r.claim as { type?: unknown }).type : undefined;
-    return typeof type !== "string" || !EVIDENCE_PANEL_EXCLUDED_TYPES.has(type);
-  });
-}

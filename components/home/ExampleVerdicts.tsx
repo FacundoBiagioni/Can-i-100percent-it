@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getGameWithDlc } from "@/lib/db/queries/games";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import type { AnalysisStatus } from "@/lib/pipeline/types";
@@ -39,8 +40,7 @@ export default async function ExampleVerdicts() {
             className="group flex items-center gap-2 rounded-full border border-zinc-700/80 bg-black/40 py-1.5 pl-1.5 pr-4 backdrop-blur-sm transition hover:border-zinc-500 hover:bg-black/60"
           >
             {c.image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={c.image} alt="" className="h-8 w-14 rounded-lg object-cover" />
+              <Image src={c.image} alt="" width={56} height={32} className="rounded-lg object-cover" />
             )}
             <span className={`h-2 w-2 shrink-0 rounded-full ${STATUS_DOT[c.status]}`} />
             <span className="text-xs font-medium text-zinc-200 sm:text-sm">{c.name}</span>

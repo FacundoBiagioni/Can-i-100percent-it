@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
 
 // A fixed, curated set of visually strong, widely-recognized games — purely
@@ -32,8 +33,9 @@ export default async function GameCollageBackground() {
         style={{ animation: "slow-pan 50s ease-in-out infinite alternate" }}
       >
         {images.map((game) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={game.appId} src={game.headerImage} alt="" className="h-full w-full object-cover" />
+          <div key={game.appId} className="relative h-full w-full">
+            <Image src={game.headerImage!} alt="" fill sizes="(max-width: 640px) 33vw, (max-width: 768px) 20vw, 14vw" className="object-cover" />
+          </div>
         ))}
       </div>
       <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/55 to-black/95" />

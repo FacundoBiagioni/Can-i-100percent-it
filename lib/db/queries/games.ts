@@ -57,7 +57,10 @@ export async function getOrCreateGame(appId: number) {
   const details = await getAppDetails(appId);
   if (!details) return null;
 
-  const dlcDetails = await Promise.all(details.dlcAppIds.map(getDlcDetails));
+  // Soundtracks/other non-gameplay "dlc" entries never gate achievements —
+  // excluded so they don't pollute this table (same reasoning as the
+  // pipeline's own DLC-requirement matching in steamAnalyzer.run()).
+  const dlcDetails = (await Promise.all(details.dlcAppIds.map(getDlcDetails))).filter((d) => d.type !== "music");
 
   // onConflictDoNothing: two requests can both see "not found" and race to
   // insert the same game (e.g. quick double-navigation, prefetch + click) —

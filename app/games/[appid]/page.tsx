@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Image from "next/image";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
 import { getArgentinaMaxDiscountCut } from "@/lib/pricing/itad";
@@ -75,8 +76,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
     <main className="relative flex-1 bg-black">
       {heroImage && (
         <div className="fixed inset-0 z-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={heroImage} alt="" className="h-full w-full object-cover" />
+          <Image src={heroImage} alt="" fill priority sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/20 to-black/85" />
         </div>
       )}

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { GitBranch, Bug, Ban } from "lucide-react";
 import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 
@@ -21,8 +22,7 @@ export default function AchievementsTable({ achievements }: { achievements: Flag
       {achievements.map((a) => (
         <div key={a.id} className="flex gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-3">
           {a.iconUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={a.iconUrl} alt="" className="h-10 w-10 shrink-0 rounded-lg" />
+            <Image src={a.iconUrl} alt="" width={40} height={40} className="shrink-0 rounded-lg" />
           )}
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
