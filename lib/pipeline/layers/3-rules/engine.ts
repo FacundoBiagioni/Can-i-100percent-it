@@ -19,15 +19,28 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
       .map((c) => c.dlcAppId!),
   );
   // Fallback signal: "some paid DLC is required" with nothing specific
-  // named — from the achievement-scouts community tag, or the AI
-  // classifier saying so without naming a DLC. Only trusted when no DLC
-  // was specifically identified, since we'd otherwise be guessing which
-  // owned DLC (if more than one) is the actual gate.
-  const generalDlcRequiredSignal = allClaims.some(
-    (c) =>
-      (c.claim.type === "dlc_required" || c.claim.type === "dlc_required_signal") &&
-      c.claim.value === true,
-  );
+  // named — from the achievement-scouts community tag (which never names
+  // one by design), or the AI classifier saying so without naming a DLC
+  // either. Deliberately does NOT include an AI dlc_required_signal that
+  // DID come with named attempts that all failed to match — that means
+  // the named expansion(s) aren't in this game's current owned-DLC list at
+  // all (e.g. a remastered SKU where an old expansion got folded into the
+  // base game instead of staying separate DLC, confirmed live on The
+  // Witcher 3's remastered listing), which is a reason to disclose
+  // nothing rather than guess-flag an unrelated owned DLC as required.
+  // A single low-vote community tag is too thin to justify flagging a DLC
+  // as required with no name attached to it — confirmed live: a 1-vote
+  // achievement-scouts "DLC Required" tag on The Witcher 3 was, on its
+  // own, enough to blanket-flag an unrelated small DLC once the named
+  // attempts above stopped contributing (same "single stray vote"
+  // reasoning already applied to community tags in deriveStatus below).
+  const namedDlcAttempts = allClaims.filter((c) => c.claim.type === "dlc_achievement_requirement");
+  const generalDlcRequiredSignal =
+    allClaims.some((c) => c.claim.type === "dlc_required" && c.claim.value === true && c.confidence !== "low") ||
+    (namedDlcAttempts.length === 0 &&
+      allClaims.some(
+        (c) => c.claim.type === "dlc_required_signal" && c.claim.value === true && c.confidence !== "low",
+      ));
   const dlcNeeded: DlcRequirement[] = base.dlcNeeded.map((d) => ({
     ...d,
     required:
