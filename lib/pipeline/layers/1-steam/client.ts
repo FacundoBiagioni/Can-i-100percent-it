@@ -110,8 +110,11 @@ export type ArPricing = {
   currency: string;
   priceCents: number | null;
   /** Pre-discount regular price — needed to apply a discount % (e.g. an
-   * ITAD historical-low cut) against a USD-denominated figure. */
+   * ITAD historical-low cut) against a USD-denominated figure, and to show
+   * a struck-through "was" price when the game is currently on sale. */
   initialPriceCents: number | null;
+  /** Steam's own current discount %, 0 when not on sale. */
+  discountPercent: number;
 };
 
 /**
@@ -131,13 +134,16 @@ export async function getArgentinaPricing(appId: number): Promise<ArPricing | nu
     const entry = parsed.data[String(appId)];
     if (!entry.success || !entry.data) return null;
 
-    if (entry.data.is_free) return { isFree: true, currency: "", priceCents: null, initialPriceCents: null };
+    if (entry.data.is_free) {
+      return { isFree: true, currency: "", priceCents: null, initialPriceCents: null, discountPercent: 0 };
+    }
     if (!entry.data.price_overview) return null;
     return {
       isFree: false,
       currency: entry.data.price_overview.currency,
       priceCents: entry.data.price_overview.final,
       initialPriceCents: entry.data.price_overview.initial,
+      discountPercent: entry.data.price_overview.discount_percent,
     };
   });
 }

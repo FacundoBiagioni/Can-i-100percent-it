@@ -51,6 +51,14 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
     arPricing && !arPricing.isFree && arPricing.priceCents !== null
       ? { priceCents: arPricing.priceCents, currency: arPricing.currency }
       : null;
+  // Steam's own live discount on this price — shown as a struck-through
+  // "was" price next to the current one, not folded into "the" price, so a
+  // game that's just on sale right now doesn't read as if that were its
+  // normal cost.
+  const activeDiscount =
+    arPricing && !arPricing.isFree && arPricing.discountPercent > 0 && arPricing.initialPriceCents !== null
+      ? { percent: arPricing.discountPercent, initialPriceCents: arPricing.initialPriceCents }
+      : null;
   const historicalLow =
     maxDiscountCut && maxDiscountCut > 0 && arPricing?.initialPriceCents
       ? {
@@ -59,6 +67,9 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
           currency: arPricing.currency,
         }
       : null;
+  // Don't show "lowest ever" right next to an active discount that's
+  // already at (or beyond) that same price — redundant with the badge.
+  const showHistoricalLow = historicalLow && (!currentPrice || historicalLow.priceCents < currentPrice.priceCents);
 
   return (
     <main className="relative flex-1 bg-black">
@@ -86,9 +97,26 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
             {isFree ? (
               <span>Free to play</span>
             ) : (
-              currentPrice && <span>{formatPrice(currentPrice.priceCents, currentPrice.currency)} in Argentina</span>
+              currentPrice && (
+                <span className="flex items-center gap-2">
+                  {activeDiscount && (
+                    <>
+                      <span className="rounded bg-emerald-600 px-1.5 py-0.5 text-xs font-bold text-white">
+                        -{activeDiscount.percent}%
+                      </span>
+                      <span className="text-zinc-500 line-through">
+                        {formatPrice(activeDiscount.initialPriceCents, currentPrice.currency)}
+                      </span>
+                    </>
+                  )}
+                  <span className={activeDiscount ? "font-semibold text-white" : undefined}>
+                    {formatPrice(currentPrice.priceCents, currentPrice.currency)}
+                  </span>
+                  <span>in Argentina</span>
+                </span>
+              )
             )}
-            {historicalLow && (
+            {showHistoricalLow && (
               <>
                 <span className="text-zinc-600">·</span>
                 <span>
