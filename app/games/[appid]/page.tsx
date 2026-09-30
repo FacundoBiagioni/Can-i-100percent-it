@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
-import { getArgentinaDeal } from "@/lib/pricing/itad";
+import { getArgentinaMaxDiscountCut } from "@/lib/pricing/itad";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 import StatusBadge from "@/components/result/StatusBadge";
@@ -37,19 +37,28 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const achievements = analysis ? await getFlaggedAchievements(appId) : [];
   const heroImage = details?.heroImage || game.headerImageUrl;
 
-  // getArgentinaDeal (IsThereAnyDeal) gives the real ARS price and the
-  // genuine historical-low discount %; getArgentinaPricing (Steam directly)
-  // is the fallback for games ITAD hasn't catalogued — still a real
-  // discounted AR price, just USD-denominated since our server isn't seen
-  // as Argentina-based.
-  const [arPricing, arDeal] = await Promise.all([getArgentinaPricing(appId), getArgentinaDeal(appId)]);
+  // getArgentinaPricing is Steam's own AR-regional price — genuinely
+  // discounted vs. US, but denominated in USD since our server isn't seen
+  // as Argentina-based (that's how Steam itself shows this region, so it's
+  // shown as-is rather than converted). getArgentinaMaxDiscountCut is the
+  // biggest % Steam has ever discounted this game in Argentina (via
+  // IsThereAnyDeal, whose own price data is in real ARS) — applied to the
+  // current USD regular price rather than shown in ITAD's own currency, to
+  // keep both figures in the same USD terms.
+  const [arPricing, maxDiscountCut] = await Promise.all([getArgentinaPricing(appId), getArgentinaMaxDiscountCut(appId)]);
   const isFree = arPricing?.isFree ?? false;
-  const currentPrice = arDeal?.current
-    ? { priceCents: arDeal.current.priceCents, currency: arDeal.current.currency }
-    : arPricing && !arPricing.isFree && arPricing.priceCents !== null
+  const currentPrice =
+    arPricing && !arPricing.isFree && arPricing.priceCents !== null
       ? { priceCents: arPricing.priceCents, currency: arPricing.currency }
       : null;
-  const historicalLow = arDeal?.historicalLow && arDeal.historicalLow.cut > 0 ? arDeal.historicalLow : null;
+  const historicalLow =
+    maxDiscountCut && maxDiscountCut > 0 && arPricing?.initialPriceCents
+      ? {
+          cut: maxDiscountCut,
+          priceCents: Math.round(arPricing.initialPriceCents * (1 - maxDiscountCut / 100)),
+          currency: arPricing.currency,
+        }
+      : null;
 
   return (
     <main className="relative flex-1 bg-black">
@@ -93,18 +102,26 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
 
         {analysis ? (
           <div className="flex flex-col items-center gap-4">
-            <div className="flex flex-col items-center gap-3">
+            {analysis.status === "no_achievements" ? (
               <StatusBadge status={analysis.status} />
-              <ConfidencePill confidence={analysis.confidence} />
-            </div>
-            <StatusIconRow analysis={analysis} />
+            ) : (
+              <>
+                <div className="flex flex-col items-center gap-3">
+                  <StatusBadge status={analysis.status} />
+                  <ConfidencePill confidence={analysis.confidence} />
+                </div>
+                <StatusIconRow analysis={analysis} />
+              </>
+            )}
           </div>
         ) : (
           <AnalysisLoader appId={appId} />
         )}
       </div>
 
-      {analysis && <BottomSheet analysis={analysis} achievements={achievements} />}
+      {analysis && analysis.status !== "no_achievements" && (
+        <BottomSheet analysis={analysis} achievements={achievements} />
+      )}
     </main>
   );
 }

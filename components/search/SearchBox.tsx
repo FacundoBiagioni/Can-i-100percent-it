@@ -25,6 +25,18 @@ export default function SearchBox({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -56,7 +68,7 @@ export default function SearchBox({
   }
 
   return (
-    <div className={`relative w-full ${size === "lg" ? "max-w-md" : "max-w-xs"}`}>
+    <div ref={containerRef} className={`relative w-full ${size === "lg" ? "max-w-md" : "max-w-xs"}`}>
       <input
         value={query}
         onChange={(e) => {

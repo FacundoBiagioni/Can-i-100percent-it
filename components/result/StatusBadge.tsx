@@ -16,6 +16,11 @@ const STATUS_CONFIG: Record<AnalysisStatus, { emoji: string; label: string; clas
     label: "Insufficient info",
     className: "bg-amber-950 text-amber-300 ring-1 ring-inset ring-amber-800",
   },
+  no_achievements: {
+    emoji: "⚪",
+    label: "No achievements",
+    className: "bg-zinc-800 text-zinc-300 ring-1 ring-inset ring-zinc-700",
+  },
 };
 
 export default function StatusBadge({ status }: { status: AnalysisStatus }) {

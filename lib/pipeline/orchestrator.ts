@@ -40,6 +40,34 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
   let allClaims: EvidenceClaim[] = [...steamResult.claims];
 
   if (foundOnSteam) {
+    // An app with zero achievements has nothing for this whole pipeline to
+    // check — short-circuit before spending any scraper/AI calls on it and
+    // report it as its own distinct status rather than a green/red verdict
+    // that wouldn't mean anything (100% of nothing).
+    const achievementRows = await getAchievementsForGame(appId);
+    if (achievementRows.length === 0) {
+      const result: AnalysisResult = {
+        gameId: appId,
+        status: "no_achievements",
+        confidence: "high",
+        dlcRequired: [],
+        totalDlcCostCents: 0,
+        multiplayerRequired: false,
+        minPlayers: null,
+        serversStatus: "online",
+        missableAchievementCount: 0,
+        buggedAchievementCount: 0,
+        unobtainableAchievementCount: 0,
+        estimatedHours: null,
+        reasoning: "This app has no Steam achievements to track.",
+        aiUsed: false,
+      };
+      await upsertAnalysisResult(result);
+      await insertVerificationHistory(appId, result, trigger, PIPELINE_VERSION, startedAt);
+      if (redis) await redis.del(CacheKeys.analysis(appId));
+      return result;
+    }
+
     const [scraperClaims, communityClaims] = await Promise.all([
       runAllScrapers(appId, gameName),
       fetchAcceptedCommunityClaims(appId),
@@ -51,18 +79,15 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
     // now that the game's own list is available, so layer 3 and the detail
     // view can attribute the claim to a specific achievement record.
     const NAMED_ACHIEVEMENT_CLAIM_TYPES = new Set(["achievement_unobtainable", "missable"]);
-    const achievementRows = await getAchievementsForGame(appId);
-    if (achievementRows.length > 0) {
-      allClaims = allClaims.map((c) => {
-        if (typeof c.claim.type !== "string" || !NAMED_ACHIEVEMENT_CLAIM_TYPES.has(c.claim.type) || c.achievementApiName) {
-          return c;
-        }
-        const name = c.claim.name;
-        if (typeof name !== "string") return c;
-        const matched = matchAchievementName(name, achievementRows);
-        return matched ? { ...c, achievementApiName: matched.apiName } : c;
-      });
-    }
+    allClaims = allClaims.map((c) => {
+      if (typeof c.claim.type !== "string" || !NAMED_ACHIEVEMENT_CLAIM_TYPES.has(c.claim.type) || c.achievementApiName) {
+        return c;
+      }
+      const name = c.claim.name;
+      if (typeof name !== "string") return c;
+      const matched = matchAchievementName(name, achievementRows);
+      return matched ? { ...c, achievementApiName: matched.apiName } : c;
+    });
 
     // Same idea as above, but for "dlc_achievement_requirement" claims —
     // sources only ever name a DLC by its store title, so resolve that

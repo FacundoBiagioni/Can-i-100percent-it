@@ -11,7 +11,7 @@ export type SourceKey =
 
 export type ConfidenceLevel = "high" | "medium" | "low";
 export type ServerStatus = "online" | "offline" | "unknown";
-export type AnalysisStatus = "green" | "red" | "yellow";
+export type AnalysisStatus = "green" | "red" | "yellow" | "no_achievements";
 
 export type EvidenceClaim = {
   sourceKey: SourceKey;

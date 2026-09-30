@@ -1,6 +1,7 @@
 export const CacheTTL = {
   steamSearch: 60 * 60, // 1h
   steamAppDetails: 60 * 60 * 24, // 24h
+  steamAppType: 60 * 60 * 24 * 30, // 30d — an app's type (game/dlc/music/...) essentially never changes
   steamArPricing: 60 * 60 * 24, // 24h
   steamSchema: 60 * 60 * 24 * 7, // 7d
   steamGlobalPct: 60 * 60 * 6, // 6h
@@ -16,6 +17,7 @@ export const CacheTTL = {
 export const CacheKeys = {
   steamSearch: (query: string) => `steam:search:${query.toLowerCase()}`,
   steamAppDetails: (appId: number) => `steam:appdetails:${appId}`,
+  steamAppType: (appId: number) => `steam:apptype:${appId}`,
   steamArPricing: (appId: number) => `steam:pricing:ar:${appId}`,
   steamSchema: (appId: number) => `steam:schema:${appId}`,
   steamGlobalPct: (appId: number) => `steam:globalpct:${appId}`,

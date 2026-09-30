@@ -56,6 +56,10 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
   }, [appId]);
 
   if (analysis) {
+    if (analysis.status === "no_achievements") {
+      return <StatusBadge status={analysis.status} />;
+    }
+
     return (
       <>
         <div className="flex flex-col items-center gap-4">

@@ -12,6 +12,27 @@ import type { Analyzer, AnalyzerContext, Facts, EvidenceClaim, DlcRequirement } 
 
 export type SteamGameSummary = { appId: number; name: string; image?: string };
 
+/**
+ * storesearch's own `type` field is always "app" for every result — verified
+ * live it doesn't distinguish a game from its DLC or soundtrack (Graveyard
+ * Keeper's "Stranger Sins" DLC and Hollow Knight's "Official Soundtrack"
+ * both report type "app" there). The real classification ("game", "dlc",
+ * "music", ...) only comes from appdetails. Filters=basic keeps this call
+ * light since search-time classification doesn't need pricing/DLC/screenshots.
+ */
+async function getAppType(appId: number): Promise<string | null> {
+  return getOrFetch(CacheKeys.steamAppType(appId), CacheTTL.steamAppType, async () => {
+    const url = `${STEAM_ENDPOINTS.appDetails}?appids=${appId}&cc=us&l=english&filters=basic`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const parsed = appDetailsResponseSchema(appId).safeParse(await res.json());
+    if (!parsed.success) return null;
+    const entry = parsed.data[String(appId)];
+    if (!entry.success || !entry.data) return null;
+    return entry.data.type;
+  });
+}
+
 export async function searchGames(query: string): Promise<SteamGameSummary[]> {
   return getOrFetch(CacheKeys.steamSearch(query), CacheTTL.steamSearch, async () => {
     const url = `${STEAM_ENDPOINTS.storeSearch}?term=${encodeURIComponent(query)}&l=english&cc=US`;
@@ -19,8 +40,26 @@ export async function searchGames(query: string): Promise<SteamGameSummary[]> {
     if (!res.ok) return [];
     const parsed = storeSearchResponseSchema.safeParse(await res.json());
     if (!parsed.success) return [];
-    return parsed.data.items
-      .filter((item) => item.type === "app")
+    const candidates = parsed.data.items.filter((item) => item.type === "app");
+
+    // Games always kept. Non-game software (Steam's own "application" type,
+    // e.g. Wallpaper Engine) only kept if it actually has achievements —
+    // otherwise there's nothing for this app to do with it. Everything else
+    // (dlc, music, demo, video, ...) is dropped.
+    const classified = await Promise.all(
+      candidates.map(async (item) => {
+        const type = await getAppType(item.id);
+        if (type === "game") return item;
+        if (type === "application") {
+          const achievements = await getAchievementSchema(item.id);
+          if (achievements.length > 0) return item;
+        }
+        return null;
+      }),
+    );
+
+    return classified
+      .filter((item): item is NonNullable<typeof item> => item !== null)
       .map((item) => ({ appId: item.id, name: item.name, image: item.tiny_image }));
   });
 }
@@ -66,7 +105,14 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
   });
 }
 
-export type ArPricing = { isFree: boolean; currency: string; priceCents: number | null };
+export type ArPricing = {
+  isFree: boolean;
+  currency: string;
+  priceCents: number | null;
+  /** Pre-discount regular price — needed to apply a discount % (e.g. an
+   * ITAD historical-low cut) against a USD-denominated figure. */
+  initialPriceCents: number | null;
+};
 
 /**
  * Argentina's Steam storefront pricing — verified live to be genuinely
@@ -85,12 +131,13 @@ export async function getArgentinaPricing(appId: number): Promise<ArPricing | nu
     const entry = parsed.data[String(appId)];
     if (!entry.success || !entry.data) return null;
 
-    if (entry.data.is_free) return { isFree: true, currency: "", priceCents: null };
+    if (entry.data.is_free) return { isFree: true, currency: "", priceCents: null, initialPriceCents: null };
     if (!entry.data.price_overview) return null;
     return {
       isFree: false,
       currency: entry.data.price_overview.currency,
       priceCents: entry.data.price_overview.final,
+      initialPriceCents: entry.data.price_overview.initial,
     };
   });
 }

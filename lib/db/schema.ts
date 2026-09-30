@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-export const statusEnum = pgEnum("status", ["green", "red", "yellow"]);
+export const statusEnum = pgEnum("status", ["green", "red", "yellow", "no_achievements"]);
 export const confidenceEnum = pgEnum("confidence", ["high", "medium", "low"]);
 export const serverStatusEnum = pgEnum("server_status", ["online", "offline", "unknown"]);
 export const sourceKeyEnum = pgEnum("source_key", [
