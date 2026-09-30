@@ -66,6 +66,35 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
   });
 }
 
+export type ArPricing = { isFree: boolean; currency: string; priceCents: number | null };
+
+/**
+ * Argentina's Steam storefront pricing — verified live to be genuinely
+ * discounted vs. the US price (Hollow Knight: $4.99 at cc=ar vs $14.99 at
+ * cc=us), even though Valve denominates it in USD rather than ARS for this
+ * region. A separate call/cache key from getAppDetails since it's a
+ * different `cc` on the same endpoint.
+ */
+export async function getArgentinaPricing(appId: number): Promise<ArPricing | null> {
+  return getOrFetch(CacheKeys.steamArPricing(appId), CacheTTL.steamArPricing, async () => {
+    const url = `${STEAM_ENDPOINTS.appDetails}?appids=${appId}&cc=ar&l=english`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const parsed = appDetailsResponseSchema(appId).safeParse(await res.json());
+    if (!parsed.success) return null;
+    const entry = parsed.data[String(appId)];
+    if (!entry.success || !entry.data) return null;
+
+    if (entry.data.is_free) return { isFree: true, currency: "", priceCents: null };
+    if (!entry.data.price_overview) return null;
+    return {
+      isFree: false,
+      currency: entry.data.price_overview.currency,
+      priceCents: entry.data.price_overview.final,
+    };
+  });
+}
+
 export type DlcDetails = { appId: number; name: string; priceCents: number | null; isFree: boolean };
 
 export async function getDlcDetails(dlcAppId: number): Promise<DlcDetails> {

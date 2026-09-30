@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getOrCreateGame } from "@/lib/db/queries/games";
-import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
+import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 import StatusBadge from "@/components/result/StatusBadge";
@@ -8,6 +8,14 @@ import ConfidencePill from "@/components/result/ConfidencePill";
 import StatusIconRow from "@/components/result/StatusIconRow";
 import BottomSheet from "@/components/result/BottomSheet";
 import AnalysisLoader from "@/components/result/AnalysisLoader";
+
+function formatPrice(cents: number, currency: string) {
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(cents / 100);
+  } catch {
+    return `${(cents / 100).toFixed(2)} ${currency}`;
+  }
+}
 
 export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const { appid } = await props.params;
@@ -27,6 +35,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const analysis = await getCachedAnalysis(appId);
   const achievements = analysis ? await getFlaggedAchievements(appId) : [];
   const heroImage = details?.heroImage || game.headerImageUrl;
+  const arPricing = await getArgentinaPricing(appId);
 
   return (
     <main className="relative flex-1 bg-black">
@@ -38,14 +47,26 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
         </div>
       )}
 
-      <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center gap-4 px-6 pb-32 pt-10 text-center">
-        <h1 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-lg sm:text-4xl">
-          {game.name}
-        </h1>
-        <p className="text-sm text-zinc-300 drop-shadow">
-          Steam AppID {game.id}
-          {game.releaseDate ? ` · Released ${game.releaseDate}` : ""}
-        </p>
+      <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-end gap-4 px-6 pb-10 text-center">
+        <div className="relative flex items-center justify-center">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute h-28 w-[28rem] max-w-[85vw] rounded-full bg-white/25 blur-3xl"
+          />
+          <h1 className="relative text-3xl font-extrabold tracking-tight text-white drop-shadow-lg sm:text-4xl">
+            {game.name}
+          </h1>
+        </div>
+
+        {arPricing && (
+          <div className="flex items-center gap-3 text-sm text-zinc-300 drop-shadow">
+            {arPricing.isFree ? (
+              <span>Free to play</span>
+            ) : arPricing.priceCents !== null ? (
+              <span>{formatPrice(arPricing.priceCents, arPricing.currency)} in Argentina</span>
+            ) : null}
+          </div>
+        )}
 
         {analysis ? (
           <div className="flex flex-col items-center gap-4">

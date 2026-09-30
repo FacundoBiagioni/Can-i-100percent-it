@@ -41,7 +41,7 @@ export default function BottomSheet({
 
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-30 flex h-[min(70vh,42rem)] flex-col rounded-t-3xl border-t border-zinc-800 bg-black/90 shadow-2xl backdrop-blur-md transition-transform duration-300 ease-out ${
+      className={`fixed bottom-0 left-6 z-30 flex h-[min(70vh,42rem)] w-[min(24rem,calc(100vw-3rem))] flex-col rounded-t-3xl border-t border-zinc-800 bg-black/90 shadow-2xl backdrop-blur-md transition-transform duration-300 ease-out ${
         expanded ? "translate-y-0" : "translate-y-[calc(100%-5.5rem)]"
       }`}
     >
