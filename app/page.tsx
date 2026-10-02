@@ -1,6 +1,6 @@
 import { ArrowDown } from "lucide-react";
 import SearchBox from "@/components/search/SearchBox";
-import HeroVideo from "@/components/home/HeroVideo";
+import HeroAnimation from "@/components/home/HeroAnimation";
 import RecentGames from "@/components/home/RecentGames";
 import VerdictLegend from "@/components/home/VerdictLegend";
 import type { GameTileData } from "@/components/home/GameTile";
@@ -40,7 +40,7 @@ export default async function Home() {
   return (
     <main className="flex flex-1 flex-col">
       <section className="relative flex min-h-[calc(100dvh-3rem)] flex-col overflow-hidden">
-        <HeroVideo />
+        <HeroAnimation />
 
         <div className="relative z-10 mx-auto flex w-full max-w-page flex-1 flex-col justify-end gap-10 px-4 pb-28 pt-16 sm:px-6">
           <div className="flex flex-col gap-5">
