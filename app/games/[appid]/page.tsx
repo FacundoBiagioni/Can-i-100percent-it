@@ -59,9 +59,15 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
           priceCents: Math.round(arPricing.initialPriceCents * (1 - maxDiscountCut / 100)),
         }
       : null;
-  // Don't show "lowest ever" right next to an active discount that's
-  // already at (or beyond) that same price — redundant with the badge.
-  const showHistoricalLow = historicalLow && (!currentPrice || historicalLow.priceCents < currentPrice.priceCents);
+  // On sale right now at (or past) the biggest discount it has ever had.
+  // Compared by %, not by derived price, so rounding can't hide a match —
+  // and a sale that sets a new record still counts even before ITAD's
+  // cached figure (up to 12h old) catches up.
+  const atAllTimeLow = activeDiscount !== null && historicalLow !== null && activeDiscount.percent >= historicalLow.cut;
+  // Otherwise point at the record low, unless the current price already
+  // beats it.
+  const showHistoricalLow =
+    historicalLow && !atAllTimeLow && (!currentPrice || historicalLow.priceCents < currentPrice.priceCents);
 
   return (
     <main className="relative flex-1 bg-void">
@@ -108,10 +114,19 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
               )}
               {showHistoricalLow && (
                 <>
-                  <span className="text-graphite">/</span>
+                  <span aria-hidden className="hidden text-graphite sm:inline">/</span>
                   <span>
                     Lowest ever <span className="font-semibold text-pass">-{historicalLow.cut}%</span>{" "}
                     <span className="tabular-nums">({formatPrice(historicalLow.priceCents)})</span>
+                  </span>
+                </>
+              )}
+              {atAllTimeLow && (
+                <>
+                  <span aria-hidden className="hidden text-graphite sm:inline">/</span>
+                  <span>
+                    <span className="font-semibold text-pass">All-time low</span>, never been cheaper on Steam
+                    Argentina
                   </span>
                 </>
               )}
