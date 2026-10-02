@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const VIDEO_SRC = "/videos/hero.mp4";
+const VIDEO_SRC = "/scene.webm";
 
 /**
  * Ambient full-bleed loop behind the homepage hero. Starts invisible and
