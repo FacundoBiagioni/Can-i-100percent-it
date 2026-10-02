@@ -7,11 +7,11 @@ import type { AnalysisStatus } from "@/lib/pipeline/types";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const STATUS_CONFIG: Record<AnalysisStatus, { emoji: string; label: string; color: string }> = {
-  green: { emoji: "🟢", label: "100% obtainable", color: "#34d399" },
-  red: { emoji: "🔴", label: "100% impossible", color: "#f87171" },
-  yellow: { emoji: "🟡", label: "Insufficient info", color: "#fbbf24" },
-  no_achievements: { emoji: "⚪", label: "No achievements", color: "#a1a1aa" },
+const STATUS_CONFIG: Record<AnalysisStatus, { label: string; color: string }> = {
+  green: { label: "100% obtainable", color: "#34d399" },
+  red: { label: "100% impossible", color: "#f87171" },
+  yellow: { label: "Insufficient info", color: "#fbbf24" },
+  no_achievements: { label: "No achievements", color: "#c4c4c4" },
 };
 
 export default async function GameOpengraphImage({ params }: { params: Promise<{ appid: string }> }) {
@@ -45,7 +45,7 @@ export default async function GameOpengraphImage({ params }: { params: Promise<{
           style={{
             position: "absolute",
             inset: 0,
-            background: "linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.45))",
+            background: "rgba(0,0,0,0.7)",
           }}
         />
         <div
@@ -58,16 +58,26 @@ export default async function GameOpengraphImage({ params }: { params: Promise<{
             width: "100%",
           }}
         >
-          <div style={{ display: "flex", fontSize: 56, fontWeight: 800, color: "white" }}>{name}</div>
+          <div style={{ display: "flex", fontSize: 72, fontWeight: 700, color: "#ffffff", lineHeight: 0.9, letterSpacing: -3 }}>
+            {name}
+          </div>
           {status && (
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 24 }}>
-              <div style={{ display: "flex", fontSize: 40 }}>{status.emoji}</div>
-              <div style={{ display: "flex", fontSize: 36, fontWeight: 700, color: status.color }}>
-                {status.label}
-              </div>
+            <div
+              style={{
+                display: "flex",
+                alignSelf: "flex-start",
+                marginTop: 32,
+                padding: "12px 20px",
+                border: `2px solid ${status.color}`,
+                fontSize: 36,
+                fontWeight: 700,
+                color: status.color,
+              }}
+            >
+              {status.label}
             </div>
           )}
-          <div style={{ display: "flex", fontSize: 22, color: "#a1a1aa", marginTop: 16 }}>Can i 100% it?</div>
+          <div style={{ display: "flex", fontSize: 24, color: "#757575", marginTop: 24 }}>can i 100% it?</div>
         </div>
       </div>
     ),

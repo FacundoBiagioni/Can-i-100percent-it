@@ -4,13 +4,20 @@ import Tooltip from "./Tooltip";
 export type IconState = "off" | "on" | "warning" | "caution";
 
 const TILE_STYLES: Record<IconState, string> = {
-  off: "border-zinc-800 bg-zinc-900 text-zinc-700",
-  on: "border-indigo-900 bg-indigo-950 text-indigo-400",
+  off: "border-carbon text-smudge",
+  on: "border-fog text-chalk",
   // Distinct from "warning" (red) on purpose — this marks something to be
   // aware of that does NOT block reaching 100% (e.g. a missable achievement
   // recoverable on a new playthrough), so it must not read as a blocker.
-  caution: "border-amber-900 bg-amber-950 text-amber-400",
-  warning: "border-red-900 bg-red-950 text-red-400",
+  caution: "border-unsure text-unsure",
+  warning: "border-fail text-fail",
+};
+
+const BADGE_STYLES: Record<IconState, string> = {
+  off: "bg-carbon text-chalk",
+  on: "bg-chalk text-void",
+  caution: "bg-unsure text-void",
+  warning: "bg-fail text-void",
 };
 
 export default function StatusIcon({
@@ -27,11 +34,15 @@ export default function StatusIcon({
   return (
     <Tooltip label={label}>
       <span
-        className={`relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border transition-colors ${TILE_STYLES[state]}`}
+        tabIndex={0}
+        aria-label={label}
+        className={`relative inline-flex h-12 w-12 items-center justify-center border bg-void transition-colors ${TILE_STYLES[state]}`}
       >
-        <Icon className="h-5 w-5" strokeWidth={2} />
+        <Icon aria-hidden className="h-5 w-5" strokeWidth={1.75} />
         {badge !== undefined && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-black">
+          <span
+            className={`absolute -right-px -top-px flex h-4 min-w-4 items-center justify-center px-1 text-[11px] font-semibold tabular-nums ${BADGE_STYLES[state]}`}
+          >
             {badge}
           </span>
         )}

@@ -1,36 +1,42 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { Search } from "lucide-react";
+import { formatPrice, PRICE_REGION_LABEL } from "@/lib/ui/price";
 
 type SearchResult = { appId: number; name: string; image?: string; isFree: boolean; priceCents: number | null };
 
 const SIZE_CLASSES = {
-  lg: "px-5 py-3 text-base rounded-full",
-  sm: "px-4 py-2 text-sm rounded-full",
+  lg: { input: "h-14 pl-12 pr-4 text-base", icon: "left-4 h-5 w-5", wrapper: "max-w-xl" },
+  sm: { input: "h-8 pl-8 pr-2 text-sm", icon: "left-2.5 h-3.5 w-3.5", wrapper: "max-w-xs" },
 };
-
-function formatUsd(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`;
-}
 
 export default function SearchBox({
   size = "lg",
   autoFocus = size === "lg",
-  placeholder = "Search a Steam game…",
+  placeholder = "Search a Steam game",
+  label,
 }: {
   size?: "lg" | "sm";
   autoFocus?: boolean;
   placeholder?: string;
+  /** Visible label above the field; without one, the placeholder doubles
+   * as the accessible name. */
+  label?: string;
 }) {
   const router = useRouter();
+  const listboxId = useId();
+  const inputId = useId();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const styles = SIZE_CLASSES[size];
 
   useEffect(() => {
     if (!open) return;
@@ -51,11 +57,12 @@ export default function SearchBox({
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
+      setOpen(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
         const data = await res.json();
         setResults(data.results ?? []);
-        setOpen(true);
+        setActiveIndex(-1);
       } finally {
         setLoading(false);
       }
@@ -72,52 +79,104 @@ export default function SearchBox({
     router.push(`/games/${appId}`);
   }
 
-  return (
-    <div ref={containerRef} className={`relative w-full ${size === "lg" ? "max-w-md" : "max-w-xs"}`}>
-      <input
-        value={query}
-        onChange={(e) => {
-          const value = e.target.value;
-          setQuery(value);
-          if (value.trim().length < 2) {
-            setResults([]);
-            setOpen(false);
-          }
-        }}
-        onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder={placeholder}
-        className={`w-full border border-zinc-700 bg-zinc-900/80 text-zinc-50 shadow-sm outline-none backdrop-blur transition placeholder:text-zinc-500 focus:border-zinc-500 ${SIZE_CLASSES[size]}`}
-        autoFocus={autoFocus}
-      />
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+    if (!open || loading || results.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i + 1) % results.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i <= 0 ? results.length - 1 : i - 1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      goToGame(results[activeIndex >= 0 ? activeIndex : 0].appId);
+    }
+  }
 
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-900 shadow-xl">
+  const expanded = open && (loading || results.length > 0 || query.trim().length >= 2);
+
+  return (
+    <div ref={containerRef} className={`relative w-full ${styles.wrapper}`}>
+      {label && (
+        <label htmlFor={inputId} className="mb-2 block text-nav text-ash">
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        <Search aria-hidden className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-graphite ${styles.icon}`} />
+        <input
+          id={inputId}
+          value={query}
+          onChange={(e) => {
+            const value = e.target.value;
+            setQuery(value);
+            if (value.trim().length < 2) {
+              setResults([]);
+              setOpen(false);
+            }
+          }}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          aria-label={label ? undefined : placeholder}
+          role="combobox"
+          aria-expanded={expanded}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
+          autoComplete="off"
+          spellCheck={false}
+          className={`w-full border border-cinder bg-cinder text-chalk outline-none transition-colors placeholder:text-graphite focus:border-fog focus-visible:outline-none ${styles.input}`}
+          autoFocus={autoFocus}
+        />
+      </div>
+
+      {expanded && (
+        <div
+          id={listboxId}
+          role="listbox"
+          className={`absolute left-0 top-full z-50 mt-px border border-carbon bg-void ${size === "sm" ? "w-[min(24rem,calc(100vw-2rem))] max-sm:right-0 max-sm:left-auto" : "right-0"}`}
+        >
           {loading &&
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="flex w-full items-center gap-3 px-5 py-3">
-                <div className="h-8 w-16 shrink-0 animate-pulse rounded bg-zinc-800" />
-                <div className="h-4 w-32 animate-pulse rounded bg-zinc-800" />
+              <div key={i} className="flex w-full items-center gap-3 border-b border-carbon px-3 py-2.5 last:border-b-0">
+                <div className="h-8 w-[70px] shrink-0 animate-pulse bg-cinder" />
+                <div className="h-3.5 w-40 animate-pulse bg-cinder" />
               </div>
             ))}
-          {!loading && results.length === 0 && (
-            <div className="px-5 py-3 text-sm text-zinc-400">No games found</div>
-          )}
+          {!loading && results.length === 0 && <div className="px-3 py-3 text-body text-graphite">No games found</div>}
           {!loading &&
-            results.map((r) => (
+            results.map((r, i) => (
               <button
                 key={r.appId}
+                id={`${listboxId}-${i}`}
+                role="option"
+                aria-selected={i === activeIndex}
+                tabIndex={-1}
+                onMouseEnter={() => setActiveIndex(i)}
                 onClick={() => goToGame(r.appId)}
-                className="flex w-full items-center gap-3 px-5 py-3 text-left text-sm text-zinc-50 transition hover:bg-zinc-800"
+                className={`flex w-full cursor-pointer items-center gap-3 border-b border-carbon px-3 py-2.5 text-left text-body text-chalk last:border-b-0 ${
+                  i === activeIndex ? "bg-obsidian" : ""
+                }`}
               >
-                {r.image && (
-                  <Image src={r.image} alt="" width={64} height={32} className="rounded object-cover" />
+                {r.image ? (
+                  <Image src={r.image} alt="" width={70} height={26} className="h-[26px] w-[70px] shrink-0 object-cover" />
+                ) : (
+                  <span className="h-[26px] w-[70px] shrink-0 bg-cinder" />
                 )}
                 <span className="line-clamp-1 flex-1">{r.name}</span>
-                <span className="shrink-0 text-xs text-zinc-400">
-                  {r.isFree ? "Free" : r.priceCents !== null ? formatUsd(r.priceCents) : ""}
+                <span className="shrink-0 text-caption tabular-nums text-graphite">
+                  {r.isFree ? "Free" : r.priceCents !== null ? formatPrice(r.priceCents) : ""}
                 </span>
               </button>
             ))}
+          {!loading && results.length > 0 && (
+            <div className="border-t border-carbon px-3 py-2 text-caption text-graphite">{PRICE_REGION_LABEL}</div>
+          )}
         </div>
       )}
     </div>

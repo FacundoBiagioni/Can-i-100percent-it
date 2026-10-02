@@ -6,17 +6,14 @@ import type { AnalysisResult } from "@/lib/pipeline/types";
 import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 import RequirementsSummary from "./RequirementsSummary";
 import AchievementsTable from "./AchievementsTable";
+import { formatPrice } from "@/lib/ui/price";
 
 const PEEK_PX = 88; // 5.5rem at the default root font size
-
-function formatCents(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`;
-}
 
 function buildPeekSummary(analysis: AnalysisResult, achievementCount: number): string | null {
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const parts: string[] = [];
-  if (requiredDlc.length > 0) parts.push(`${requiredDlc.length} DLC — ${formatCents(analysis.totalDlcCostCents)}`);
+  if (requiredDlc.length > 0) parts.push(`${requiredDlc.length} DLC, ${formatPrice(analysis.totalDlcCostCents)}`);
   if (analysis.multiplayerRequired) parts.push("multiplayer required");
   if (achievementCount > 0) parts.push(`${achievementCount} achievement${achievementCount === 1 ? "" : "s"} flagged`);
   if (analysis.estimatedHours !== null) parts.push(`~${Math.round(analysis.estimatedHours)}h to 100%`);
@@ -97,7 +94,7 @@ export default function BottomSheet({
   return (
     <div
       ref={sheetRef}
-      className={`fixed bottom-0 left-6 z-30 flex h-[min(70vh,42rem)] w-[min(24rem,calc(100vw-3rem))] flex-col rounded-t-3xl border-t border-zinc-800 bg-black/90 shadow-2xl backdrop-blur-md ${
+      className={`fixed inset-x-0 bottom-0 z-30 flex h-[min(70dvh,42rem)] flex-col border-x border-t border-carbon bg-void sm:left-auto sm:right-6 sm:w-104 ${
         dragPx === null ? `transition-transform duration-300 ease-out ${expanded ? "translate-y-0" : "translate-y-[calc(100%-5.5rem)]"}` : ""
       }`}
       style={dragPx !== null ? { transform: `translateY(${dragPx}px)` } : undefined}
@@ -108,16 +105,16 @@ export default function BottomSheet({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onClick={handleClick}
-        className="flex h-[5.5rem] shrink-0 cursor-grab touch-none flex-col items-center justify-center gap-2 px-6 active:cursor-grabbing"
+        className="flex h-[5.5rem] shrink-0 cursor-grab touch-none flex-col items-center justify-center gap-2 border-b border-carbon px-4 active:cursor-grabbing"
         aria-expanded={expanded}
       >
-        <span className="h-1 w-10 rounded-full bg-zinc-600" />
-        <span className="flex items-center gap-1.5 text-sm font-medium text-zinc-200">
+        <span className="h-px w-10 bg-carbon" />
+        <span className="flex items-center gap-1.5 text-nav font-medium text-chalk">
           {summary}
-          <ChevronUp className={`h-4 w-4 text-zinc-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          <ChevronUp aria-hidden className={`h-4 w-4 shrink-0 text-graphite transition-transform ${expanded ? "rotate-180" : ""}`} />
         </span>
       </button>
-      <div className="flex-1 overflow-y-auto px-6 pb-8">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         <div className="flex flex-col gap-3">
           <RequirementsSummary analysis={analysis} />
           <AchievementsTable achievements={achievements} />

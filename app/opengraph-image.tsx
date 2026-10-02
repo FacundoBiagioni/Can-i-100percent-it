@@ -12,37 +12,18 @@ export default function OpengraphImage() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(to bottom, #18181b, #000000)",
+          justifyContent: "flex-end",
+          padding: 64,
+          background: "#000000",
           fontFamily: "sans-serif",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            fontSize: 22,
-            letterSpacing: 6,
-            textTransform: "uppercase",
-            color: "#818cf8",
-            fontWeight: 700,
-            marginBottom: 24,
-          }}
-        >
-          Steam achievement checker
+        <div style={{ display: "flex", fontSize: 24, color: "#757575", marginBottom: 24 }}>Steam achievement checker</div>
+        <div style={{ display: "flex", fontSize: 168, fontWeight: 700, color: "#ffffff", lineHeight: 0.85, letterSpacing: -8 }}>
+          Can i
         </div>
-        <div
-          style={{
-            display: "flex",
-            fontSize: 96,
-            fontWeight: 800,
-            color: "white",
-          }}
-        >
-          Can i 100% it<span style={{ color: "#818cf8" }}>?</span>
-        </div>
-        <div style={{ display: "flex", fontSize: 28, color: "#a1a1aa", marginTop: 24 }}>
-          Search a Steam game and find out
+        <div style={{ display: "flex", fontSize: 168, fontWeight: 700, color: "#ffffff", lineHeight: 0.85, letterSpacing: -8 }}>
+          100% it?
         </div>
       </div>
     ),

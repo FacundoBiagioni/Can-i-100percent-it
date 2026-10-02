@@ -33,7 +33,8 @@ export async function searchGames(query: string): Promise<SteamGameSummary[]> {
     // Knight's "Official Soundtrack" both report type "app" there). Real
     // classification ("game", "dlc", "music", ...) only comes from
     // appdetails — reusing the full getAppDetails call (already cached
-    // 24h) instead of a separate lighter one, since we want its price too.
+    // 24h) instead of a separate lighter one. Price comes from the
+    // Argentina storefront like every other price shown in the app.
     // Games always kept. Non-game software (Steam's own "application"
     // type, e.g. Wallpaper Engine) only kept if it actually has
     // achievements — otherwise there's nothing for this app to do with
@@ -42,23 +43,23 @@ export async function searchGames(query: string): Promise<SteamGameSummary[]> {
       candidates.map(async (item) => {
         const details = await getAppDetails(item.id);
         if (!details) return null;
-        if (details.type === "game") return { item, details };
-        if (details.type === "application") {
-          const achievements = await getAchievementSchema(item.id);
-          if (achievements.length > 0) return { item, details };
-        }
-        return null;
+        const keep =
+          details.type === "game" ||
+          (details.type === "application" && (await getAchievementSchema(item.id)).length > 0);
+        if (!keep) return null;
+        const pricing = await getArgentinaPricing(item.id);
+        return { item, details, pricing };
       }),
     );
 
     return classified
       .filter((c): c is NonNullable<typeof c> => c !== null)
-      .map(({ item, details }) => ({
+      .map(({ item, details, pricing }) => ({
         appId: item.id,
         name: item.name,
         image: item.tiny_image,
         isFree: details.isFree,
-        priceCents: details.priceCents,
+        priceCents: pricing?.priceCents ?? null,
       }));
   });
 }
@@ -78,9 +79,11 @@ export type SteamAppDetails = {
   multiplayerRequired: boolean;
   releaseDate?: string;
   isFree: boolean;
-  priceCents: number | null;
 };
 
+/** Region-neutral metadata only (fetched as cc=us so region-locked titles
+ * still resolve). Prices deliberately aren't exposed here: every price in
+ * the app comes from getArgentinaPricing, so US and AR figures never mix. */
 export async function getAppDetails(appId: number): Promise<SteamAppDetails | null> {
   return getOrFetch(CacheKeys.steamAppDetails(appId), CacheTTL.steamAppDetails, async () => {
     const url = `${STEAM_ENDPOINTS.appDetails}?appids=${appId}&cc=us&l=english`;
@@ -102,7 +105,6 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
       multiplayerRequired: categories.some((c) => MULTIPLAYER_CATEGORY_MARKERS.includes(c)),
       releaseDate: entry.data.release_date?.date,
       isFree: entry.data.is_free ?? false,
-      priceCents: entry.data.price_overview?.final ?? null,
     };
   });
 }
@@ -153,7 +155,7 @@ export async function getArgentinaPricing(appId: number): Promise<ArPricing | nu
 export type DlcDetails = { appId: number; name: string; priceCents: number | null; isFree: boolean; type: string };
 
 export async function getDlcDetails(dlcAppId: number): Promise<DlcDetails> {
-  const details = await getAppDetails(dlcAppId);
+  const [details, pricing] = await Promise.all([getAppDetails(dlcAppId), getArgentinaPricing(dlcAppId)]);
   if (!details) {
     // DLC page pulled/delisted — appdetails returns success:false for it.
     return { appId: dlcAppId, name: `Unknown DLC (${dlcAppId})`, priceCents: null, isFree: false, type: "dlc" };
@@ -161,7 +163,7 @@ export async function getDlcDetails(dlcAppId: number): Promise<DlcDetails> {
   return {
     appId: dlcAppId,
     name: details.name,
-    priceCents: details.priceCents,
+    priceCents: pricing?.priceCents ?? null,
     isFree: details.isFree,
     type: details.type,
   };

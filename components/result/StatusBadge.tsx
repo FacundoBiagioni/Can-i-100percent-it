@@ -1,34 +1,13 @@
+import { VERDICT } from "@/lib/ui/verdict";
 import type { AnalysisStatus } from "@/lib/pipeline/types";
 
-const STATUS_CONFIG: Record<AnalysisStatus, { emoji: string; label: string; className: string }> = {
-  green: {
-    emoji: "🟢",
-    label: "100% obtainable",
-    className: "bg-emerald-950 text-emerald-300 ring-1 ring-inset ring-emerald-800",
-  },
-  red: {
-    emoji: "🔴",
-    label: "100% impossible",
-    className: "bg-red-950 text-red-300 ring-1 ring-inset ring-red-800",
-  },
-  yellow: {
-    emoji: "🟡",
-    label: "Insufficient info",
-    className: "bg-amber-950 text-amber-300 ring-1 ring-inset ring-amber-800",
-  },
-  no_achievements: {
-    emoji: "⚪",
-    label: "No achievements",
-    className: "bg-zinc-800 text-zinc-300 ring-1 ring-inset ring-zinc-700",
-  },
-};
-
 export default function StatusBadge({ status }: { status: AnalysisStatus }) {
-  const config = STATUS_CONFIG[status];
+  const v = VERDICT[status];
+  const Icon = v.icon;
   return (
-    <div className={`flex items-center gap-3 rounded-2xl px-6 py-4 text-xl font-semibold ${config.className}`}>
-      <span aria-hidden>{config.emoji}</span>
-      <span>{config.label}</span>
+    <div className={`inline-flex items-center gap-3 border px-4 py-3 text-heading font-semibold ${v.border} ${v.text}`}>
+      <Icon aria-hidden className="h-6 w-6 shrink-0" />
+      <span>{v.label}</span>
     </div>
   );
 }

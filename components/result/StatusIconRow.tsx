@@ -1,10 +1,7 @@
 import { Package, PackageX, Server, ServerOff, Bug, BugOff, GitBranch, Clock, Ban, CircleOff } from "lucide-react";
 import StatusIcon from "@/components/ui/StatusIcon";
 import type { AnalysisResult } from "@/lib/pipeline/types";
-
-function formatCents(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`;
-}
+import { formatPrice } from "@/lib/ui/price";
 
 export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }) {
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
@@ -15,7 +12,7 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
     delistedRequiredDlc.length > 0
       ? `Requires delisted DLC: ${delistedRequiredDlc.map((d) => d.name).join(", ")}`
       : requiredDlc.length > 0
-        ? `Requires DLC — ${formatCents(analysis.totalDlcCostCents)}`
+        ? `Requires DLC, ${formatPrice(analysis.totalDlcCostCents)}`
         : "No DLC required";
 
   const serversState = !analysis.multiplayerRequired
@@ -54,7 +51,7 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
   const structuralBlock = analysis.status === "red" && delistedRequiredDlc.length === 0 && serversState !== "warning";
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       <StatusIcon
         icon={dlcState === "warning" ? PackageX : Package}
         state={dlcState}

@@ -14,7 +14,8 @@ export const CacheTTL = {
 } as const;
 
 export const CacheKeys = {
-  steamSearch: (query: string) => `steam:search:${query.toLowerCase()}`,
+  // v2: results now carry Argentina-storefront prices; v1 entries had US ones.
+  steamSearch: (query: string) => `steam:search:v2:${query.toLowerCase()}`,
   steamAppDetails: (appId: number) => `steam:appdetails:${appId}`,
   steamArPricing: (appId: number) => `steam:pricing:ar:${appId}`,
   steamSchema: (appId: number) => `steam:schema:${appId}`,

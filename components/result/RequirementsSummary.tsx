@@ -1,8 +1,5 @@
 import type { AnalysisResult } from "@/lib/pipeline/types";
-
-function formatCents(cents: number) {
-  return `$${(cents / 100).toFixed(2)}`;
-}
+import { formatPrice, PRICE_REGION_LABEL } from "@/lib/ui/price";
 
 /** Direct, always-visible facts — no accordion, and a fact that has nothing
  * to disclose (no DLC required, no multiplayer requirement) renders nothing
@@ -13,44 +10,51 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
   return (
     <>
       {requiredDlc.length > 0 && (
-        <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-zinc-200">
-            {requiredDlc.length} DLC required — {formatCents(analysis.totalDlcCostCents)}
+        <div className="w-full border border-carbon p-4">
+          <h2 className="mb-3 flex justify-between gap-4 text-nav text-graphite">
+            <span>{requiredDlc.length} DLC required</span>
+            <span className="tabular-nums text-chalk">{formatPrice(analysis.totalDlcCostCents)}</span>
           </h2>
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-left text-body">
             <tbody>
               {requiredDlc.map((d) => (
-                <tr key={d.dlcAppId} className="border-t border-zinc-800/60 first:border-t-0">
-                  <td className="py-2 pr-4 text-zinc-300">
+                <tr key={d.dlcAppId} className="border-t border-carbon">
+                  <td className="py-2 pr-4 text-ash">
                     {d.name}
-                    {d.isDelisted && <span className="ml-2 text-red-400">(delisted)</span>}
+                    {d.isDelisted && <span className="ml-2 text-fail">(delisted)</span>}
                   </td>
-                  <td className="py-2 text-right text-zinc-400">
-                    {d.priceCents !== null ? formatCents(d.priceCents) : "—"}
+                  <td className="py-2 text-right tabular-nums text-graphite">
+                    {d.priceCents !== null ? formatPrice(d.priceCents) : "-"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <p className="mt-3 text-caption text-graphite">{PRICE_REGION_LABEL}</p>
         </div>
       )}
 
       {analysis.multiplayerRequired && (
-        <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-sm text-zinc-300">
-          <span className="font-semibold text-zinc-200">Multiplayer required</span> — servers{" "}
-          {analysis.serversStatus}.{" "}
-          {analysis.serversStatus === "offline"
-            ? "Current player activity suggests servers may no longer be reachable."
-            : analysis.serversStatus === "online"
-              ? "Current player activity suggests servers are still reachable."
-              : "Server status could not be determined from available data."}
+        <div className="flex w-full flex-col gap-2 border border-carbon p-4">
+          <h2 className="text-nav text-graphite">Multiplayer required</h2>
+          <p className="text-body text-ash">
+            Servers <span className="text-chalk">{analysis.serversStatus}</span>.{" "}
+            {analysis.serversStatus === "offline"
+              ? "Current player activity suggests servers may no longer be reachable."
+              : analysis.serversStatus === "online"
+                ? "Current player activity suggests servers are still reachable."
+                : "Server status could not be determined from available data."}
+          </p>
         </div>
       )}
 
       {analysis.estimatedHours !== null && (
-        <div className="w-full rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 text-sm text-zinc-300">
-          <span className="font-semibold text-zinc-200">~{Math.round(analysis.estimatedHours)}h</span> estimated to
-          100% — median time reported by players who reached full completion.
+        <div className="flex w-full flex-col gap-2 border border-carbon p-4">
+          <h2 className="text-nav text-graphite">Time to 100%</h2>
+          <p className="text-body text-ash">
+            <span className="text-heading font-semibold text-chalk">~{Math.round(analysis.estimatedHours)}h</span>{" "}
+            median reported by players who reached full completion.
+          </p>
         </div>
       )}
     </>

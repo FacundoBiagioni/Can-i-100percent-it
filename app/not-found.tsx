@@ -1,22 +1,26 @@
 import Link from "next/link";
-import SearchBox from "@/components/search/SearchBox";
-import GameCollageBackground from "@/components/home/GameCollageBackground";
 
 export default function NotFound() {
   return (
-    <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 py-24">
-      <GameCollageBackground />
-      <div className="relative z-10 flex flex-col items-center gap-6 text-center">
-        <p className="text-7xl font-extrabold tracking-tight text-white drop-shadow-lg sm:text-8xl">404</p>
-        <div className="flex flex-col items-center gap-2">
-          <h1 className="text-xl font-bold text-white drop-shadow-lg sm:text-2xl">Game not found</h1>
-          <p className="max-w-sm text-sm text-zinc-300">
-            That AppID doesn&apos;t exist on Steam, or the page you were looking for isn&apos;t here.
-          </p>
-        </div>
-        <SearchBox size="lg" />
-        <Link href="/" className="text-sm text-zinc-400 underline-offset-4 hover:text-zinc-200 hover:underline">
-          Back to home
+    <main className="mx-auto flex w-full max-w-page flex-1 flex-col justify-end gap-10 px-4 pb-24 pt-24 sm:px-6">
+      <div className="flex flex-col gap-5">
+        <p className="text-nav text-graphite">Error 404</p>
+        <h1 className="text-mega font-semibold">
+          Game not
+          <br />
+          found.
+        </h1>
+      </div>
+      {/* No search box here: the header already shows one on this route. */}
+      <div className="flex max-w-87.5 flex-col gap-4">
+        <p className="text-body text-ash">
+          That AppID doesn&apos;t exist on Steam, or the page you were looking for isn&apos;t here.
+        </p>
+        <Link
+          href="/"
+          className="w-fit border border-fog px-2 py-1 text-nav font-medium transition-colors hover:bg-chalk hover:text-void"
+        >
+          Back to index
         </Link>
       </div>
     </main>

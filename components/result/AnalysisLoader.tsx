@@ -3,15 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import type { AnalysisResult } from "@/lib/pipeline/types";
 import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
-import StatusBadge from "./StatusBadge";
-import ConfidencePill from "./ConfidencePill";
-import StatusIconRow from "./StatusIconRow";
 import BottomSheet from "./BottomSheet";
+import VerdictBlock from "./VerdictBlock";
+import { recordRecentGame } from "@/lib/recentGames";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 30; // 90s ceiling — first analysis is normally done in a few seconds
 
-export default function AnalysisLoader({ appId }: { appId: number }) {
+export default function AnalysisLoader({ appId, name, image }: { appId: number; name: string; image: string | null }) {
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [achievements, setAchievements] = useState<FlaggedAchievement[]>([]);
   const [timedOut, setTimedOut] = useState(false);
@@ -32,6 +31,7 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
           if (!cancelled) {
             setAnalysis(data.analysis);
             setAchievements(data.achievements ?? []);
+            recordRecentGame({ appId, name, image, status: data.analysis.status });
           }
           return;
         }
@@ -53,43 +53,35 @@ export default function AnalysisLoader({ appId }: { appId: number }) {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [appId]);
+  }, [appId, name, image]);
 
   if (analysis) {
-    if (analysis.status === "no_achievements") {
-      return <StatusBadge status={analysis.status} />;
-    }
-
     return (
       <>
-        <div className="flex flex-col items-center gap-4">
-          <div className="flex flex-col items-center gap-3">
-            <StatusBadge status={analysis.status} />
-            <ConfidencePill confidence={analysis.confidence} />
-          </div>
-          <StatusIconRow analysis={analysis} />
-        </div>
-        <BottomSheet analysis={analysis} achievements={achievements} />
+        <VerdictBlock analysis={analysis} />
+        {analysis.status !== "no_achievements" && <BottomSheet analysis={analysis} achievements={achievements} />}
       </>
     );
   }
 
   if (timedOut) {
-    return <p className="text-sm text-zinc-400">This is taking longer than expected. Reload the page to check again.</p>;
+    return <p className="text-body text-ash">This is taking longer than expected. Reload the page to check again.</p>;
   }
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-14 w-56 animate-pulse rounded-2xl bg-zinc-800" />
-        <div className="h-6 w-32 animate-pulse rounded-full bg-zinc-800" />
+    <div className="flex flex-col gap-4" aria-busy="true">
+      <div className="flex flex-col gap-3">
+        <div className="h-14 w-64 animate-pulse bg-cinder" />
+        <div className="h-4 w-28 animate-pulse bg-cinder" />
       </div>
-      <div className="flex gap-3">
+      <div className="flex gap-2">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-12 w-12 animate-pulse rounded-2xl bg-zinc-800" />
+          <div key={i} className="h-12 w-12 animate-pulse bg-cinder" />
         ))}
       </div>
-      <p className="text-sm text-zinc-400">Analyzing this game for the first time…</p>
+      <p className="text-body text-ash" role="status">
+        Analyzing this game for the first time...
+      </p>
     </div>
   );
 }
