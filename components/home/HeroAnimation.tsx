@@ -8,8 +8,8 @@ import { IBM_Plex_Mono } from "next/font/google";
 const plexMono = IBM_Plex_Mono({ weight: "600", subsets: ["latin"], display: "block" });
 
 /*
- * Live port of the "Fondo Hero 100%" design: 3D shapes (torus -> sphere ->
- * helix -> knot -> torus) built from "100%" glyphs in ember orange, lit by a
+ * Live port of the "Fondo Hero 100%" design (v2): 3D shapes (torus ->
+ * sphere -> rhombus -> knot -> torus) built from "100%" glyphs in ember orange, lit by a
  * moving light, a scanline and an orbiting glow. Drawn on a 2D canvas every
  * frame at the device's native resolution, so it's sharper than any video
  * export and weighs a few KB instead of megabytes.
@@ -31,18 +31,22 @@ const GLOW = 1;
 const SIZE = 1.25;
 const TURNS = 1;
 
-// Scene starts (s): Toro 0, Esfera 5, Hélice 10, Nudo 15; loop is 21s.
-const CUE_SPHERE = 5;
-const CUE_HELIX = 10;
-const CUE_KNOT = 15;
-const TOTAL = 21;
+// Scene starts (s): Toro 0, Esfera 6.5, Rombo 13, Nudo 19.5; loop is 27.5s.
+const CUE_SPHERE = 6.5;
+const CUE_RHOMBUS = 13;
+const CUE_KNOT = 19.5;
+const TOTAL = 27.5;
+// Index of the rhombus in buildShapes' output; its faces stay flat, so the
+// per-glyph surface ripple is faded out on it.
+const RHOMBUS = 2;
 // Frame shown, frozen, under prefers-reduced-motion (the settled torus).
 const STILL_T = 2.5;
 
 // Sprites are baked larger than they're ever drawn so glyphs stay crisp
-// even on high-DPI screens, where the cover transform scales them up.
-const SPRITE = 128;
-const SPRITE_FONT = 85;
+// even on 4K/high-DPI screens, where the cover transform scales them up
+// (the nearest glyphs reach ~95 device px at 3840x2160).
+const SPRITE = 192;
+const SPRITE_FONT = 128;
 
 type Vec3 = [number, number, number];
 type Sprites = {
@@ -146,16 +150,68 @@ function buildShapes(N: number): Float32Array[] {
     sphere[k + 5] = nz;
   }
 
-  const helix = new Float32Array(N * 6);
-  const half = Math.floor(N / 2);
-  const hc =
-    (ph: number) =>
-    (s: number): Vec3 => {
-      const a = TAU * 2.1 * s + ph;
-      return [175 * Math.cos(a), -390 + 780 * s, 175 * Math.sin(a)];
-    };
-  tube(helix, 0, half, hc(0), 46, 46, Y, 0);
-  tube(helix, half, N - half, hc(Math.PI), 46, 46, Y, Math.PI);
+  // Rhombus: an elongated regular octahedron — rows of glyphs on its 8
+  // faces plus crisp edges.
+  const rhomb = new Float32Array(N * 6);
+  const RW = 290;
+  const RH = 430;
+  const eq: Vec3[] = [
+    [RW, 0, 0],
+    [0, 0, RW],
+    [-RW, 0, 0],
+    [0, 0, -RW],
+  ];
+  const ap: Vec3[] = [
+    [0, RH, 0],
+    [0, -RH, 0],
+  ];
+  const faceN = Math.floor((N * 0.82) / 8);
+  const m = Math.max(2, Math.floor((Math.sqrt(1 + 8 * faceN) - 1) / 2));
+  const lerp3 = (a: Vec3, b: Vec3, t: number): Vec3 => [
+    a[0] + (b[0] - a[0]) * t,
+    a[1] + (b[1] - a[1]) * t,
+    a[2] + (b[2] - a[2]) * t,
+  ];
+  let idx = 0;
+  const put = (p: Vec3, n: Vec3) => {
+    if (idx >= N) return;
+    const k = idx * 6;
+    rhomb[k] = p[0];
+    rhomb[k + 1] = p[1];
+    rhomb[k + 2] = p[2];
+    rhomb[k + 3] = n[0];
+    rhomb[k + 4] = n[1];
+    rhomb[k + 5] = n[2];
+    idx++;
+  };
+  for (let ai = 0; ai < 2; ai++) {
+    for (let e = 0; e < 4; e++) {
+      const b1 = eq[e];
+      const b2 = eq[(e + 1) % 4];
+      const A = ap[ai];
+      const n = norm([Math.sign(b1[0] + b2[0]) / RW, Math.sign(A[1]) / RH, Math.sign(b1[2] + b2[2]) / RW]);
+      for (let r = 0; r < m; r++) {
+        const t = (r + 0.5) / (m + 0.5);
+        const c = m - r;
+        const L0 = lerp3(b1, A, t);
+        const L1 = lerp3(b2, A, t);
+        for (let q = 0; q < c; q++) put(lerp3(L0, L1, (q + 0.5) / c), n);
+      }
+    }
+  }
+  const edges: [Vec3, Vec3][] = [];
+  for (let e = 0; e < 4; e++) {
+    edges.push([eq[e], eq[(e + 1) % 4]]);
+    edges.push([ap[0], eq[e]]);
+    edges.push([ap[1], eq[e]]);
+  }
+  const rest = N - idx;
+  for (let k = 0; k < rest; k++) {
+    const ed = edges[k % 12];
+    const t = (Math.floor(k / 12) + 0.5) / Math.ceil(rest / 12);
+    const p = lerp3(ed[0], ed[1], t);
+    put(p, norm([p[0] / RW, p[1] / RH, p[2] / RW]));
+  }
 
   const knot = new Float32Array(N * 6);
   tube(
@@ -173,7 +229,7 @@ function buildShapes(N: number): Float32Array[] {
     0,
   );
 
-  return [torus, sphere, helix, knot];
+  return [torus, sphere, rhomb, knot];
 }
 
 function makeSprites(fontFamily: string): Sprites {
@@ -241,10 +297,10 @@ function buildScene(fontFamily: string): Scene {
 }
 
 const MORPHS = [
-  { a: 0, b: 1, start: CUE_SPHERE - 0.7 },
-  { a: 1, b: 2, start: CUE_HELIX - 0.7 },
-  { a: 2, b: 3, start: CUE_KNOT - 0.7 },
-  { a: 3, b: 0, start: TOTAL - 2.0 },
+  { a: 0, b: 1, start: CUE_SPHERE - 1.0 },
+  { a: 1, b: 2, start: CUE_RHOMBUS - 1.0 },
+  { a: 2, b: 3, start: CUE_KNOT - 1.0 },
+  { a: 3, b: 0, start: TOTAL - 2.7 },
 ];
 
 /** Draws the frame at time T (seconds into the 21s loop), in 1920x1080 space. */
@@ -284,7 +340,7 @@ function drawFrame(ctx: CanvasRenderingContext2D, scene: Scene, T: number) {
   const Hh = norm([L[0], L[1], L[2] - 1]);
   const scanY = 430 * wave(u, 3, 0);
   const ol: Vec3 = [Math.cos(TAU * 2 * u) * 430, Math.sin(TAU * u) * 160, Math.sin(TAU * 2 * u) * 430];
-  const flick = Math.floor(T * 12);
+  const flick = Math.floor(T * 9);
   const breathe = 1 + 0.025 * wave(u, 2, 0);
   const S = SIZE * breathe;
   const D = 1700;
@@ -297,8 +353,9 @@ function drawFrame(ctx: CanvasRenderingContext2D, scene: Scene, T: number) {
     const k = i * 6;
     const sd = seeds[i];
     let p = 1;
-    if (A !== B) p = easeInOutCubic(clamp((T - mStart - sd * 0.5) / 1.5, 0, 1));
+    if (A !== B) p = easeInOutCubic(clamp((T - mStart - sd * 0.7) / 2.0, 0, 1));
     const q = 1 - p;
+    const rhombW = (A === shapes[RHOMBUS] ? q : 0) + (B === shapes[RHOMBUS] ? p : 0);
     let nx = A[k + 3] * q + B[k + 3] * p;
     let ny = A[k + 4] * q + B[k + 4] * p;
     let nz = A[k + 5] * q + B[k + 5] * p;
@@ -306,7 +363,7 @@ function drawFrame(ctx: CanvasRenderingContext2D, scene: Scene, T: number) {
     nx /= nl;
     ny /= nl;
     nz /= nl;
-    const push = (A !== B ? swirl(p) * (40 + 90 * sd) : 0) + 7 * wave(u, 8, i * 0.11);
+    const push = (A !== B ? swirl(p) * (40 + 90 * sd) : 0) + 7 * wave(u, 8, i * 0.11) * (1 - rhombW);
     rot(A[k] * q + B[k] * p + nx * push, A[k + 1] * q + B[k + 1] * p + ny * push, A[k + 2] * q + B[k + 2] * p + nz * push, p3);
     rot(nx, ny, nz, n3);
 
