@@ -10,9 +10,16 @@ const plexMono = IBM_Plex_Mono({ weight: "600", subsets: ["latin"], display: "bl
 /*
  * Live port of the "Fondo Hero 100%" design (v2): 3D shapes (torus ->
  * sphere -> rhombus -> knot -> torus) built from "100%" glyphs in ember orange, lit by a
- * moving light, a scanline and an orbiting glow. Drawn on a 2D canvas every
- * frame at the device's native resolution, so it's sharper than any video
- * export and weighs a few KB instead of megabytes.
+ * moving light, a scanline and an orbiting glow. Drawn every frame at the
+ * device's native resolution, so it's sharper than any video export and
+ * weighs a few KB instead of megabytes.
+ *
+ * Each frame is reduced to one ordered list of textured squares (bloom,
+ * dust, far glyphs, halos, near glyphs, orbit light) sampled from a single
+ * sprite atlas. WebGL2 draws that whole list in ONE instanced draw call; the
+ * earlier Canvas 2D version issued ~2,500 drawImage calls per frame, which
+ * is what dropped frames on integrated GPUs and high-DPI screens. Canvas 2D
+ * remains only as a fallback, drawing the same list from the same atlas.
  *
  * All drawing happens in the design's own 1920x1080 space; a cover transform
  * maps that onto whatever box the canvas has, like object-fit: cover.
@@ -49,17 +56,22 @@ const SPRITE = 192;
 const SPRITE_FONT = 128;
 
 type Vec3 = [number, number, number];
-type Sprites = {
-  crisp: Record<string, HTMLCanvasElement>;
-  halo: Record<string, HTMLCanvasElement>;
-  bloom: HTMLCanvasElement;
+/** Square sprite cell in the atlas: x, y, size (atlas px). */
+type Cell = [number, number, number];
+type Atlas = {
+  canvas: HTMLCanvasElement;
+  crisp: Record<string, Cell>;
+  halo: Record<string, Cell>;
+  bloom: Cell;
 };
 type Dust = { x: number; y: number; k: number; s: number; a: number; ch: string; dir: number };
 type Scene = {
   shapes: Float32Array[];
   seeds: Float32Array;
   dust: Dust[];
-  sprites: Sprites;
+  atlas: Atlas;
+  /** Per-frame draw list, FLOATS_PER_INSTANCE floats per sprite. */
+  inst: Float32Array;
   sx: Float32Array;
   sy: Float32Array;
   sz: Float32Array;
@@ -232,11 +244,24 @@ function buildShapes(N: number): Float32Array[] {
   return [torus, sphere, rhomb, knot];
 }
 
-function makeSprites(fontFamily: string): Sprites {
-  const mk = (ch: string, size: number, blur: number, crisp: boolean) => {
-    const c = document.createElement("canvas");
-    c.width = c.height = size;
-    const x = c.getContext("2d")!;
+// Atlas layout: generous transparent padding between cells so mipmapped
+// sampling of one sprite never bleeds into its neighbour.
+const ATLAS = 2048;
+const HALO = SPRITE * 2;
+const BLOOM = 512;
+
+function makeAtlas(fontFamily: string): Atlas {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = ATLAS;
+  const x = canvas.getContext("2d")!;
+  const chars = [...new Set(GLYPHS)];
+
+  const glyph = (ch: string, cell: Cell, blur: number, crisp: boolean) => {
+    const [cx, cy, size] = cell;
+    x.save();
+    x.beginPath();
+    x.rect(cx, cy, size, size);
+    x.clip();
     x.font = `600 ${SPRITE_FONT}px ${fontFamily}`;
     x.textAlign = "center";
     x.textBaseline = "middle";
@@ -245,36 +270,46 @@ function makeSprites(fontFamily: string): Sprites {
       x.shadowColor = ORANGE;
       x.shadowBlur = blur;
       x.globalAlpha = 0.85;
-      x.fillText(ch, size / 2, size / 2);
-      x.fillText(ch, size / 2, size / 2);
+      x.fillText(ch, cx + size / 2, cy + size / 2);
+      x.fillText(ch, cx + size / 2, cy + size / 2);
     } else {
-      x.fillText(ch, size / 2, size / 2 + (2 * SPRITE) / 96);
+      x.fillText(ch, cx + size / 2, cy + size / 2 + (2 * SPRITE) / 96);
     }
-    return c;
+    x.restore();
   };
-  const crisp: Record<string, HTMLCanvasElement> = {};
-  const halo: Record<string, HTMLCanvasElement> = {};
-  for (const ch of new Set(GLYPHS)) {
-    crisp[ch] = mk(ch, SPRITE, 0, true);
-    halo[ch] = mk(ch, SPRITE * 2, (30 * SPRITE) / 96, false);
-  }
-  const bloom = document.createElement("canvas");
-  bloom.width = bloom.height = 512;
-  const b = bloom.getContext("2d")!;
-  const g = b.createRadialGradient(256, 256, 0, 256, 256, 256);
+
+  const crisp: Record<string, Cell> = {};
+  const halo: Record<string, Cell> = {};
+  chars.forEach((ch, i) => {
+    crisp[ch] = [64 + i * (SPRITE + 128), 64, SPRITE];
+    halo[ch] = [64 + i * (HALO + 128), 64 + SPRITE + 128, HALO];
+    glyph(ch, crisp[ch], 0, true);
+    glyph(ch, halo[ch], (30 * SPRITE) / 96, false);
+  });
+
+  const bloom: Cell = [64, 64 + SPRITE + 128 + HALO + 128, BLOOM];
+  const half = BLOOM / 2;
+  const g = x.createRadialGradient(bloom[0] + half, bloom[1] + half, 0, bloom[0] + half, bloom[1] + half, half);
   g.addColorStop(0, `rgba(${RGB},0.55)`);
   g.addColorStop(0.35, `rgba(${RGB},0.16)`);
   g.addColorStop(1, `rgba(${RGB},0)`);
-  b.fillStyle = g;
-  b.fillRect(0, 0, 512, 512);
-  return { crisp, halo, bloom };
+  x.fillStyle = g;
+  x.fillRect(bloom[0], bloom[1], BLOOM, BLOOM);
+
+  return { canvas, crisp, halo, bloom };
 }
+
+// Instance layout: center x, center y, size (design px), alpha, then the
+// atlas cell x, y, size, plus one pad float to keep the stride at 32 bytes.
+const FLOATS_PER_INSTANCE = 8;
+const DUST_COUNT = 140;
+const MAX_INSTANCES = 2 + DUST_COUNT + DENSITY * 3;
 
 function buildScene(fontFamily: string): Scene {
   const N = DENSITY;
   const seeds = new Float32Array(N);
   for (let i = 0; i < N; i++) seeds[i] = hash(i);
-  const dust = Array.from({ length: 140 }, (_, i) => ({
+  const dust = Array.from({ length: DUST_COUNT }, (_, i) => ({
     x: hash(i + 900) * W,
     y: hash(i + 1900) * H,
     k: 1 + Math.floor(hash(i + 2900) * 2),
@@ -287,7 +322,8 @@ function buildScene(fontFamily: string): Scene {
     shapes: buildShapes(N),
     seeds,
     dust,
-    sprites: makeSprites(fontFamily),
+    atlas: makeAtlas(fontFamily),
+    inst: new Float32Array(MAX_INSTANCES * FLOATS_PER_INSTANCE),
     sx: new Float32Array(N),
     sy: new Float32Array(N),
     sz: new Float32Array(N),
@@ -303,10 +339,15 @@ const MORPHS = [
   { a: 3, b: 0, start: TOTAL - 2.7 },
 ];
 
-/** Draws the frame at time T (seconds into the 21s loop), in 1920x1080 space. */
-function drawFrame(ctx: CanvasRenderingContext2D, scene: Scene, T: number) {
+/**
+ * Computes the frame at time T (seconds into the loop) and writes it into
+ * scene.inst as an ordered draw list, back to front. Returns the number of
+ * sprites. The order is exactly the original painter's order, so drawing
+ * the list with source-over blending reproduces the design pixel for pixel.
+ */
+function buildFrame(scene: Scene, T: number): number {
   const N = DENSITY;
-  const { shapes, seeds, dust, sprites, sx, sy, sz, b: bright, d: diam } = scene;
+  const { shapes, seeds, dust, atlas, inst, sx, sy, sz, b: bright, d: diam } = scene;
   const u = (((T / TOTAL) % 1) + 1) % 1;
 
   let A = shapes[0];
@@ -389,61 +430,208 @@ function drawFrame(ctx: CanvasRenderingContext2D, scene: Scene, T: number) {
     bright[i] = br;
   }
 
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, W, H);
+  let n = 0;
+  const add = (x: number, y: number, size: number, alpha: number, cell: Cell) => {
+    const o = n * FLOATS_PER_INSTANCE;
+    inst[o] = x;
+    inst[o + 1] = y;
+    inst[o + 2] = size;
+    inst[o + 3] = alpha;
+    inst[o + 4] = cell[0];
+    inst[o + 5] = cell[1];
+    inst[o + 6] = cell[2];
+    n++;
+  };
 
   // Breathing central halo.
   const bl = 1150 * SIZE * (1 + 0.06 * wave(u, 2, 1.2));
-  ctx.globalAlpha = clamp((0.42 + 0.12 * wave(u, 4, 0)) * GLOW, 0, 1);
-  ctx.drawImage(sprites.bloom, cx - bl / 2, cy - bl / 2, bl, bl);
+  add(cx, cy, bl, clamp((0.42 + 0.12 * wave(u, 4, 0)) * GLOW, 0, 1), atlas.bloom);
 
   // Background glyph dust, periodic drift.
   for (const dd of dust) {
     const x = (((dd.x + dd.dir * u * dd.k * W) % W) + W) % W;
     const y = dd.y + 14 * wave(u, dd.k, dd.x);
-    ctx.globalAlpha = dd.a;
-    ctx.drawImage(sprites.crisp[dd.ch], x - dd.s / 2, y - dd.s / 2, dd.s, dd.s);
+    add(x, y, dd.s, dd.a, atlas.crisp[dd.ch]);
   }
 
-  const crisp = sprites.crisp;
-  const halo = sprites.halo;
-  const drawPass = (far: boolean) => {
+  const glyphPass = (far: boolean) => {
     for (let i = 0; i < N; i++) {
       if (sz[i] > 0 !== far) continue;
       const a = bright[i];
       if (a < 0.03) continue;
-      const s = diam[i] * 1.6;
-      ctx.globalAlpha = a > 1 ? 1 : a;
-      ctx.drawImage(crisp[GLYPHS[i & 3]], sx[i] - s / 2, sy[i] - s / 2, s, s);
+      add(sx[i], sy[i], diam[i] * 1.6, a > 1 ? 1 : a, atlas.crisp[GLYPHS[i & 3]]);
     }
   };
-  drawPass(true);
+  glyphPass(true);
   if (GLOW > 0) {
     for (let i = 0; i < N; i++) {
       const a = bright[i];
       if (a < 0.5) continue;
-      const s = diam[i] * 3.2;
-      ctx.globalAlpha = clamp((a - 0.5) * 0.85 * GLOW, 0, 1);
-      ctx.drawImage(halo[GLYPHS[i & 3]], sx[i] - s / 2, sy[i] - s / 2, s, s);
+      add(sx[i], sy[i], diam[i] * 3.2, clamp((a - 0.5) * 0.85 * GLOW, 0, 1), atlas.halo[GLYPHS[i & 3]]);
     }
   }
-  drawPass(false);
+  glyphPass(false);
 
   // Orbiting light.
   const fo = D / (D + ol[2]);
-  const ox = cx + ol[0] * fo * SIZE;
-  const oy = cy + ol[1] * fo * SIZE;
-  const os = 260 * fo * SIZE;
-  ctx.globalAlpha = clamp((ol[2] < 0 ? 0.55 : 0.25) * GLOW, 0, 1);
-  ctx.drawImage(sprites.bloom, ox - os / 2, oy - os / 2, os, os);
-  ctx.globalAlpha = 1;
+  add(cx + ol[0] * fo * SIZE, cy + ol[1] * fo * SIZE, 260 * fo * SIZE, clamp((ol[2] < 0 ? 0.55 : 0.25) * GLOW, 0, 1), atlas.bloom);
+
+  return n;
+}
+
+/** Cover transform from design space to device pixels. */
+type View = { width: number; height: number; k: number; ox: number; oy: number };
+
+type Renderer = {
+  draw(inst: Float32Array, count: number, view: View): void;
+  dispose(): void;
+};
+
+const VERTEX_SHADER = `#version 300 es
+layout(location = 0) in vec2 aCorner;
+layout(location = 1) in vec4 aInst;
+layout(location = 2) in vec3 aCell;
+uniform vec2 uView;
+uniform vec3 uCover;
+uniform float uAtlas;
+out vec2 vUv;
+out float vAlpha;
+void main() {
+  vec2 p = aInst.xy + (aCorner - 0.5) * aInst.z;
+  vec2 clip = (p * uCover.x + uCover.yz) / uView * 2.0 - 1.0;
+  gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+  vUv = (aCell.xy + aCorner * aCell.z) / uAtlas;
+  vAlpha = aInst.w;
+}`;
+
+const FRAGMENT_SHADER = `#version 300 es
+precision highp float;
+in vec2 vUv;
+in float vAlpha;
+uniform sampler2D uTex;
+out vec4 outColor;
+void main() {
+  outColor = texture(uTex, vUv) * vAlpha;
+}`;
+
+function createGLRenderer(canvas: HTMLCanvasElement, atlas: Atlas): Renderer | null {
+  const gl = canvas.getContext("webgl2", {
+    alpha: false,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    premultipliedAlpha: true,
+    powerPreference: "high-performance",
+  });
+  if (!gl) return null;
+
+  const compile = (type: number, src: string) => {
+    const sh = gl.createShader(type)!;
+    gl.shaderSource(sh, src);
+    gl.compileShader(sh);
+    return gl.getShaderParameter(sh, gl.COMPILE_STATUS) ? sh : null;
+  };
+  const vs = compile(gl.VERTEX_SHADER, VERTEX_SHADER);
+  const fs = compile(gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
+  if (!vs || !fs) return null;
+  const program = gl.createProgram()!;
+  gl.attachShader(program, vs);
+  gl.attachShader(program, fs);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return null;
+  gl.useProgram(program);
+
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+
+  const corners = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, corners);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+  const instances = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, instances);
+  gl.bufferData(gl.ARRAY_BUFFER, MAX_INSTANCES * FLOATS_PER_INSTANCE * 4, gl.DYNAMIC_DRAW);
+  const stride = FLOATS_PER_INSTANCE * 4;
+  gl.enableVertexAttribArray(1);
+  gl.vertexAttribPointer(1, 4, gl.FLOAT, false, stride, 0);
+  gl.vertexAttribDivisor(1, 1);
+  gl.enableVertexAttribArray(2);
+  gl.vertexAttribPointer(2, 3, gl.FLOAT, false, stride, 16);
+  gl.vertexAttribDivisor(2, 1);
+
+  // Premultiplied upload + mipmaps: glyphs shrink smoothly (like Canvas 2D's
+  // high-quality smoothing) and blend exactly like source-over.
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas.canvas);
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+  const uView = gl.getUniformLocation(program, "uView");
+  const uCover = gl.getUniformLocation(program, "uCover");
+  gl.uniform1f(gl.getUniformLocation(program, "uAtlas"), ATLAS);
+  gl.uniform1i(gl.getUniformLocation(program, "uTex"), 0);
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+  gl.clearColor(0, 0, 0, 1);
+
+  return {
+    draw(inst, count, view) {
+      gl.viewport(0, 0, view.width, view.height);
+      gl.uniform2f(uView, view.width, view.height);
+      gl.uniform3f(uCover, view.k, view.ox, view.oy);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, inst, 0, count * FLOATS_PER_INSTANCE);
+      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
+    },
+    dispose() {
+      gl.deleteTexture(texture);
+      gl.deleteBuffer(corners);
+      gl.deleteBuffer(instances);
+      gl.deleteVertexArray(vao);
+      gl.deleteProgram(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+    },
+  };
+}
+
+/** Fallback for browsers without WebGL2: same draw list, same atlas. */
+function create2DRenderer(canvas: HTMLCanvasElement, atlas: Atlas): Renderer | null {
+  const ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) return null;
+  return {
+    draw(inst, count, view) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, view.width, view.height);
+      ctx.setTransform(view.k, 0, 0, view.k, view.ox, view.oy);
+      ctx.imageSmoothingQuality = "high";
+      for (let i = 0; i < count; i++) {
+        const o = i * FLOATS_PER_INSTANCE;
+        const s = inst[o + 2];
+        ctx.globalAlpha = inst[o + 3];
+        ctx.drawImage(atlas.canvas, inst[o + 4], inst[o + 5], inst[o + 6], inst[o + 6], inst[o] - s / 2, inst[o + 1] - s / 2, s, s);
+      }
+      ctx.globalAlpha = 1;
+    },
+    dispose() {},
+  };
 }
 
 /**
  * Full-bleed animated background for the homepage hero. Fades in after the
  * first frame is drawn, pauses while scrolled out of view or in a hidden
- * tab, and holds a single still frame under prefers-reduced-motion.
+ * tab, and holds a single still frame under prefers-reduced-motion. Runs at
+ * the display's own refresh rate (rAF-synced, time-based clock).
  */
 export default function HeroAnimation() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -452,34 +640,38 @@ export default function HeroAnimation() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
 
     let disposed = false;
     let scene: Scene | null = null;
+    let renderer: Renderer | null = null;
     let raf = 0;
     let visible = true;
     // Animation clock that only advances while actually playing, so it
     // resumes where it left off instead of jumping after a pause.
     let clock = 0;
     let lastNow: number | null = null;
+    const view: View = { width: 1, height: 1, k: 1, ox: 0, oy: 0 };
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     function fit() {
-      if (!canvas || !ctx) return;
+      if (!canvas) return;
       const dpr = window.devicePixelRatio || 1;
       const cw = Math.max(1, Math.round(canvas.clientWidth * dpr));
       const ch = Math.max(1, Math.round(canvas.clientHeight * dpr));
       if (canvas.width !== cw) canvas.width = cw;
       if (canvas.height !== ch) canvas.height = ch;
       const k = Math.max(cw / W, ch / H);
-      ctx.setTransform(k, 0, 0, k, (cw - W * k) / 2, (ch - H * k) / 2);
-      ctx.imageSmoothingQuality = "high";
+      view.width = cw;
+      view.height = ch;
+      view.k = k;
+      view.ox = (cw - W * k) / 2;
+      view.oy = (ch - H * k) / 2;
     }
 
     function render() {
-      if (!scene || !ctx) return;
-      drawFrame(ctx, scene, reduce.matches ? STILL_T : clock % TOTAL);
+      if (!scene || !renderer) return;
+      const count = buildFrame(scene, reduce.matches ? STILL_T : clock % TOTAL);
+      renderer.draw(scene.inst, count, view);
     }
 
     function tick(now: number) {
@@ -492,7 +684,7 @@ export default function HeroAnimation() {
     }
 
     function start() {
-      if (raf || disposed || !scene || !visible || reduce.matches) return;
+      if (raf || disposed || !renderer || !visible || reduce.matches) return;
       lastNow = null;
       raf = requestAnimationFrame(tick);
     }
@@ -504,6 +696,20 @@ export default function HeroAnimation() {
 
     function onMotionChange() {
       stop();
+      render();
+      start();
+    }
+
+    // A lost GPU context (driver reset, too many contexts) just stops the
+    // loop; the restored event rebuilds the renderer on the same canvas.
+    function onContextLost(e: Event) {
+      e.preventDefault();
+      stop();
+      renderer = null;
+    }
+    function onContextRestored() {
+      if (!scene || !canvas) return;
+      renderer = createGLRenderer(canvas, scene.atlas);
       render();
       start();
     }
@@ -527,6 +733,10 @@ export default function HeroAnimation() {
       .then(() => {
         if (disposed) return;
         scene = buildScene(family);
+        renderer = createGLRenderer(canvas, scene.atlas) ?? create2DRenderer(canvas, scene.atlas);
+        if (!renderer) return;
+        canvas.addEventListener("webglcontextlost", onContextLost);
+        canvas.addEventListener("webglcontextrestored", onContextRestored);
         fit();
         render();
         setReady(true);
@@ -542,6 +752,9 @@ export default function HeroAnimation() {
       resize.disconnect();
       io.disconnect();
       reduce.removeEventListener("change", onMotionChange);
+      canvas.removeEventListener("webglcontextlost", onContextLost);
+      canvas.removeEventListener("webglcontextrestored", onContextRestored);
+      renderer?.dispose();
     };
   }, []);
 
