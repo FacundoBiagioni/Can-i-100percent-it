@@ -180,6 +180,10 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
     "dlc_achievement_requirement",
     "paid_dlc_required",
     "curator_note",
+    // Required DLC are disclosed but never block 100%, so failing to pin down
+    // WHICH DLC (e.g. the AI step is out of quota) mustn't turn a verdict
+    // provisional either.
+    "required_dlc_resolution",
     "missable_signal",
     "missable",
   ]);
