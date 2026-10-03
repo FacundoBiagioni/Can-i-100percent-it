@@ -4,6 +4,7 @@ import {
   scoutStatsResponseSchema,
   communityTagsResponseSchema,
   steamHuntersPlayersResponseSchema,
+  curationsResponseSchema,
 } from "@/lib/validation/schemas";
 import type { EvidenceClaim } from "../../types";
 import type { ScraperAdapter } from "./types";
@@ -42,6 +43,19 @@ async function fetchCommunityTags(appId: number) {
   );
 }
 
+/** Short human-written notes from the Achievement Scouts Steam curator
+ * groups — e.g. "Paid 'Phantom Liberty' DLC required." or "No DLCs
+ * required." The most explicit DLC statement available for a game, so the
+ * DLC resolver treats it as authoritative context. */
+async function fetchCurations(appId: number) {
+  return getOrFetch(CacheKeys.scrape("achievement_scouts:curations", appId), CacheTTL.scrapeSuccess, async () => {
+    const res = await fetch(`${API_BASE}/curations/by-app/${appId}`);
+    if (!res.ok) return [];
+    const parsed = curationsResponseSchema.safeParse(await res.json());
+    return parsed.success ? parsed.data : [];
+  });
+}
+
 /** Achievement Scouts proxies SteamHunters' own per-player data — this is
  * the only path we have to any SteamHunters signal, since steamhunters.com
  * itself is behind a Cloudflare challenge we can't pass with a plain fetch. */
@@ -66,11 +80,24 @@ export const achievementScoutsAdapter: ScraperAdapter = {
     const claims: EvidenceClaim[] = [];
 
     try {
-      const [stats, tags, huntersSample] = await Promise.all([
+      const [stats, tags, huntersSample, curations] = await Promise.all([
         fetchScoutStats(appId),
         fetchCommunityTags(appId),
         fetchSteamHuntersSample(appId),
+        fetchCurations(appId),
       ]);
+
+      for (const curation of curations) {
+        if (!curation.blurb) continue;
+        claims.push({
+          sourceKey: "achievement_scouts",
+          claim: { type: "curator_note", text: curation.blurb },
+          confidence: "high",
+          reasoning: curation.blurb,
+          rawUrl: curation.curation_url ?? `https://achievement-scouts.com/apps/${appId}`,
+          checkedAt,
+        });
+      }
 
       if (stats?.median_completion) {
         claims.push({

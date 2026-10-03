@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { games, dlc, achievements } from "@/lib/db/schema";
+import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import {
   getAppDetails,
-  getDlcDetails,
   getAchievementSchema,
   getGlobalAchievementPercentages,
 } from "@/lib/pipeline/layers/1-steam/client";
@@ -16,8 +16,10 @@ export async function getGameWithDlc(appId: number) {
   return game ?? null;
 }
 
+/** In the game's own schema order (rows are inserted in that order): the
+ * DLC resolver relies on it, since DLC achievements sit together as a block. */
 export async function getAchievementsForGame(appId: number) {
-  return db.query.achievements.findMany({ where: eq(achievements.gameId, appId) });
+  return db.query.achievements.findMany({ where: eq(achievements.gameId, appId), orderBy: [asc(achievements.id)] });
 }
 
 async function persistAchievements(appId: number) {
@@ -57,10 +59,8 @@ export async function getOrCreateGame(appId: number) {
   const details = await getAppDetails(appId);
   if (!details) return null;
 
-  // Soundtracks/other non-gameplay "dlc" entries never gate achievements —
-  // excluded so they don't pollute this table (same reasoning as the
-  // pipeline's own DLC-requirement matching in steamAnalyzer.run()).
-  const dlcDetails = (await Promise.all(details.dlcAppIds.map(getDlcDetails))).filter((d) => d.type !== "music");
+  // Same batched catalog the pipeline uses (soundtracks already excluded).
+  const dlcDetails = (await getDlcCatalog(details.appId, details.dlcAppIds)) ?? [];
 
   // onConflictDoNothing: two requests can both see "not found" and race to
   // insert the same game (e.g. quick double-navigation, prefetch + click) —
@@ -79,8 +79,8 @@ export async function getOrCreateGame(appId: number) {
         gameId: details.appId,
         appId: d.appId,
         name: d.name,
-        priceCents: d.priceCents,
-        isDelisted: d.name.startsWith("Unknown DLC"),
+        priceCents: null,
+        isDelisted: !d.exists || !d.purchasable,
       })),
     ).onConflictDoNothing();
   }

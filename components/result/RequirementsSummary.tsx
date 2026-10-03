@@ -19,11 +19,14 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
             <tbody>
               {requiredDlc.map((d) => (
                 <tr key={d.dlcAppId} className="border-t border-carbon">
-                  <td className="py-2 pr-4 text-ash">
+                  <td className="py-2 pr-4 align-top text-ash">
                     {d.name}
                     {d.isDelisted && <span className="ml-2 text-fail">(delisted)</span>}
+                    {d.evidence && d.evidence.length > 0 && (
+                      <span className="mt-0.5 block text-caption text-graphite">Needed for: {d.evidence.join(", ")}</span>
+                    )}
                   </td>
-                  <td className="py-2 text-right tabular-nums text-graphite">
+                  <td className="py-2 text-right align-top tabular-nums text-graphite">
                     {d.priceCents !== null ? formatPrice(d.priceCents) : "-"}
                   </td>
                 </tr>

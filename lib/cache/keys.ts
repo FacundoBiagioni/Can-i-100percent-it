@@ -2,6 +2,8 @@ export const CacheTTL = {
   steamSearch: 60 * 60, // 1h
   steamAppDetails: 60 * 60 * 24, // 24h
   steamArPricing: 60 * 60 * 24, // 24h
+  steamDlcCatalog: 60 * 60 * 24, // 24h
+  failureRetry: 60, // 1m — don't let a transient failure stick
   steamSchema: 60 * 60 * 24 * 7, // 7d
   steamGlobalPct: 60 * 60 * 6, // 6h
   steamCurrentPlayers: 60 * 5, // 5m
@@ -18,6 +20,7 @@ export const CacheKeys = {
   steamSearch: (query: string) => `steam:search:v2:${query.toLowerCase()}`,
   steamAppDetails: (appId: number) => `steam:appdetails:${appId}`,
   steamArPricing: (appId: number) => `steam:pricing:ar:${appId}`,
+  steamDlcCatalog: (appId: number) => `steam:dlccatalog:${appId}`,
   steamSchema: (appId: number) => `steam:schema:${appId}`,
   steamGlobalPct: (appId: number) => `steam:globalpct:${appId}`,
   steamCurrentPlayers: (appId: number) => `steam:currentplayers:${appId}`,

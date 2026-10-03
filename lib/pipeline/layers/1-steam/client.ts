@@ -8,6 +8,7 @@ import {
   globalAchievementPercentagesResponseSchema,
   currentPlayersResponseSchema,
 } from "@/lib/validation/schemas";
+import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import type { Analyzer, AnalyzerContext, Facts, EvidenceClaim, DlcRequirement } from "../../types";
 
 export type SteamGameSummary = {
@@ -152,23 +153,6 @@ export async function getArgentinaPricing(appId: number): Promise<ArPricing | nu
   });
 }
 
-export type DlcDetails = { appId: number; name: string; priceCents: number | null; isFree: boolean; type: string };
-
-export async function getDlcDetails(dlcAppId: number): Promise<DlcDetails> {
-  const [details, pricing] = await Promise.all([getAppDetails(dlcAppId), getArgentinaPricing(dlcAppId)]);
-  if (!details) {
-    // DLC page pulled/delisted — appdetails returns success:false for it.
-    return { appId: dlcAppId, name: `Unknown DLC (${dlcAppId})`, priceCents: null, isFree: false, type: "dlc" };
-  }
-  return {
-    appId: dlcAppId,
-    name: details.name,
-    priceCents: pricing?.priceCents ?? null,
-    isFree: details.isFree,
-    type: details.type,
-  };
-}
-
 export type SteamAchievementSchema = {
   name: string;
   displayName: string;
@@ -248,23 +232,19 @@ export const steamAnalyzer: Analyzer = {
       return { foundOnSteam: false, claims };
     }
 
-    const dlcDetails = await Promise.all(details.dlcAppIds.map(getDlcDetails));
-    // Soundtracks/other non-gameplay "dlc" entries (type "music") never
-    // gate achievements — excluded entirely so a scraper/AI claim naming a
-    // real expansion can't get fuzzy-matched onto its same-named soundtrack
-    // instead (confirmed live: The Witcher 3's remastered SKU only lists
-    // "Hearts of Stone Soundtrack"/"Blood and Wine Soundtrack" as owned DLC,
-    // not the expansions themselves, which wrongly matched "Hearts of
-    // Stone" from a Wikipedia-derived claim onto the soundtrack).
-    const dlcNeeded: DlcRequirement[] = dlcDetails
-      .filter((d) => d.type !== "music")
-      .map((d) => ({
-        dlcAppId: d.appId,
-        name: d.name,
-        priceCents: d.priceCents,
-        required: false, // layer 3 decides "required" from achievement->DLC links + scraper evidence
-        isDelisted: d.name.startsWith("Unknown DLC"),
-      }));
+    // One batched store lookup for the whole DLC list (see dlcCatalog.ts);
+    // soundtracks are already left out there. Prices are filled in later,
+    // and only for the DLC that turn out to be required. If the store can't
+    // be reached the list stays empty rather than guessing: a failed lookup
+    // must never read as "this DLC was delisted".
+    const catalog = (await getDlcCatalog(ctx.appId, details.dlcAppIds)) ?? [];
+    const dlcNeeded: DlcRequirement[] = catalog.map((d) => ({
+      dlcAppId: d.appId,
+      name: d.name,
+      priceCents: null,
+      required: false, // decided in the orchestrator by resolveRequiredDlc
+      isDelisted: !d.exists || !d.purchasable,
+    }));
 
     claims.push({
       sourceKey: "steam_api",

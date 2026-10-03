@@ -30,6 +30,8 @@ export type DlcRequirement = {
   priceCents: number | null;
   required: boolean;
   isDelisted: boolean;
+  /** Achievements that need this DLC (only set on required DLC). */
+  evidence?: string[];
 };
 
 export type Facts = {

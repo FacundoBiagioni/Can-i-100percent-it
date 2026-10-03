@@ -11,6 +11,7 @@ const dlcRequiredRowSchema = z.array(
     priceCents: z.number().nullable(),
     required: z.boolean(),
     isDelisted: z.boolean(),
+    evidence: z.array(z.string()).optional(),
   }),
 );
 

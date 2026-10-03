@@ -15,19 +15,24 @@ const MODEL = "gemini-3.5-flash-lite";
  * against many games back to back. Returns null (never throws) so callers
  * can degrade gracefully same as any other unavailable source.
  */
-export async function generateJson(prompt: string, schema: Schema, maxRetries = 2): Promise<string | null> {
+export async function generateJson(
+  prompt: string,
+  schema: Schema,
+  maxRetries = 2,
+  options: { temperature?: number } = {},
+): Promise<string | null> {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const response = await ai.models.generateContent({
         model: MODEL,
         contents: prompt,
-        config: { responseMimeType: "application/json", responseSchema: schema },
+        config: { responseMimeType: "application/json", responseSchema: schema, temperature: options.temperature },
       });
       return response.text ?? null;
     } catch (e) {
       const isRetryable = e instanceof ApiError && (e.status === 503 || e.status === 429);
       if (!isRetryable || attempt === maxRetries) return null;
-      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt)); // 1s, 2s
+      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt)); // 1s, 2s, 4s, ...
     }
   }
   return null;

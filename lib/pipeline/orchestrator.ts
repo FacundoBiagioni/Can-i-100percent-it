@@ -1,19 +1,20 @@
 import { redis } from "@/lib/cache/redis";
 import { CacheKeys } from "@/lib/cache/keys";
-import { upsertAnalysisResult, insertVerificationHistory } from "@/lib/db/queries/analysis";
+import { upsertAnalysisResult, insertVerificationHistory, getAnalysisResult } from "@/lib/db/queries/analysis";
 import { insertEvidence } from "@/lib/db/queries/evidence";
 import { getAchievementsForGame } from "@/lib/db/queries/games";
-import { steamAnalyzer } from "./layers/1-steam/client";
+import { steamAnalyzer, getAppDetails, getArgentinaPricing } from "./layers/1-steam/client";
+import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
+import { resolveRequiredDlc } from "./dlc/resolveRequiredDlc";
 import { runAllScrapers } from "./layers/2-scrapers";
 import { applyRules, detectConflicts, deriveStatus } from "./layers/3-rules/engine";
 import { applyRecencyDecay } from "./layers/4-recency/scorer";
 import { fetchAcceptedCommunityClaims } from "./layers/5-community/reports";
 import { resolveConflicts } from "./layers/6-ai-resolver/resolver";
 import { matchAchievementName } from "./achievementMatcher";
-import { matchDlcName } from "./dlcMatcher";
 import type { AnalysisResult, EvidenceClaim, DlcRequirement } from "./types";
 
-export const PIPELINE_VERSION = "1";
+export const PIPELINE_VERSION = "2";
 
 type Trigger = "initial" | "manual" | "cron";
 
@@ -34,7 +35,7 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
   const steamResult = await steamAnalyzer.run({ appId, gameName: "" });
   const gameName = steamResult.gameName ?? `AppID ${appId}`;
   const foundOnSteam = steamResult.foundOnSteam ?? false;
-  const dlcNeeded = steamResult.dlcNeeded ?? [];
+  let dlcNeeded = steamResult.dlcNeeded ?? [];
   const multiplayerFromSteam = steamResult.multiplayerRequired ?? false;
 
   let allClaims: EvidenceClaim[] = [...steamResult.claims];
@@ -89,18 +90,40 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
       return matched ? { ...c, achievementApiName: matched.apiName } : c;
     });
 
-    // Same idea as above, but for "dlc_achievement_requirement" claims —
-    // sources only ever name a DLC by its store title, so resolve that
-    // free text against this game's actual owned-DLC list (from layer 1)
-    // now that it's available.
+    // Which DLC 100% needs: SteamHunters gate, then a validated mapping of
+    // the real achievement list onto the real DLC list (see
+    // resolveRequiredDlc). The catalog is cached from layer 1's own lookup.
     if (dlcNeeded.length > 0) {
-      allClaims = allClaims.map((c) => {
-        if (c.claim.type !== "dlc_achievement_requirement" || c.dlcAppId) return c;
-        const name = c.claim.name;
-        if (typeof name !== "string") return c;
-        const matched = matchDlcName(name, dlcNeeded);
-        return matched ? { ...c, dlcAppId: matched.dlcAppId } : c;
-      });
+      const details = await getAppDetails(appId);
+      const catalog = (details && (await getDlcCatalog(appId, details.dlcAppIds))) ?? [];
+      const descriptions = new Map(catalog.map((d) => [d.appId, d.description]));
+      // Only results from this resolver carry evidence; older ones (fuzzy
+      // matching, blanket flags) aren't worth falling back to.
+      const stored = await getAnalysisResult(appId);
+      const previousMatched = stored?.dlcRequired.filter((d) => d.evidence && d.evidence.length > 0) ?? [];
+      const previous = previousMatched.length > 0 ? new Map(previousMatched.map((d) => [d.dlcAppId, d.evidence!])) : null;
+      const resolution = await resolveRequiredDlc(
+        gameName,
+        dlcNeeded.map((d) => ({ appId: d.dlcAppId, name: d.name, description: descriptions.get(d.dlcAppId) ?? "" })),
+        achievementRows.map((a) => ({
+          name: a.displayName,
+          description: a.description,
+          unlockPercent: a.globalUnlockPercent !== null ? Number(a.globalUnlockPercent) : null,
+        })),
+        allClaims,
+        previous,
+      );
+      allClaims = [...allClaims, resolution.claim];
+      // Prices only for what's required — Steam Argentina's regional price,
+      // same as every other price in the app.
+      dlcNeeded = await Promise.all(
+        dlcNeeded.map(async (d) => {
+          const evidence = resolution.required.get(d.dlcAppId);
+          if (!evidence) return d;
+          const pricing = await getArgentinaPricing(d.dlcAppId);
+          return { ...d, required: true, evidence, priceCents: pricing?.priceCents ?? null };
+        }),
+      );
     }
   }
 

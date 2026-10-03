@@ -10,44 +10,11 @@ type BaseFacts = {
 
 /** Pure function: combines every analyzer's claims into one Facts object. */
 export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
-  // Precise signal: a "dlc_achievement_requirement" claim whose free-text
-  // DLC name the orchestrator matched against this game's own DLC list —
-  // marks just that DLC as required.
-  const specificallyRequiredDlcAppIds = new Set(
-    allClaims
-      .filter((c) => c.claim.type === "dlc_achievement_requirement" && c.dlcAppId)
-      .map((c) => c.dlcAppId!),
-  );
-  // Fallback signal: "some paid DLC is required" with nothing specific
-  // named — from the achievement-scouts community tag (which never names
-  // one by design), or the AI classifier saying so without naming a DLC
-  // either. Deliberately does NOT include an AI dlc_required_signal that
-  // DID come with named attempts that all failed to match — that means
-  // the named expansion(s) aren't in this game's current owned-DLC list at
-  // all (e.g. a remastered SKU where an old expansion got folded into the
-  // base game instead of staying separate DLC, confirmed live on The
-  // Witcher 3's remastered listing), which is a reason to disclose
-  // nothing rather than guess-flag an unrelated owned DLC as required.
-  // A single low-vote community tag is too thin to justify flagging a DLC
-  // as required with no name attached to it — confirmed live: a 1-vote
-  // achievement-scouts "DLC Required" tag on The Witcher 3 was, on its
-  // own, enough to blanket-flag an unrelated small DLC once the named
-  // attempts above stopped contributing (same "single stray vote"
-  // reasoning already applied to community tags in deriveStatus below).
-  const namedDlcAttempts = allClaims.filter((c) => c.claim.type === "dlc_achievement_requirement");
-  const generalDlcRequiredSignal =
-    allClaims.some((c) => c.claim.type === "dlc_required" && c.claim.value === true && c.confidence !== "low") ||
-    (namedDlcAttempts.length === 0 &&
-      allClaims.some(
-        (c) => c.claim.type === "dlc_required_signal" && c.claim.value === true && c.confidence !== "low",
-      ));
-  const dlcNeeded: DlcRequirement[] = base.dlcNeeded.map((d) => ({
-    ...d,
-    required:
-      d.required ||
-      specificallyRequiredDlcAppIds.has(d.dlcAppId) ||
-      (specificallyRequiredDlcAppIds.size === 0 && generalDlcRequiredSignal),
-  }));
+  // Which DLC are required is decided before this point, by
+  // resolveRequiredDlc (SteamHunters gate + achievement-to-DLC mapping); the
+  // free-text DLC claims from forums/guides/Wikipedia are only context for
+  // that step, never a flag on their own.
+  const dlcNeeded = base.dlcNeeded;
 
   const multiplayerRequired =
     base.multiplayerRequired ||
@@ -115,11 +82,16 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
 export type ConflictGroup = { key: string; claims: EvidenceClaim[] };
 
 /** Groups claims by fact key and flags any group with disagreeing boolean values. */
+// DLC signals no longer decide anything on their own (resolveRequiredDlc
+// does), so a disagreement between them isn't worth an AI resolver call.
+const NON_CONFLICT_TYPES = new Set(["dlc_required", "dlc_required_signal", "paid_dlc_required"]);
+
 export function detectConflicts(claims: EvidenceClaim[]): ConflictGroup[] {
   const byKey = new Map<string, EvidenceClaim[]>();
   for (const claim of claims) {
     const type = claim.claim.type;
     if (typeof type !== "string" || typeof claim.claim.value !== "boolean") continue;
+    if (NON_CONFLICT_TYPES.has(type)) continue;
     const key = claim.achievementApiName ? `${type}:${claim.achievementApiName}` : type;
     byKey.set(key, [...(byKey.get(key) ?? []), claim]);
   }
@@ -203,8 +175,11 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
     "estimated_hours",
     "current_players",
     "global_unlock_percent",
+    "dlc_required",
     "dlc_required_signal",
     "dlc_achievement_requirement",
+    "paid_dlc_required",
+    "curator_note",
     "missable_signal",
     "missable",
   ]);

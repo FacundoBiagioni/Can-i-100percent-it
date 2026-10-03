@@ -135,3 +135,52 @@ export const steamHuntersPlayerSchema = z.object({
 export const steamHuntersPlayersResponseSchema = z.object({
   items: z.array(steamHuntersPlayerSchema),
 });
+
+// --- Achievement Scouts curations (/curations/by-app/{appId}) — verified
+// live 2026-10-02. Short human-written notes from the Achievement Scouts
+// Steam curator groups, e.g. "Paid 'Phantom Liberty' DLC required."
+export const curationsResponseSchema = z.array(
+  z.object({
+    blurb: z.string().nullable().optional(),
+    curation_url: z.string().nullable().optional(),
+  }),
+);
+
+// --- SteamHunters public API (steamhunters.com/api/apps/{appId}) — verified
+// live 2026-10-02. Unlike the HTML pages (Cloudflare-challenged), this JSON
+// route answers plain requests. hasPaidDlc is SteamHunters' own curated
+// flag for "100% needs paid DLC": it was false for every game checked whose
+// DLC adds no achievements (Dark Souls III, ACE COMBAT 7, LEGO Skywalker
+// Saga, V Rising) and true for every game whose curator note names a
+// required DLC.
+export const steamHuntersAppResponseSchema = z.object({
+  appId: z.number(),
+  hasPaidDlc: z.boolean(),
+});
+
+// --- IStoreBrowseService/GetItems — verified live 2026-10-02. Batch store
+// lookup (one request for up to 100 apps) used for DLC lists, which can run
+// to hundreds of entries: one appdetails call per DLC trips Steam's rate
+// limit (~200 requests / 5 min) on games like Monster Hunter: World.
+// success 1 = found; any other value = Steam's store doesn't know the app.
+// type 4 = DLC, 11 = soundtrack, 0 = game.
+export const storeItemsResponseSchema = z.object({
+  response: z.object({
+    store_items: z
+      .array(
+        z.object({
+          appid: z.number().optional(),
+          id: z.number().optional(),
+          success: z.number(),
+          type: z.number().optional(),
+          name: z.string().optional(),
+          is_free: z.boolean().optional(),
+          basic_info: z.object({ short_description: z.string().optional() }).optional(),
+          best_purchase_option: z.object({}).passthrough().optional(),
+          purchase_options: z.array(z.object({}).passthrough()).optional(),
+        }),
+      )
+      .optional()
+      .default([]),
+  }),
+});
