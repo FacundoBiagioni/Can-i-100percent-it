@@ -2,7 +2,7 @@ import { redis } from "@/lib/cache/redis";
 import { CacheKeys } from "@/lib/cache/keys";
 import { upsertAnalysisResult, insertVerificationHistory, getAnalysisResult } from "@/lib/db/queries/analysis";
 import { insertEvidence } from "@/lib/db/queries/evidence";
-import { getAchievementsForGame } from "@/lib/db/queries/games";
+import { getAchievementsForGame, getOrCreateGame } from "@/lib/db/queries/games";
 import { steamAnalyzer, getAppDetails, getArgentinaPricing } from "./layers/1-steam/client";
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import { resolveRequiredDlc } from "./dlc/resolveRequiredDlc";
@@ -45,6 +45,12 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
     // check — short-circuit before spending any scraper/AI calls on it and
     // report it as its own distinct status rather than a green/red verdict
     // that wouldn't mean anything (100% of nothing).
+    // getOrCreateGame backfills a game whose achievements were never stored
+    // (rows from before achievement persistence existed). Without it, a run
+    // that doesn't come through the game page — the daily cron, a manual
+    // re-run — read zero rows and reported a game like Stardew Valley as
+    // having no achievements at all.
+    await getOrCreateGame(appId);
     const achievementRows = await getAchievementsForGame(appId);
     if (achievementRows.length === 0) {
       const result: AnalysisResult = {
