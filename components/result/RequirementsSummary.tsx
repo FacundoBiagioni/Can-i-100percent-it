@@ -2,8 +2,9 @@ import type { AnalysisResult } from "@/lib/pipeline/types";
 import { formatPrice, PRICE_REGION_LABEL } from "@/lib/ui/price";
 
 /** Direct, always-visible facts — no accordion, and a fact that has nothing
- * to disclose (no DLC required, no multiplayer requirement) renders nothing
- * at all rather than a "no X" placeholder line. */
+ * to disclose (no DLC required) renders nothing at all rather than a "no X"
+ * placeholder line. Multiplayer isn't repeated here: the server icon and
+ * its tooltip already cover it. */
 export default function RequirementsSummary({ analysis }: { analysis: AnalysisResult }) {
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
 
@@ -34,20 +35,6 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
             </tbody>
           </table>
           <p className="mt-3 text-caption text-graphite">{PRICE_REGION_LABEL}</p>
-        </div>
-      )}
-
-      {analysis.multiplayerRequired && (
-        <div className="flex w-full flex-col gap-2 border border-carbon p-4">
-          <h2 className="text-nav text-graphite">Multiplayer required</h2>
-          <p className="text-body text-ash">
-            Servers <span className="text-chalk">{analysis.serversStatus}</span>.{" "}
-            {analysis.serversStatus === "offline"
-              ? "Current player activity suggests servers may no longer be reachable."
-              : analysis.serversStatus === "online"
-                ? "Current player activity suggests servers are still reachable."
-                : "Server status could not be determined from available data."}
-          </p>
         </div>
       )}
 

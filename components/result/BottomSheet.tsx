@@ -14,7 +14,9 @@ function buildPeekSummary(analysis: AnalysisResult, achievementCount: number): s
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const parts: string[] = [];
   if (requiredDlc.length > 0) parts.push(`${requiredDlc.length} DLC, ${formatPrice(analysis.totalDlcCostCents)}`);
-  if (analysis.multiplayerRequired) parts.push("multiplayer required");
+  // Multiplayer is deliberately left out: the server icon (and its tooltip,
+  // which carries the server status) already says everything there is to
+  // say, so it alone shouldn't open a sheet.
   if (achievementCount > 0) parts.push(`${achievementCount} achievement${achievementCount === 1 ? "" : "s"} flagged`);
   if (analysis.estimatedHours !== null) parts.push(`~${Math.round(analysis.estimatedHours)}h to 100%`);
   return parts.length > 0 ? parts.join(" · ") : null;
