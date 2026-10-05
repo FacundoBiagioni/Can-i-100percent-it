@@ -145,28 +145,33 @@ async function getDlcOwnership(
   return out;
 }
 
-/** Statuses for a batch, plus art and the player's progress for just the
- * games worth showing. */
+/** Statuses for a batch, plus art and the player's progress for the games
+ * worth showing: the ones with a catch, and the ones already at 100%. */
 export async function getFlaggedGames(
   appIds: number[],
   steamId: string | null,
 ): Promise<{ checked: number; untracked: number; flagged: FlaggedGame[] } | null> {
   const statuses = await getAppStatuses(appIds);
   if (!statuses) return null;
-  const flaggedStatuses = statuses.filter((s) => s.unobtainable > 0 || s.hasPaidDlc);
-  const flaggedIds = flaggedStatuses.map((s) => s.appId);
-  const [assets, progress] = await Promise.all([
-    getAssets(flaggedIds),
-    steamId ? getPlayerProgress(steamId, flaggedIds) : Promise.resolve(null),
+  // Progress for the whole batch (still one request), so perfected games
+  // without any catch can be shown too.
+  const progress = steamId ? await getPlayerProgress(steamId, statuses.map((s) => s.appId)) : null;
+  const perfect = (appId: number) => {
+    const p = progress?.get(appId);
+    return Boolean(p && p.total > 0 && p.unlocked >= p.total);
+  };
+  const shown = statuses.filter((s) => s.unobtainable > 0 || s.hasPaidDlc || perfect(s.appId));
+  const [assets, dlc] = await Promise.all([
+    getAssets(shown.map((s) => s.appId)),
+    getDlcOwnership(
+      shown.filter((s) => s.hasPaidDlc).map((s) => s.appId),
+      progress,
+    ),
   ]);
-  const dlc = await getDlcOwnership(
-    flaggedStatuses.filter((s) => s.hasPaidDlc).map((s) => s.appId),
-    progress,
-  );
   return {
     checked: statuses.length,
     untracked: statuses.filter((s) => !s.tracked).length,
-    flagged: flaggedStatuses.map((s) => {
+    flagged: shown.map((s) => {
       const p = progress?.get(s.appId);
       return {
         ...s,

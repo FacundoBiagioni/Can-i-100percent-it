@@ -12,7 +12,7 @@ const STORAGE_KEY = "library-profile";
 
 type LibraryInfo = { steamId: string; personaName: string; avatar: string | null; totalGames: number; games: LibraryGame[] };
 type Card = FlaggedGame & { name: string; playtimeMinutes: number };
-type Filter = "all" | "impossible" | "dlc" | "owned";
+type Filter = "all" | "impossible" | "dlc" | "owned" | "completed";
 
 const ERRORS: Record<string, string> = {
   invalid_input: "That doesn't look like a Steam profile. Paste the full link to your profile page.",
@@ -47,13 +47,15 @@ function artCandidates(game: Card): { url: string; portrait: boolean }[] {
   return list.filter((c, i) => list.findIndex((o) => o.url === c.url) === i);
 }
 
+const isComplete = (g: Card) => g.progress !== null && g.progress.unlocked >= g.progress.total;
+const hasCatch = (g: Card) => g.unobtainable > 0 || g.hasPaidDlc;
 const dlcOwned = (g: Card) => g.dlc !== null && g.dlc.owned >= g.dlc.required;
 const needsDlc = (g: Card) => g.hasPaidDlc && !dlcOwned(g);
 
 const TAG = "inline-flex items-center gap-1 bg-void/85 px-1.5 py-0.5 text-caption font-medium backdrop-blur-sm";
 
 function Tags({ game }: { game: Card }) {
-  const complete = game.progress !== null && game.progress.unlocked >= game.progress.total;
+  const complete = isComplete(game);
   return (
     <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
       {complete && (
@@ -89,17 +91,15 @@ function Tags({ game }: { game: Card }) {
   );
 }
 
-/** Unlocked share in white, the share nobody can unlock anymore in red at
- * the far end, so "how far can I still get" reads at a glance. */
+/** Unlocked share in white, or all green once the game is at 100%. */
 function ProgressBar({ game }: { game: Card }) {
   const p = game.progress!;
-  const done = p.unlocked >= p.total;
-  const unlocked = Math.min(100, (p.unlocked / p.total) * 100);
-  const lost = Math.min(100 - unlocked, (game.unobtainable / p.total) * 100);
   return (
     <div className="relative h-1 w-full bg-obsidian" aria-hidden>
-      <div className={`absolute inset-y-0 left-0 ${done ? "bg-pass" : "bg-chalk"}`} style={{ width: `${unlocked}%` }} />
-      {!done && lost > 0 && <div className="absolute inset-y-0 right-0 bg-fail/70" style={{ width: `${lost}%` }} />}
+      <div
+        className={`absolute inset-y-0 left-0 ${isComplete(game) ? "bg-pass" : "bg-chalk"}`}
+        style={{ width: `${Math.min(100, (p.unlocked / p.total) * 100)}%` }}
+      />
     </div>
   );
 }
@@ -111,7 +111,6 @@ function GameCard({ game }: { game: Card }) {
   const art = candidates[index];
   const p = game.progress;
   const percent = p ? Math.floor((p.unlocked / p.total) * 100) : null;
-  const maxPercent = p && game.unobtainable > 0 ? Math.floor(((p.total - game.unobtainable) / p.total) * 100) : null;
 
   // Tilt toward the pointer; written straight to CSS variables so moving the
   // mouse never re-renders the grid.
@@ -185,10 +184,7 @@ function GameCard({ game }: { game: Card }) {
         <span className="line-clamp-1 text-body font-medium text-chalk transition-colors group-hover:text-fog">{game.name}</span>
         {p && <ProgressBar game={game} />}
         {p && <span className="text-caption tabular-nums text-ash">{`${p.unlocked} / ${p.total} achievements`}</span>}
-        <span className="flex justify-between gap-2 text-caption tabular-nums text-graphite">
-          <span>{hours(game.playtimeMinutes)}</span>
-          {maxPercent !== null && p && p.unlocked < p.total && <span className="shrink-0 text-fail/80">max {maxPercent}%</span>}
-        </span>
+        <span className="text-caption tabular-nums text-graphite">{hours(game.playtimeMinutes)}</span>
       </div>
     </Link>
   );
@@ -286,15 +282,30 @@ export default function LibraryChecker() {
   const sorted = useMemo(
     () =>
       [...cards].sort(
-        (a, b) => b.unobtainable - a.unobtainable || Number(b.hasPaidDlc) - Number(a.hasPaidDlc) || b.playtimeMinutes - a.playtimeMinutes,
+        // Games with a catch first; perfected ones after, most played first.
+        (a, b) =>
+          Number(hasCatch(b)) - Number(hasCatch(a)) ||
+          b.unobtainable - a.unobtainable ||
+          Number(b.hasPaidDlc) - Number(a.hasPaidDlc) ||
+          b.playtimeMinutes - a.playtimeMinutes,
       ),
     [cards],
   );
   const impossibleCount = cards.filter((c) => c.unobtainable > 0).length;
   const dlcCount = cards.filter(needsDlc).length;
   const ownedCount = cards.filter((c) => c.hasPaidDlc && dlcOwned(c)).length;
+  const catchCount = cards.filter(hasCatch).length;
+  const completedCount = cards.filter(isComplete).length;
   const visible = sorted.filter((c) =>
-    filter === "impossible" ? c.unobtainable > 0 : filter === "dlc" ? needsDlc(c) : filter === "owned" ? c.hasPaidDlc && dlcOwned(c) : true,
+    filter === "impossible"
+      ? c.unobtainable > 0
+      : filter === "dlc"
+        ? needsDlc(c)
+        : filter === "owned"
+          ? c.hasPaidDlc && dlcOwned(c)
+          : filter === "completed"
+            ? isComplete(c)
+            : true,
   );
   const total = library?.games.length ?? 0;
   const busy = phase === "loading" || phase === "checking";
@@ -326,7 +337,7 @@ export default function LibraryChecker() {
               <span className="text-chalk">Copy Page URL</span>, or copy it from the browser. It looks like{" "}
               <span className="text-chalk">steamcommunity.com/id/yourname</span>.
             </>,
-            <>Paste it here and check. Only games that can&apos;t be fully completed, or that need paid DLC, show up.</>,
+            <>Paste it here and check. Games that can&apos;t be fully completed or need paid DLC show up, plus the ones you already have at 100%.</>,
           ].map((step, i) => (
             <li key={i} className="-ml-px -mt-px flex gap-4 border border-carbon p-4">
               <span className="text-heading font-semibold tabular-nums text-graphite">{i + 1}</span>
@@ -398,7 +409,7 @@ export default function LibraryChecker() {
                 ? `Checking ${checked.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}…`
                 : phase === "error"
                   ? `Stopped after checking ${checked.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}.`
-                  : `${cards.length} can't be completed without a catch${untracked > 0 ? ` · ${untracked} not covered by the achievement database yet` : ""}.`}
+                  : `${catchCount} can't be completed without a catch${completedCount > 0 ? ` · ${completedCount} at 100%` : ""}${untracked > 0 ? ` · ${untracked} not covered by the achievement database yet` : ""}.`}
             </p>
             {total > 0 && (
               <div className="h-px w-full bg-carbon">
@@ -415,6 +426,7 @@ export default function LibraryChecker() {
                   ["impossible", `Impossible ${impossibleCount}`],
                   ["dlc", `Needs paid DLC ${dlcCount}`],
                   ...(ownedCount > 0 ? [["owned", `DLC owned ${ownedCount}`]] : []),
+                  ...(completedCount > 0 ? [["completed", `100% ${completedCount}`]] : []),
                 ] as [Filter, string][]
               ).map(([value, label]) => (
                 <button
