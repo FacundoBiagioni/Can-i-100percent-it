@@ -4,10 +4,13 @@ import { overRateLimit } from "@/lib/rateLimit";
 
 const bodySchema = z.object({
   appIds: z.array(z.number().int().positive()).min(1).max(MAX_IDS_PER_REQUEST),
+  // Optional: with it, each flagged game also carries the player's progress.
+  steamId: z.string().regex(/^7656119\d{10}$/).optional(),
 });
 
 /** For one batch of up to 100 games: which have unobtainable achievements
- * or need paid DLC for 100%, with their library art. No AI involved. */
+ * or need paid DLC for 100%, with their library art and, given a steamId, the
+ * player's achievement progress. No AI involved. */
 export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "invalid_body" }, { status: 400 });
@@ -15,7 +18,7 @@ export async function POST(request: Request) {
   if (await overRateLimit(request, "library-status", 120, 60 * 60)) {
     return Response.json({ error: "rate_limited" }, { status: 429 });
   }
-  const result = await getFlaggedGames(parsed.data.appIds);
+  const result = await getFlaggedGames(parsed.data.appIds, parsed.data.steamId ?? null);
   if (!result) return Response.json({ error: "steamhunters_unavailable" }, { status: 502 });
   return Response.json(result);
 }

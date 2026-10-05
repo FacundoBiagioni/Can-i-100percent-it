@@ -112,3 +112,40 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Library covers, hovered like Steam's own library: the cover lifts, tilts
+   toward the pointer (--rx/--ry, set from JS) and catches a moving glare. */
+.capsule {
+  --rx: 0deg;
+  --ry: 0deg;
+  --gx: 50%;
+  --gy: 0%;
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 240ms ease-out;
+}
+.group:hover .capsule,
+.group:focus-visible .capsule {
+  transform: perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) scale(1.05);
+  box-shadow:
+    0 28px 48px -18px rgb(0 0 0 / 0.95),
+    0 0 0 1px rgb(255 255 255 / 0.14);
+}
+.capsule-glare {
+  background:
+    radial-gradient(circle at var(--gx) var(--gy), rgb(255 255 255 / 0.22), transparent 55%),
+    linear-gradient(160deg, rgb(255 255 255 / 0.08), transparent 40%);
+  opacity: 0;
+  transition: opacity 240ms ease-out;
+}
+.group:hover .capsule-glare,
+.group:focus-visible .capsule-glare {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .capsule,
+  .group:focus-visible .capsule {
+    transform: none;
+  }
+}

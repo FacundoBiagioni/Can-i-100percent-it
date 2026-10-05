@@ -238,6 +238,24 @@ export const steamHuntersBulkResponseSchema = z.array(
   }),
 );
 
+// IPlayerService/GetTopAchievementsForGames: `achievements` holds every
+// achievement the player unlocked (up to max_achievements), by display name.
+// Empty `response` when the player's game details are hidden.
+export const topAchievementsResponseSchema = z.object({
+  response: z.object({
+    games: z
+      .array(
+        z.object({
+          appid: z.number(),
+          total_achievements: z.number().optional().default(0),
+          achievements: z.array(z.object({ name: z.string() })).optional().default([]),
+        }),
+      )
+      .optional()
+      .default([]),
+  }),
+});
+
 // GetItems with include_assets: asset_url_format is e.g.
 // "steam/apps/440/${FILENAME}?t=..." relative to the store_item_assets CDN.
 export const storeAssetsResponseSchema = z.object({

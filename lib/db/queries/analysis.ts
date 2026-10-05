@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { analysisResults, verificationHistory, games } from "@/lib/db/schema";
@@ -37,6 +37,22 @@ export async function getAnalysisResult(gameId: number): Promise<AnalysisResult 
     reasoning: row.reasoning,
     aiUsed: row.aiUsed,
   };
+}
+
+/** Required DLC (with the achievements each one unlocks) for every stored
+ * game in `gameIds` that has any. Games never analyzed are simply absent. */
+export async function getRequiredDlcByGame(gameIds: number[]): Promise<Map<number, AnalysisResult["dlcRequired"]>> {
+  const out = new Map<number, AnalysisResult["dlcRequired"]>();
+  if (gameIds.length === 0) return out;
+  const rows = await db
+    .select({ gameId: analysisResults.gameId, dlcRequired: analysisResults.dlcRequired })
+    .from(analysisResults)
+    .where(inArray(analysisResults.gameId, gameIds));
+  for (const row of rows) {
+    const parsed = dlcRequiredRowSchema.safeParse(row.dlcRequired);
+    if (parsed.success && parsed.data.length > 0) out.set(row.gameId, parsed.data);
+  }
+  return out;
 }
 
 export async function upsertAnalysisResult(result: AnalysisResult) {

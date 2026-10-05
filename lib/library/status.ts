@@ -1,13 +1,27 @@
 import { redis } from "@/lib/cache/redis";
 import { CacheTTL } from "@/lib/cache/keys";
-import { steamHuntersBulkResponseSchema, storeAssetsResponseSchema } from "@/lib/validation/schemas";
+import { getRequiredDlcByGame } from "@/lib/db/queries/analysis";
+import {
+  steamHuntersBulkResponseSchema,
+  storeAssetsResponseSchema,
+  topAchievementsResponseSchema,
+} from "@/lib/validation/schemas";
 
 /** SteamHunters' bulk endpoint rejects more than 100 ids per request. */
 export const MAX_IDS_PER_REQUEST = 100;
 const ASSET_CDN = "https://shared.akamai.steamstatic.com/store_item_assets/";
 
 export type AppStatus = { appId: number; tracked: boolean; unobtainable: number; hasPaidDlc: boolean };
-export type FlaggedGame = AppStatus & { capsule: string | null; header: string | null };
+export type Progress = { unlocked: number; total: number };
+/** Required DLC the player owns, judged by whether they've unlocked any
+ * achievement that DLC gates. Only known for games already analyzed here. */
+export type DlcOwnership = { required: number; owned: number };
+export type FlaggedGame = AppStatus & {
+  capsule: string | null;
+  header: string | null;
+  progress: Progress | null;
+  dlc: DlcOwnership | null;
+};
 
 const statusKey = (appId: number) => `library:sh:${appId}`;
 const assetsKey = (appId: number) => `library:assets:${appId}`;
@@ -90,15 +104,77 @@ async function getAssets(appIds: number[]): Promise<Map<number, Assets>> {
   return out;
 }
 
-/** Statuses for a batch, plus art for just the games worth showing. */
-export async function getFlaggedGames(appIds: number[]): Promise<{ checked: number; untracked: number; flagged: FlaggedGame[] } | null> {
+type PlayerProgress = Progress & { unlockedNames: Set<string> };
+
+const normalize = (name: string) => name.trim().toLowerCase();
+
+/** The player's unlocked achievements for up to 100 games in one request.
+ * Null when Steam fails or hides them; the cards then just skip progress. */
+async function getPlayerProgress(steamId: string, appIds: number[]): Promise<Map<number, PlayerProgress> | null> {
+  if (appIds.length === 0) return new Map();
+  const ids = appIds.map((id, i) => `appids%5B${i}%5D=${id}`).join("&");
+  const res = await fetch(
+    `https://api.steampowered.com/IPlayerService/GetTopAchievementsForGames/v1/?key=${process.env.STEAM_API_KEY}&steamid=${steamId}&language=english&max_achievements=10000&${ids}`,
+  ).catch(() => null);
+  if (!res?.ok) return null;
+  const parsed = topAchievementsResponseSchema.safeParse(await res.json().catch(() => null));
+  if (!parsed.success) return null;
+  return new Map(
+    parsed.data.response.games.map((g) => [
+      g.appid,
+      { unlocked: g.achievements.length, total: g.total_achievements, unlockedNames: new Set(g.achievements.map((a) => normalize(a.name))) },
+    ]),
+  );
+}
+
+async function getDlcOwnership(
+  appIds: number[],
+  progress: Map<number, PlayerProgress> | null,
+): Promise<Map<number, DlcOwnership>> {
+  const out = new Map<number, DlcOwnership>();
+  if (!progress || appIds.length === 0) return out;
+  // The library still works without the database; ownership just stays unknown.
+  const requiredByGame = await getRequiredDlcByGame(appIds).catch(() => new Map<number, never[]>());
+  for (const [appId, required] of requiredByGame) {
+    const p = progress.get(appId);
+    if (!p) continue;
+    const complete = p.total > 0 && p.unlocked >= p.total;
+    const owned = required.filter((d) => complete || (d.evidence ?? []).some((name) => p.unlockedNames.has(normalize(name)))).length;
+    out.set(appId, { required: required.length, owned });
+  }
+  return out;
+}
+
+/** Statuses for a batch, plus art and the player's progress for just the
+ * games worth showing. */
+export async function getFlaggedGames(
+  appIds: number[],
+  steamId: string | null,
+): Promise<{ checked: number; untracked: number; flagged: FlaggedGame[] } | null> {
   const statuses = await getAppStatuses(appIds);
   if (!statuses) return null;
   const flaggedStatuses = statuses.filter((s) => s.unobtainable > 0 || s.hasPaidDlc);
-  const assets = await getAssets(flaggedStatuses.map((s) => s.appId));
+  const flaggedIds = flaggedStatuses.map((s) => s.appId);
+  const [assets, progress] = await Promise.all([
+    getAssets(flaggedIds),
+    steamId ? getPlayerProgress(steamId, flaggedIds) : Promise.resolve(null),
+  ]);
+  const dlc = await getDlcOwnership(
+    flaggedStatuses.filter((s) => s.hasPaidDlc).map((s) => s.appId),
+    progress,
+  );
   return {
     checked: statuses.length,
     untracked: statuses.filter((s) => !s.tracked).length,
-    flagged: flaggedStatuses.map((s) => ({ ...s, capsule: assets.get(s.appId)?.capsule ?? null, header: assets.get(s.appId)?.header ?? null })),
+    flagged: flaggedStatuses.map((s) => {
+      const p = progress?.get(s.appId);
+      return {
+        ...s,
+        capsule: assets.get(s.appId)?.capsule ?? null,
+        header: assets.get(s.appId)?.header ?? null,
+        progress: p && p.total > 0 ? { unlocked: p.unlocked, total: p.total } : null,
+        dlc: dlc.get(s.appId) ?? null,
+      };
+    }),
   };
 }

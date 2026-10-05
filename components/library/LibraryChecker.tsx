@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUpRight, Ban, Package } from "lucide-react";
+import { ArrowUpRight, Ban, Package, PackageCheck, Trophy } from "lucide-react";
 import type { LibraryGame } from "@/lib/steam/library";
 import type { FlaggedGame } from "@/lib/library/status";
 
@@ -12,7 +12,7 @@ const STORAGE_KEY = "library-profile";
 
 type LibraryInfo = { steamId: string; personaName: string; avatar: string | null; totalGames: number; games: LibraryGame[] };
 type Card = FlaggedGame & { name: string; playtimeMinutes: number };
-type Filter = "all" | "impossible" | "dlc";
+type Filter = "all" | "impossible" | "dlc" | "owned";
 
 const ERRORS: Record<string, string> = {
   invalid_input: "That doesn't look like a Steam profile. Paste the full link to your profile page.",
@@ -47,46 +47,148 @@ function artCandidates(game: Card): { url: string; portrait: boolean }[] {
   return list.filter((c, i) => list.findIndex((o) => o.url === c.url) === i);
 }
 
+const dlcOwned = (g: Card) => g.dlc !== null && g.dlc.owned >= g.dlc.required;
+const needsDlc = (g: Card) => g.hasPaidDlc && !dlcOwned(g);
+
+const TAG = "inline-flex items-center gap-1 bg-void/85 px-1.5 py-0.5 text-caption font-medium backdrop-blur-sm";
+
+function Tags({ game }: { game: Card }) {
+  const complete = game.progress !== null && game.progress.unlocked >= game.progress.total;
+  return (
+    <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+      {complete && (
+        <span className={`${TAG} text-pass`}>
+          <Trophy aria-hidden className="h-3.5 w-3.5" />
+          Completed
+        </span>
+      )}
+      {game.unobtainable > 0 && (
+        <span className={`${TAG} text-fail`}>
+          <Ban aria-hidden className="h-3.5 w-3.5" />
+          {game.unobtainable} impossible
+        </span>
+      )}
+      {game.hasPaidDlc &&
+        (dlcOwned(game) ? (
+          <span className={`${TAG} text-pass`}>
+            <PackageCheck aria-hidden className="h-3.5 w-3.5" />
+            {game.dlc!.required > 1 ? "All DLC owned" : "DLC owned"}
+          </span>
+        ) : game.dlc && game.dlc.owned > 0 ? (
+          <span className={`${TAG} text-unsure`}>
+            <Package aria-hidden className="h-3.5 w-3.5" />
+            {game.dlc.owned} of {game.dlc.required} DLC owned
+          </span>
+        ) : (
+          <span className={`${TAG} text-chalk`}>
+            <Package aria-hidden className="h-3.5 w-3.5" />
+            Paid DLC
+          </span>
+        ))}
+    </div>
+  );
+}
+
+/** Unlocked share in white, the share nobody can unlock anymore in red at
+ * the far end, so "how far can I still get" reads at a glance. */
+function ProgressBar({ game }: { game: Card }) {
+  const p = game.progress!;
+  const done = p.unlocked >= p.total;
+  const unlocked = Math.min(100, (p.unlocked / p.total) * 100);
+  const lost = Math.min(100 - unlocked, (game.unobtainable / p.total) * 100);
+  return (
+    <div className="relative h-1 w-full bg-obsidian" aria-hidden>
+      <div className={`absolute inset-y-0 left-0 ${done ? "bg-pass" : "bg-chalk"}`} style={{ width: `${unlocked}%` }} />
+      {!done && lost > 0 && <div className="absolute inset-y-0 right-0 bg-fail/70" style={{ width: `${lost}%` }} />}
+    </div>
+  );
+}
+
 function GameCard({ game }: { game: Card }) {
   const candidates = useMemo(() => artCandidates(game), [game]);
   const [index, setIndex] = useState(0);
+  const capsule = useRef<HTMLDivElement>(null);
   const art = candidates[index];
+  const p = game.progress;
+  const percent = p ? Math.floor((p.unlocked / p.total) * 100) : null;
+  const maxPercent = p && game.unobtainable > 0 ? Math.floor(((p.total - game.unobtainable) / p.total) * 100) : null;
+
+  // Tilt toward the pointer; written straight to CSS variables so moving the
+  // mouse never re-renders the grid.
+  const onPointerMove = (e: React.PointerEvent) => {
+    const el = capsule.current;
+    if (!el || e.pointerType !== "mouse") return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    const y = (e.clientY - r.top) / r.height;
+    el.style.setProperty("--ry", `${(x - 0.5) * 14}deg`);
+    el.style.setProperty("--rx", `${(0.5 - y) * 12}deg`);
+    el.style.setProperty("--gx", `${x * 100}%`);
+    el.style.setProperty("--gy", `${y * 100}%`);
+  };
+  const onPointerLeave = () => {
+    const el = capsule.current;
+    if (!el) return;
+    for (const v of ["--rx", "--ry", "--gx", "--gy"]) el.style.removeProperty(v);
+  };
+
+  const label = [
+    game.name,
+    p && `${p.unlocked} of ${p.total} achievements`,
+    game.unobtainable > 0 && `${game.unobtainable} impossible`,
+    game.hasPaidDlc && (dlcOwned(game) ? "DLC owned" : "needs paid DLC"),
+  ]
+    .filter(Boolean)
+    .join(", ");
+
   return (
-    <Link href={`/games/${game.appId}`} className="group -ml-px -mt-px flex flex-col border border-carbon transition-colors hover:bg-cinder">
-      <div className="relative aspect-[2/3] w-full overflow-hidden bg-cinder">
+    <Link
+      href={`/games/${game.appId}`}
+      aria-label={label}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+      className="group flex flex-col gap-3 outline-none"
+    >
+      <div ref={capsule} className={`capsule relative aspect-[2/3] w-full overflow-hidden bg-cinder ${dlcOwned(game) ? "ring-1 ring-pass/60" : ""}`}>
         {art ? (
-          // Plain <img>: a library can show hundreds of covers, which would
-          // burn through the image optimizer's quota for no visible gain.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={art.url}
-            src={art.url}
-            alt={game.name}
-            loading="lazy"
-            onError={() => setIndex((i) => i + 1)}
-            className={`h-full w-full ${art.portrait ? "object-cover" : "object-contain"}`}
-          />
+          <>
+            {/* Landscape fallback art: fill the portrait frame with a blurred
+                copy of itself instead of black bars, like Steam does. */}
+            {!art.portrait && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={art.url} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
+            )}
+            {/* Plain <img>: a library can show hundreds of covers, which would
+                burn through the image optimizer's quota for no visible gain. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              key={art.url}
+              src={art.url}
+              alt=""
+              loading="lazy"
+              onError={() => setIndex((i) => i + 1)}
+              className={`relative h-full w-full transition-[filter] duration-200 group-hover:brightness-110 ${art.portrait ? "object-cover" : "object-contain"}`}
+            />
+          </>
         ) : (
           <span className="flex h-full items-center justify-center p-3 text-center text-body font-medium text-ash">{game.name}</span>
         )}
-        <div className="absolute inset-x-0 bottom-0 flex flex-wrap gap-1 bg-void/90 p-2">
-          {game.unobtainable > 0 && (
-            <span className="inline-flex items-center gap-1 border border-fail px-1.5 py-0.5 text-caption font-medium text-fail">
-              <Ban aria-hidden className="h-3.5 w-3.5" />
-              {game.unobtainable} impossible
-            </span>
-          )}
-          {game.hasPaidDlc && (
-            <span className="inline-flex items-center gap-1 border border-fog px-1.5 py-0.5 text-caption font-medium text-chalk">
-              <Package aria-hidden className="h-3.5 w-3.5" />
-              Paid DLC
-            </span>
-          )}
-        </div>
+        <div className="capsule-glare pointer-events-none absolute inset-0" />
+        <Tags game={game} />
+        {percent !== null && (
+          <span className="absolute bottom-2 right-2 bg-void/85 px-1.5 py-0.5 text-nav font-semibold tabular-nums text-chalk backdrop-blur-sm">
+            {percent}%
+          </span>
+        )}
       </div>
-      <div className="flex flex-col gap-0.5 p-2">
-        <span className="line-clamp-1 text-body font-medium text-chalk">{game.name}</span>
-        <span className="text-caption text-graphite">{hours(game.playtimeMinutes)}</span>
+      <div className="flex flex-col gap-1.5" aria-hidden>
+        <span className="line-clamp-1 text-body font-medium text-chalk transition-colors group-hover:text-fog">{game.name}</span>
+        {p && <ProgressBar game={game} />}
+        {p && <span className="text-caption tabular-nums text-ash">{`${p.unlocked} / ${p.total} achievements`}</span>}
+        <span className="flex justify-between gap-2 text-caption tabular-nums text-graphite">
+          <span>{hours(game.playtimeMinutes)}</span>
+          {maxPercent !== null && p && p.unlocked < p.total && <span className="shrink-0 text-fail/80">max {maxPercent}%</span>}
+        </span>
       </div>
     </Link>
   );
@@ -145,7 +247,7 @@ export default function LibraryChecker() {
         const r = await fetch("/api/library/status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ appIds }),
+          body: JSON.stringify({ appIds, steamId: lib.steamId }),
         }).catch(() => null);
         const batch = r?.ok ? await r.json().catch(() => null) : null;
         if (id !== runId.current) return;
@@ -189,8 +291,11 @@ export default function LibraryChecker() {
     [cards],
   );
   const impossibleCount = cards.filter((c) => c.unobtainable > 0).length;
-  const dlcCount = cards.filter((c) => c.hasPaidDlc).length;
-  const visible = sorted.filter((c) => (filter === "impossible" ? c.unobtainable > 0 : filter === "dlc" ? c.hasPaidDlc : true));
+  const dlcCount = cards.filter(needsDlc).length;
+  const ownedCount = cards.filter((c) => c.hasPaidDlc && dlcOwned(c)).length;
+  const visible = sorted.filter((c) =>
+    filter === "impossible" ? c.unobtainable > 0 : filter === "dlc" ? needsDlc(c) : filter === "owned" ? c.hasPaidDlc && dlcOwned(c) : true,
+  );
   const total = library?.games.length ?? 0;
   const busy = phase === "loading" || phase === "checking";
 
@@ -309,6 +414,7 @@ export default function LibraryChecker() {
                   ["all", `All ${cards.length}`],
                   ["impossible", `Impossible ${impossibleCount}`],
                   ["dlc", `Needs paid DLC ${dlcCount}`],
+                  ...(ownedCount > 0 ? [["owned", `DLC owned ${ownedCount}`]] : []),
                 ] as [Filter, string][]
               ).map(([value, label]) => (
                 <button
@@ -325,7 +431,7 @@ export default function LibraryChecker() {
           )}
 
           {visible.length > 0 ? (
-            <div className="grid grid-cols-2 pl-px pt-px sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {visible.map((g) => (
                 <GameCard key={g.appId} game={g} />
               ))}
