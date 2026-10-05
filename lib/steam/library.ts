@@ -7,9 +7,13 @@ import {
 } from "@/lib/validation/schemas";
 
 const API = "https://api.steampowered.com";
+const ITEM_CDN = "https://shared.fastly.steamstatic.com/community_assets/images/";
 const STEAM_ID_64 = /^7656119\d{10}$/;
 
 export type LibraryGame = { appId: number; name: string; playtimeMinutes: number };
+/** The profile's equipped background: a still image, plus a looping video
+ * for animated ones. Shown behind the library's heading. */
+export type ProfileBackground = { image: string | null; video: string | null };
 
 export type LibraryResult =
   | {
@@ -17,6 +21,7 @@ export type LibraryResult =
       steamId: string;
       personaName: string;
       avatar: string | null;
+      background: ProfileBackground | null;
       totalGames: number;
       /** Only games with Steam achievements — the rest have nothing to check. */
       games: LibraryGame[];
@@ -55,10 +60,21 @@ async function resolveSteamId(input: { steamId: string } | { vanity: string }): 
   return parsed.data.response.success === 1 && parsed.data.response.steamid ? parsed.data.response.steamid : null;
 }
 
+function profileBackground(data: unknown): ProfileBackground | null {
+  const bg = (data as { response?: { profile_background?: { image_large?: string; movie_webm?: string; movie_mp4?: string } } } | null)
+    ?.response?.profile_background;
+  const image = bg?.image_large ? ITEM_CDN + bg.image_large : null;
+  const videoPath = bg?.movie_mp4 ?? bg?.movie_webm;
+  const video = videoPath ? ITEM_CDN + videoPath : null;
+  return image || video ? { image, video } : null;
+}
+
 async function fetchLibrary(steamId: string): Promise<LibraryResult> {
-  const [summaryData, ownedData] = await Promise.all([
+  const [summaryData, ownedData, equippedData] = await Promise.all([
     steamJson(`ISteamUser/GetPlayerSummaries/v2/?steamids=${steamId}`),
     steamJson(`IPlayerService/GetOwnedGames/v1/?steamid=${steamId}&include_appinfo=1&include_played_free_games=1`),
+    // Optional decoration: a failure here just means no background.
+    steamJson(`IPlayerService/GetProfileItemsEquipped/v1/?steamid=${steamId}`).catch(() => null),
   ]);
   if (!summaryData || !ownedData) return { ok: false, error: "steam_unavailable" };
 
@@ -79,6 +95,7 @@ async function fetchLibrary(steamId: string): Promise<LibraryResult> {
     steamId,
     personaName: player.personaname,
     avatar: player.avatarfull ?? null,
+    background: profileBackground(equippedData),
     totalGames: games.length,
     games: games
       .filter((g) => g.has_community_visible_stats)
@@ -94,5 +111,5 @@ export async function getLibrary(rawInput: string): Promise<LibraryResult> {
   if (!steamId) return { ok: false, error: "profile_not_found" };
   // Short cache: someone fixing their privacy settings should see the change
   // on the next try, and failures aren't cached for long either.
-  return getOrFetchWithTtl(`library:owned:${steamId}`, () => fetchLibrary(steamId), (r) => (r.ok ? 60 * 30 : CacheTTL.failureRetry));
+  return getOrFetchWithTtl(`library:owned:v2:${steamId}`, () => fetchLibrary(steamId), (r) => (r.ok ? 60 * 30 : CacheTTL.failureRetry));
 }

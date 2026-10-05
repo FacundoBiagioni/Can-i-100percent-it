@@ -237,6 +237,7 @@ export const en = {
     title: "How a verdict is made.",
     intro:
       "Every game is checked against several sources, and the answer depends on how solid the evidence is. Curated data from achievement hunters decides first; AI reads of forum threads only fill in what nothing curated covers.",
+    diagram: { rules: "Rules", verdict: "Verdict", forums: "Forums · Guides · Wiki" },
     sourcesLabel: "Sources",
     sourcesTitle: "Where the data comes from.",
     sources: {

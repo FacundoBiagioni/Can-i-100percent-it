@@ -20,7 +20,7 @@ export default async function VerdictLegend() {
           const v = VERDICT[status];
           const Icon = v.icon;
           return (
-            <div key={status} className="flex flex-col gap-3 border-b border-r border-carbon p-4">
+            <div key={status} className={`flex flex-col gap-3 border-b border-r border-carbon bg-void/85 bg-gradient-to-t to-transparent p-4 ${v.tint}`}>
               <dt className={`flex items-center gap-2 text-heading-sm font-semibold ${v.text}`}>
                 <Icon aria-hidden className="h-5 w-5 shrink-0" />
                 {t.verdict[status].label}

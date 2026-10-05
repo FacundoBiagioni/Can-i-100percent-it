@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, Ban, Package, PackageCheck, Trophy } from "lucide-react";
-import type { LibraryGame } from "@/lib/steam/library";
+import type { LibraryGame, ProfileBackground } from "@/lib/steam/library";
 import type { FlaggedGame } from "@/lib/library/status";
 import { useT } from "@/lib/i18n/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
@@ -12,7 +12,14 @@ import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 const BATCH = 100;
 const STORAGE_KEY = "library-profile";
 
-type LibraryInfo = { steamId: string; personaName: string; avatar: string | null; totalGames: number; games: LibraryGame[] };
+type LibraryInfo = {
+  steamId: string;
+  personaName: string;
+  avatar: string | null;
+  background: ProfileBackground | null;
+  totalGames: number;
+  games: LibraryGame[];
+};
 type Card = FlaggedGame & { name: string; playtimeMinutes: number };
 type Filter = "all" | "impossible" | "dlc" | "owned" | "completed";
 
@@ -189,6 +196,34 @@ function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
         </span>
       </div>
     </Link>
+  );
+}
+
+/** The player's own Steam profile background behind their library's heading,
+ * full width, dimmed and fading into the page. Animated backgrounds play as
+ * a muted loop, except with reduced motion, where the still image shows. */
+function ProfileBackdrop({ background }: { background: ProfileBackground }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 overflow-hidden">
+      {background.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={background.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+      )}
+      {background.video && (
+        <video
+          src={background.video}
+          poster={background.image ?? undefined}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover opacity-60 motion-reduce:hidden"
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-void via-void/75 to-void/30" />
+      <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-void to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-void/80 via-void/30 to-transparent" />
+    </div>
   );
 }
 
@@ -431,15 +466,16 @@ export default function LibraryChecker() {
 
       {library && (
         <section className="flex flex-col gap-8">
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
+          <div className={`relative flex flex-col gap-4 ${library.background ? "pb-6 pt-32" : ""}`}>
+            {library.background && <ProfileBackdrop background={library.background} />}
+            <div className="relative flex items-center gap-3">
               {library.avatar && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={library.avatar} alt="" className="h-10 w-10 border border-carbon" />
+                <img src={library.avatar} alt="" className={`border border-carbon ${library.background ? "h-14 w-14" : "h-10 w-10"}`} />
               )}
               <h2 className="text-heading-lg font-semibold">{L.whoseLibrary(library.personaName)}</h2>
             </div>
-            <p className="text-body text-ash" role="status" aria-live="polite">
+            <p className="relative text-body text-ash" role="status" aria-live="polite">
               {L.counts(library.totalGames.toLocaleString(t.numberLocale), total.toLocaleString(t.numberLocale))}{" "}
               {phase === "checking"
                 ? L.progress(checked.toLocaleString(t.numberLocale), total.toLocaleString(t.numberLocale))
@@ -448,7 +484,7 @@ export default function LibraryChecker() {
                   : L.summary(catchCount, completedCount, untracked)}
             </p>
             {dlcPass && (
-              <p className="text-caption text-graphite">
+              <p className="relative text-caption text-graphite">
                 {dlcPass.limited
                   ? L.dlcPass.limited(dlcPass.done, dlcPass.total)
                   : dlcPass.pending !== null
@@ -457,7 +493,7 @@ export default function LibraryChecker() {
               </p>
             )}
             {total > 0 && (
-              <div className="h-px w-full bg-carbon">
+              <div className="relative h-px w-full bg-carbon">
                 <div className="h-px bg-chalk transition-[width] duration-300" style={{ width: `${Math.round((checked / total) * 100)}%` }} />
               </div>
             )}

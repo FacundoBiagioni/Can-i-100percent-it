@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowDown, ArrowRight } from "lucide-react";
 import SearchBox from "@/components/search/SearchBox";
 import HeroAnimation from "@/components/home/HeroAnimation";
+import DriftingDigits from "@/components/home/DriftingDigits";
 import RecentGames from "@/components/home/RecentGames";
 import VerdictLegend from "@/components/home/VerdictLegend";
 import type { GameTileData } from "@/components/home/GameTile";
@@ -80,13 +81,16 @@ export default async function Home() {
         </a>
       </section>
 
-      <div className="mx-auto flex w-full max-w-page flex-col gap-32 px-4 py-32 sm:px-6">
-        <section id="recent" className="scroll-mt-20">
-          <RecentGames recommended={recommended} />
-        </section>
-        <section id="verdicts" className="scroll-mt-20">
-          <VerdictLegend />
-        </section>
+      <div className="relative">
+        <DriftingDigits />
+        <div className="relative mx-auto flex w-full max-w-page flex-col gap-32 px-4 py-32 sm:px-6">
+          <section id="recent" className="scroll-mt-20">
+            <RecentGames recommended={recommended} />
+          </section>
+          <section id="verdicts" className="scroll-mt-20">
+            <VerdictLegend />
+          </section>
+        </div>
       </div>
 
       <footer className="border-t border-carbon">

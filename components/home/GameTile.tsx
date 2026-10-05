@@ -27,7 +27,7 @@ export default function GameTile({ game }: { game: GameTileData }) {
   return (
     <Link
       href={`/games/${game.appId}`}
-      className="group -ml-px -mt-px flex flex-col border border-carbon transition-colors duration-300 hover:bg-cinder focus-visible:-outline-offset-1"
+      className="group -ml-px -mt-px flex flex-col border border-carbon bg-void/85 transition-colors duration-300 hover:bg-cinder focus-visible:-outline-offset-1"
     >
       <div className="relative aspect-[460/215] w-full overflow-hidden bg-cinder">
         {game.image && (

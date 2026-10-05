@@ -5,6 +5,7 @@ import { VERDICT } from "@/lib/ui/verdict";
 import type { AnalysisStatus } from "@/lib/pipeline/types";
 import { getT } from "@/lib/i18n/server";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
+import FlowDiagram from "@/components/how-it-works/FlowDiagram";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -47,10 +48,20 @@ export default async function HowItWorks() {
 
   return (
     <main className="mx-auto flex w-full max-w-page flex-1 flex-col gap-32 px-4 pb-32 pt-24 sm:px-6">
-      <section className="flex flex-col gap-6">
-        <p className="text-nav text-graphite">{h.label}</p>
-        <h1 className="text-display font-semibold text-balance">{h.title}</h1>
-        <p className="max-w-xl text-body text-ash">{h.intro}</p>
+      <section className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[1fr_minmax(0,34rem)]">
+        {/* Full-bleed blueprint grid behind the heading and the diagram. */}
+        <div
+          aria-hidden
+          className="blueprint-grid pointer-events-none absolute -bottom-16 -top-24 left-1/2 w-screen -translate-x-1/2"
+        />
+        <div className="relative flex flex-col gap-6">
+          <p className="text-nav text-graphite">{h.label}</p>
+          <h1 className="text-display font-semibold text-balance">{h.title}</h1>
+          <p className="max-w-xl text-body text-ash">{h.intro}</p>
+        </div>
+        <div className="relative">
+          <FlowDiagram labels={h.diagram} />
+        </div>
       </section>
 
       <section className="flex flex-col gap-8">

@@ -19,8 +19,18 @@ export default async function AboutPage() {
   const perfect = profile?.perfectGames ?? null;
 
   return (
-    <main className="mx-auto flex w-full max-w-page flex-1 flex-col gap-16 px-4 pb-32 pt-24 sm:px-6">
-      <section className="flex flex-col gap-6">
+    <main className="relative mx-auto flex w-full max-w-page flex-1 flex-col gap-16 px-4 pb-32 pt-24 sm:px-6">
+      {/* The creator's own Steam profile background behind the intro, fading
+          to black before the profile window, so the two read as one. */}
+      {profile?.background && (
+        <div aria-hidden className="pointer-events-none absolute left-1/2 top-0 h-[42rem] w-screen -translate-x-1/2 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={profile.background} alt="" className="absolute inset-0 h-full w-full object-cover object-top opacity-45" />
+          <div className="absolute inset-0 bg-gradient-to-b from-void/40 via-void/60 to-void" />
+          <div className="absolute inset-0 bg-gradient-to-r from-void/70 to-transparent" />
+        </div>
+      )}
+      <section className="relative flex flex-col gap-6">
         <p className="text-nav text-graphite">{t.about.label}</p>
         <h1 className="text-display font-semibold text-balance">{t.about.title}</h1>
         <div className="flex max-w-xl flex-col gap-4 text-body text-ash">
@@ -35,7 +45,9 @@ export default async function AboutPage() {
       </section>
 
       {profile ? (
-        <SteamProfileWindow profile={profile} t={t} />
+        <div className="relative">
+          <SteamProfileWindow profile={profile} t={t} />
+        </div>
       ) : (
         <a
           href={CREATOR_PROFILE_URL}

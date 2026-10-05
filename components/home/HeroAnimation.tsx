@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { IBM_Plex_Mono } from "next/font/google";
+import { plexMono } from "@/lib/ui/fonts";
 
-// Only the canvas uses this face (the glyphs are imagery, not UI type), so
-// it's loaded here rather than in the root layout.
-const plexMono = IBM_Plex_Mono({ weight: "600", subsets: ["latin"], display: "block" });
+// Only the homepage canvases use this face (the glyphs are imagery, not UI
+// type), so it isn't loaded in the root layout.
 
 /*
  * Live port of the "Fondo Hero 100%" design (v2): 3D shapes (torus ->

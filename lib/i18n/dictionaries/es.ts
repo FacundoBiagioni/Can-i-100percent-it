@@ -240,6 +240,7 @@ export const es: Dictionary = {
     title: "Cómo se arma un veredicto.",
     intro:
       "Cada juego se revisa contra varias fuentes, y la respuesta depende de qué tan sólidas son las pruebas. Primero deciden los datos curados por cazadores de logros; la IA que lee foros solo completa lo que nada curado cubre.",
+    diagram: { rules: "Reglas", verdict: "Veredicto", forums: "Foros · Guías · Wiki" },
     sourcesLabel: "Fuentes",
     sourcesTitle: "De dónde salen los datos.",
     sources: {
