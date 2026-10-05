@@ -1,4 +1,5 @@
 import { redis } from "@/lib/cache/redis";
+import { aiExhausted } from "@/lib/ai/gemini";
 import { getOrCreateGame, getAchievementsForGame } from "@/lib/db/queries/games";
 import { hasDlcAnswer, saveDlcMapping } from "@/lib/db/queries/analysis";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
@@ -26,6 +27,7 @@ export type MappingOutcome = "mapped" | "already_known" | "daily_limit" | "busy"
  */
 export async function mapRequiredDlc(appId: number): Promise<MappingOutcome> {
   if (await hasDlcAnswer(appId)) return "already_known";
+  if (await aiExhausted()) return "daily_limit";
 
   // Two tabs on the same library shouldn't map the same game twice.
   if (redis && !(await redis.set(`dlcmap:lock:${appId}`, 1, { nx: true, ex: 120 }))) return "busy";

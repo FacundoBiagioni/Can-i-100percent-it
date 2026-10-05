@@ -1,6 +1,7 @@
 import { redis } from "@/lib/cache/redis";
 import { CacheTTL } from "@/lib/cache/keys";
 import { getRequiredDlcByGame } from "@/lib/db/queries/analysis";
+import { steamHuntersMedianHours } from "@/lib/pipeline/layers/2-scrapers/steamhunters";
 import {
   steamHuntersBulkResponseSchema,
   storeAssetsResponseSchema,
@@ -11,7 +12,14 @@ import {
 export const MAX_IDS_PER_REQUEST = 100;
 const ASSET_CDN = "https://shared.akamai.steamstatic.com/store_item_assets/";
 
-export type AppStatus = { appId: number; tracked: boolean; unobtainable: number; hasPaidDlc: boolean };
+export type AppStatus = {
+  appId: number;
+  tracked: boolean;
+  unobtainable: number;
+  hasPaidDlc: boolean;
+  /** Median hours SteamHunters players took to reach 100%, when known. */
+  medianHours: number | null;
+};
 export type Progress = { unlocked: number; total: number };
 /** Required DLC the player owns, judged by whether they've unlocked any
  * achievement that DLC gates. Only known for games already analyzed here. */
@@ -23,7 +31,8 @@ export type FlaggedGame = AppStatus & {
   dlc: DlcOwnership | null;
 };
 
-const statusKey = (appId: number) => `library:sh:${appId}`;
+// v2: entries carry medianHours.
+const statusKey = (appId: number) => `library:sh:v2:${appId}`;
 const assetsKey = (appId: number) => `library:assets:${appId}`;
 
 /**
@@ -54,8 +63,14 @@ export async function getAppStatuses(appIds: number[]): Promise<AppStatus[] | nu
       const a = found.get(id);
       // Not in the response = SteamHunters doesn't track it.
       const status: AppStatus = a
-        ? { appId: id, tracked: true, unobtainable: a.unobtainableAchievementCount, hasPaidDlc: a.hasPaidDlc }
-        : { appId: id, tracked: false, unobtainable: 0, hasPaidDlc: false };
+        ? {
+            appId: id,
+            tracked: true,
+            unobtainable: a.unobtainableAchievementCount,
+            hasPaidDlc: a.hasPaidDlc,
+            medianHours: steamHuntersMedianHours(a),
+          }
+        : { appId: id, tracked: false, unobtainable: 0, hasPaidDlc: false, medianHours: null };
       result.set(id, status);
     }
     if (redis) {

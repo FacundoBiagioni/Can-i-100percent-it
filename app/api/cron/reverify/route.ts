@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { selectStaleGames } from "@/lib/pipeline/layers/7-cron/selectStaleGames";
 import { runPipeline } from "@/lib/pipeline/orchestrator";
+import { aiExhausted } from "@/lib/ai/gemini";
 
 // Processes up to 10 games sequentially (Steam + scraper + occasional AI
 // calls each) — generous headroom under Vercel's default budget.
@@ -11,6 +12,9 @@ export async function GET(request: NextRequest) {
   if (secret !== process.env.CRON_SECRET) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  // Without AI a re-check could only repeat what's stored; wait for the quota.
+  if (await aiExhausted()) return Response.json({ checked: 0, skipped: "ai_quota_exhausted" });
 
   const staleAppIds = await selectStaleGames();
   const results: { appId: number; status: string }[] = [];

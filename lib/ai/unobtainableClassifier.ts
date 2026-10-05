@@ -152,6 +152,13 @@ For question 3: if the text names the specific DLC/expansion(s) required, list t
  * lists in lib/pipeline/orchestrator.ts, where those lists are actually
  * available.
  */
+/** Stands in for a source whose text was found but couldn't be read (no AI
+ * quota, Gemini down). The orchestrator swaps it for that source's findings
+ * from the last analysis, so a missing reading never erases what was known. */
+export function readingUnavailable(sourceKey: SourceKey): EvidenceClaim {
+  return { sourceKey, claim: { type: "reading_unavailable" }, confidence: "low", checkedAt: new Date() };
+}
+
 export function buildClaimsFromClassification(
   sourceKey: SourceKey,
   classification: UnobtainableClassification,

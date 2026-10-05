@@ -79,6 +79,12 @@ export async function saveDlcMapping(gameId: number, dlcRequired: AnalysisResult
     .onConflictDoUpdate({ target: dlcMappings.gameId, set: { dlcRequired, method, computedAt: new Date() } });
 }
 
+/** Puts a game first in line for the daily re-check (it picks never-checked
+ * games first), e.g. after an analysis that ran without the AI. */
+export async function markForRecheck(gameId: number) {
+  await db.update(games).set({ lastCheckedAt: null }).where(eq(games.id, gameId));
+}
+
 export async function upsertAnalysisResult(result: AnalysisResult) {
   const estimatedHours = result.estimatedHours !== null ? result.estimatedHours.toFixed(1) : null;
 

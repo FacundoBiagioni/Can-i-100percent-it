@@ -56,9 +56,11 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
     ),
   ];
 
-  const estimatedHoursValues = allClaims
-    .filter((c) => c.claim.type === "estimated_hours" && typeof c.claim.value === "number")
-    .map((c) => c.claim.value as number);
+  // SteamHunters' median (thousands of real 100% runs on popular games) wins;
+  // other sources only fill in where it has no figure.
+  const hoursClaims = allClaims.filter((c) => c.claim.type === "estimated_hours" && typeof c.claim.value === "number");
+  const steamHuntersHours = hoursClaims.filter((c) => c.sourceKey === "steamhunters");
+  const estimatedHoursValues = (steamHuntersHours.length > 0 ? steamHuntersHours : hoursClaims).map((c) => c.claim.value as number);
   const estimatedHours =
     estimatedHoursValues.length > 0
       ? estimatedHoursValues.reduce((a, b) => a + b, 0) / estimatedHoursValues.length

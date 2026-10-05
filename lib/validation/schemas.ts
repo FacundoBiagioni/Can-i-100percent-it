@@ -146,6 +146,9 @@ export const steamHuntersAppResponseSchema = z.object({
   appId: z.number(),
   hasPaidDlc: z.boolean(),
   unobtainableAchievementCount: z.number().optional().default(0),
+  // Minutes, median over the players who unlocked every achievement.
+  medianCompletionTime: z.number().nullable().optional(),
+  playersPerfectedCount: z.number().nullable().optional(),
 });
 
 // --- IStoreBrowseService/GetItems — verified live 2026-10-02. Batch store
@@ -230,13 +233,7 @@ export const ownedGamesResponseSchema = z.object({
 });
 
 // SteamHunters bulk app lookup (/api/apps?appIds=..., at most 100 ids).
-export const steamHuntersBulkResponseSchema = z.array(
-  z.object({
-    appId: z.number(),
-    hasPaidDlc: z.boolean(),
-    unobtainableAchievementCount: z.number().optional().default(0),
-  }),
-);
+export const steamHuntersBulkResponseSchema = z.array(steamHuntersAppResponseSchema);
 
 // IPlayerService/GetTopAchievementsForGames: `achievements` holds every
 // achievement the player unlocked (up to max_achievements), by display name.

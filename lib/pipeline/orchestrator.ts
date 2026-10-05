@@ -1,7 +1,12 @@
 import { redis } from "@/lib/cache/redis";
 import { CacheKeys } from "@/lib/cache/keys";
-import { upsertAnalysisResult, insertVerificationHistory, getAnalysisResult } from "@/lib/db/queries/analysis";
-import { insertEvidence } from "@/lib/db/queries/evidence";
+import {
+  upsertAnalysisResult,
+  insertVerificationHistory,
+  getRequiredDlcByGame,
+  markForRecheck,
+} from "@/lib/db/queries/analysis";
+import { insertEvidence, getStoredClaims } from "@/lib/db/queries/evidence";
 import { getAchievementsForGame, getOrCreateGame } from "@/lib/db/queries/games";
 import { steamAnalyzer, getAppDetails, getArgentinaPricing, dlcPriceCents } from "./layers/1-steam/client";
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
@@ -38,6 +43,8 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
   const multiplayerFromSteam = steamResult.multiplayerRequired ?? false;
 
   let allClaims: EvidenceClaim[] = [...steamResult.claims];
+  // Set when some AI step couldn't run and older findings stood in for it.
+  let partial = false;
 
   if (foundOnSteam) {
     // An app with zero achievements has nothing for this whole pipeline to
@@ -78,7 +85,13 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
       runAllScrapers(appId, gameName),
       fetchAcceptedCommunityClaims(appId),
     ]);
-    allClaims = [...allClaims, ...scraperClaims, ...communityClaims];
+    // A source whose text couldn't be read this run (AI quota out, Gemini
+    // down) keeps what it said last time instead of silently dropping it,
+    // and the game is queued to be read again once the AI is back.
+    const unread = [...new Set(scraperClaims.filter((c) => c.claim.type === "reading_unavailable").map((c) => c.sourceKey))];
+    if (unread.length > 0) partial = true;
+    const carriedOver = await getStoredClaims(appId, unread);
+    allClaims = [...allClaims, ...scraperClaims.filter((c) => c.claim.type !== "reading_unavailable"), ...carriedOver, ...communityClaims];
     // SteamHunters' curated list decides which achievements are unobtainable
     // when it tracks the game; AI reads of forum threads naming one (often a
     // one-save lockout, an old bug, or a pre-relaunch list) would otherwise
@@ -110,9 +123,10 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
       const catalog = (details && (await getDlcCatalog(appId, details.dlcAppIds))) ?? [];
       const descriptions = new Map(catalog.map((d) => [d.appId, d.description]));
       // Only results from this resolver carry evidence; older ones (fuzzy
-      // matching, blanket flags) aren't worth falling back to.
-      const stored = await getAnalysisResult(appId);
-      const previousMatched = stored?.dlcRequired.filter((d) => d.evidence && d.evidence.length > 0) ?? [];
+      // matching, blanket flags) aren't worth falling back to. A mapping
+      // the library made on its own counts too.
+      const stored = (await getRequiredDlcByGame([appId])).get(appId) ?? [];
+      const previousMatched = stored.filter((d) => d.evidence && d.evidence.length > 0);
       const previous = previousMatched.length > 0 ? new Map(previousMatched.map((d) => [d.dlcAppId, d.evidence!])) : null;
       const resolution = await resolveRequiredDlc(
         gameName,
@@ -126,6 +140,7 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
         previous,
       );
       allClaims = [...allClaims, resolution.claim];
+      if (["ai_unavailable", "previous_result"].includes(String(resolution.claim.claim.method))) partial = true;
       // Prices only for what's required — Steam Argentina's regional price,
       // same as every other price in the app.
       dlcNeeded = await Promise.all(
@@ -168,6 +183,7 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
   await upsertAnalysisResult(result);
   await insertVerificationHistory(appId, result, trigger, PIPELINE_VERSION, startedAt);
   await insertEvidence(appId, allClaims);
+  if (partial) await markForRecheck(appId);
   if (redis) await redis.del(CacheKeys.analysis(appId));
 
   return result;

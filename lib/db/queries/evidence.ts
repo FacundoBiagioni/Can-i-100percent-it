@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { sources, evidence, achievements } from "@/lib/db/schema";
 import type { EvidenceClaim } from "@/lib/pipeline/types";
@@ -51,4 +51,36 @@ export async function insertEvidence(gameId: number, claims: EvidenceClaim[]) {
     .filter((r): r is NonNullable<typeof r> => r !== null);
 
   if (rows.length > 0) await db.insert(evidence).values(rows);
+}
+
+/** The current analysis's claims from the given sources, as the pipeline
+ * produced them, so a source that can't be read this time keeps what it
+ * said last time. */
+export async function getStoredClaims(gameId: number, sourceKeys: string[]): Promise<EvidenceClaim[]> {
+  if (sourceKeys.length === 0) return [];
+  const rows = await db
+    .select({
+      sourceKey: sources.key,
+      apiName: achievements.apiName,
+      claim: evidence.claim,
+      reasoning: evidence.reasoning,
+      confidence: evidence.confidence,
+      rawUrl: evidence.rawUrl,
+      checkedAt: evidence.checkedAt,
+    })
+    .from(evidence)
+    .innerJoin(sources, eq(evidence.sourceId, sources.id))
+    .leftJoin(achievements, eq(evidence.achievementId, achievements.id))
+    .where(and(eq(evidence.gameId, gameId), inArray(sources.key, sourceKeys as (typeof sources.key.enumValues)[number][])));
+  return rows
+    .filter((r) => (r.claim as { type?: unknown }).type !== "reading_unavailable")
+    .map((r) => ({
+      sourceKey: r.sourceKey,
+      achievementApiName: r.apiName ?? undefined,
+      claim: r.claim as Record<string, unknown>,
+      reasoning: r.reasoning ?? undefined,
+      confidence: r.confidence,
+      rawUrl: r.rawUrl ?? undefined,
+      checkedAt: r.checkedAt,
+    }));
 }

@@ -7,7 +7,13 @@ import type { ScraperAdapter } from "./types";
 const UNOBTAINABLE = 3;
 
 type SteamHuntersApp =
-  | { found: true; hasPaidDlc: boolean; unobtainableCount: number; unobtainable: { apiName: string; name: string }[] }
+  | {
+      found: true;
+      hasPaidDlc: boolean;
+      unobtainableCount: number;
+      unobtainable: { apiName: string; name: string }[];
+      medianHours: number | null;
+    }
   | { found: false };
 
 /**
@@ -20,9 +26,19 @@ type SteamHuntersApp =
  *   content, ended events) — the one deterministic answer to "is 100%
  *   impossible?", unlike AI reads of forum threads, which flip between runs.
  */
+/** Below this many players at 100%, a median is too noisy to show. */
+const MIN_PERFECTED_FOR_HOURS = 3;
+
+/** Hours the typical player took to unlock every achievement, measured by
+ * SteamHunters from real players' unlock times. Null when too few finished. */
+export function steamHuntersMedianHours(app: { medianCompletionTime?: number | null; playersPerfectedCount?: number | null }) {
+  const minutes = app.medianCompletionTime ?? 0;
+  return minutes > 0 && (app.playersPerfectedCount ?? 0) >= MIN_PERFECTED_FOR_HOURS ? minutes / 60 : null;
+}
+
 async function fetchSteamHuntersApp(appId: number): Promise<SteamHuntersApp | null> {
   return getOrFetchWithTtl(
-    CacheKeys.scrape("steamhunters:app:v2", appId),
+    CacheKeys.scrape("steamhunters:app:v3", appId),
     async () => {
       const headers = { "User-Agent": "can-i-100-it/1.0" };
       const res = await fetch(`https://steamhunters.com/api/apps/${appId}`, { headers });
@@ -46,6 +62,7 @@ async function fetchSteamHuntersApp(appId: number): Promise<SteamHuntersApp | nu
         hasPaidDlc: app.data.hasPaidDlc,
         unobtainableCount: app.data.unobtainableAchievementCount,
         unobtainable,
+        medianHours: steamHuntersMedianHours(app.data),
       } as const;
     },
     (result) => (result ? CacheTTL.scrapeSuccess : CacheTTL.failureRetry),
@@ -86,6 +103,16 @@ export const steamHuntersAdapter: ScraperAdapter = {
           checkedAt,
         },
       ];
+      if (app.medianHours !== null) {
+        claims.push({
+          sourceKey: "steamhunters",
+          claim: { type: "estimated_hours", value: app.medianHours },
+          confidence: "high",
+          reasoning: "Median time SteamHunters players took to unlock every achievement.",
+          rawUrl,
+          checkedAt,
+        });
+      }
       for (const a of app.unobtainable) {
         claims.push({
           sourceKey: "steamhunters",

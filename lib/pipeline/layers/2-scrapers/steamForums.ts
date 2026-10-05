@@ -1,7 +1,7 @@
 import { load } from "cheerio";
 import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
-import { classifyUnobtainableSignal, buildClaimsFromClassification } from "@/lib/ai/unobtainableClassifier";
+import { classifyUnobtainableSignal, buildClaimsFromClassification, readingUnavailable } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
 import type { ScraperAdapter } from "./types";
 
@@ -101,7 +101,7 @@ export const steamForumsAdapter: ScraperAdapter = {
       if (posts.length === 0) return [];
 
       const classification = await classifyPosts(gameName, posts);
-      if (!classification) return [];
+      if (!classification) return [readingUnavailable("steam_forums")];
 
       const mostRelevant = posts[0];
       return buildClaimsFromClassification("steam_forums", classification, mostRelevant?.url, checkedAt);

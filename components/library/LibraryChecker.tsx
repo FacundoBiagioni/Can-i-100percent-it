@@ -186,7 +186,10 @@ function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
         <span className="line-clamp-1 text-body font-medium text-chalk transition-colors group-hover:text-fog">{game.name}</span>
         {p && <ProgressBar game={game} />}
         {p && <span className="text-caption tabular-nums text-ash">{`${p.unlocked} / ${p.total} achievements`}</span>}
-        <span className="text-caption tabular-nums text-graphite">{hours(game.playtimeMinutes)}</span>
+        <span className="text-caption tabular-nums text-graphite">
+          {hours(game.playtimeMinutes)}
+          {game.medianHours !== null && !isComplete(game) && ` · ~${Math.max(1, Math.round(game.medianHours)).toLocaleString("en-US")} h to 100%`}
+        </span>
       </div>
     </Link>
   );

@@ -43,7 +43,7 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
           <h2 className="text-nav text-graphite">Time to 100%</h2>
           <p className="text-body text-ash">
             <span className="text-heading font-semibold text-chalk">~{Math.round(analysis.estimatedHours)}h</span>{" "}
-            median reported by players who reached full completion.
+            median time players took to unlock every achievement.
           </p>
         </div>
       )}

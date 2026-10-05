@@ -18,16 +18,16 @@ const SOURCES: { name: string; url?: string; what: string }[] = [
   {
     name: "SteamHunters",
     url: "https://steamhunters.com",
-    what: "A community-curated achievement database. It keeps the list of achievements that can no longer be unlocked, and says whether 100% needs paid DLC.",
+    what: "A community-curated achievement database. It keeps the list of achievements that can no longer be unlocked, says whether 100% needs paid DLC, and measures how long players really took to unlock everything.",
   },
   {
     name: "Achievement Scouts",
     url: "https://achievement-scouts.com",
-    what: "Short notes written by achievement hunters (\"Paid 'Phantom Liberty' DLC required\"), community tags, and the median time players took to reach 100%.",
+    what: "Short notes written by achievement hunters (\"Paid 'Phantom Liberty' DLC required\"), community tags, and a time to 100% for games SteamHunters has no figure for.",
   },
   {
     name: "Forums, guides and Wikipedia",
-    what: "Steam discussion threads, Steam community guides and Wikipedia articles, read by an AI model to spot missable or bugged achievements and DLC mentions.",
+    what: "Steam discussion threads, Steam community guides and Wikipedia articles, read by an AI model to spot missable or bugged achievements and DLC mentions. Each reading is kept, so the same thread is never read twice.",
   },
   {
     name: "IsThereAnyDeal",
@@ -74,7 +74,7 @@ const ICONS: { icon: LucideIcon; name: string; what: string }[] = [
   { icon: GitBranch, name: "Missable", what: "Achievements you can lock yourself out of on one save. Still obtainable on a new one." },
   { icon: Bug, name: "Bugged", what: "Achievements players report as unreliable to unlock. Annoying, not impossible." },
   { icon: Ban, name: "Unobtainable", what: "Achievements nobody can unlock anymore. These are what make a game red." },
-  { icon: Clock, name: "Time", what: "Median hours players took to reach 100%." },
+  { icon: Clock, name: "Time", what: "Median hours players took to unlock every achievement, from SteamHunters." },
 ];
 
 function SectionHeader({ label, title, children }: { label: string; title: string; children?: React.ReactNode }) {
@@ -194,6 +194,10 @@ export default function HowItWorks() {
             <li>Community data can lag behind: a fresh server shutdown or patch may take a while to show up.</li>
             <li>AI reads of forums and guides can misread a thread. They never decide a verdict on their own when curated data exists.</li>
             <li>Results are re-checked over time, oldest first, so a game&apos;s page may be a few days behind.</li>
+            <li>
+              When the AI is unavailable, a game keeps what its sources said at its last check, and its verdict still comes from
+              curated data. It&apos;s read again as soon as the AI is back.
+            </li>
             <li>Prices are Steam&apos;s Argentina store, in USD.</li>
           </ul>
           <p className="mt-3">If something looks wrong, use &quot;Is this verdict wrong?&quot; on the game&apos;s page.</p>

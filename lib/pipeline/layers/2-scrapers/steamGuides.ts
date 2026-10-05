@@ -1,7 +1,7 @@
 import { load } from "cheerio";
 import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
-import { classifyUnobtainableSignal, buildClaimsFromClassification } from "@/lib/ai/unobtainableClassifier";
+import { classifyUnobtainableSignal, buildClaimsFromClassification, readingUnavailable } from "@/lib/ai/unobtainableClassifier";
 import type { EvidenceClaim } from "../../types";
 import type { ScraperAdapter } from "./types";
 
@@ -99,7 +99,7 @@ export const steamGuidesAdapter: ScraperAdapter = {
       if (guides.length === 0) return [];
 
       const classification = await classifyGuides(gameName, guides);
-      if (!classification) return [];
+      if (!classification) return [readingUnavailable("steam_guides")];
 
       return buildClaimsFromClassification("steam_guides", classification, guides[0]?.url, checkedAt);
     } catch {
