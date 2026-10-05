@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
@@ -16,12 +16,16 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const appId = Number(appid);
   if (!Number.isInteger(appId) || appId <= 0) notFound();
 
+  // Cheap (24h cache), and needed before anything is stored: a DLC's own
+  // appid has no achievements of its own (they live in the base game's
+  // list) and zero players, so analyzing it as a game produced nonsense
+  // like "requires multiplayer, servers appear offline". Send the visitor
+  // to the game it belongs to instead.
+  const details = await getAppDetails(appId);
+  if (details?.type === "dlc" && details.fullGameAppId) redirect(`/games/${details.fullGameAppId}`);
+
   const game = await getOrCreateGame(appId);
   if (!game) notFound();
-
-  // Redundant with getOrCreateGame's own Steam call, but cheap (24h cache)
-  // — the DB row only stores the small header image, not the hero-sized one.
-  const details = await getAppDetails(appId);
 
   // Read-only check — never blocks the page on a first-time pipeline run.
   // If nothing's cached yet, AnalysisLoader kicks the run off client-side

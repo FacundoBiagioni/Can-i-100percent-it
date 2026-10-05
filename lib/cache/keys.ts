@@ -18,7 +18,8 @@ export const CacheTTL = {
 export const CacheKeys = {
   // v2: results now carry Argentina-storefront prices; v1 entries had US ones.
   steamSearch: (query: string) => `steam:search:v2:${query.toLowerCase()}`,
-  steamAppDetails: (appId: number) => `steam:appdetails:${appId}`,
+  // v2: entries now carry fullGameAppId (a DLC's base game).
+  steamAppDetails: (appId: number) => `steam:appdetails:v2:${appId}`,
   steamArPricing: (appId: number) => `steam:pricing:ar:${appId}`,
   steamDlcCatalog: (appId: number) => `steam:dlccatalog:${appId}`,
   steamSchema: (appId: number) => `steam:schema:${appId}`,

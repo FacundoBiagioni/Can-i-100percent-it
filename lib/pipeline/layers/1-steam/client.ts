@@ -77,6 +77,8 @@ export type SteamAppDetails = {
    * back to background_raw only for the rare app with no screenshots. */
   heroImage?: string;
   dlcAppIds: number[];
+  /** For a DLC app: the base game it belongs to. */
+  fullGameAppId?: number;
   multiplayerRequired: boolean;
   releaseDate?: string;
   isFree: boolean;
@@ -103,6 +105,7 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
       headerImage: entry.data.header_image,
       heroImage: entry.data.screenshots[0]?.path_full ?? entry.data.background_raw,
       dlcAppIds: entry.data.dlc,
+      fullGameAppId: entry.data.fullgame?.appid,
       multiplayerRequired: categories.some((c) => MULTIPLAYER_CATEGORY_MARKERS.includes(c)),
       releaseDate: entry.data.release_date?.date,
       isFree: entry.data.is_free ?? false,
