@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ArrowDown } from "lucide-react";
 import SearchBox from "@/components/search/SearchBox";
 import HeroAnimation from "@/components/home/HeroAnimation";
@@ -78,7 +79,12 @@ export default async function Home() {
 
       <footer className="border-t border-carbon">
         <div className="mx-auto flex max-w-page flex-col gap-2 px-4 py-6 text-caption text-graphite sm:flex-row sm:justify-between sm:px-6">
-          <span>can i 100% it?</span>
+          <span className="flex gap-4">
+            <span>can i 100% it?</span>
+            <Link href="/how-it-works" className="text-ash transition-colors hover:text-chalk">
+              How it works
+            </Link>
+          </span>
           <span>{PRICE_REGION_LABEL}. Not affiliated with Valve or Steam.</span>
         </div>
       </footer>

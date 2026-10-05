@@ -4,10 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SearchBox from "@/components/search/SearchBox";
 
+// `wide`: only shown from sm up — on a phone the wordmark already links home
+// and the four links don't fit next to it.
 const NAV = [
-  { href: "/", label: "Index" },
-  { href: "/#recent", label: "Recent" },
-  { href: "/#verdicts", label: "Verdicts" },
+  { href: "/", label: "Index", wide: true },
+  { href: "/#recent", label: "Recent", wide: false },
+  { href: "/#verdicts", label: "Verdicts", wide: true },
+  { href: "/how-it-works", label: "How it works", wide: false },
 ];
 
 export default function Header() {
@@ -31,7 +34,7 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`text-nav font-medium transition-colors ${
+                className={`${item.wide ? "hidden sm:inline" : ""} whitespace-nowrap text-nav font-medium transition-colors ${
                   active ? "text-ember" : "text-chalk hover:text-ash"
                 }`}
               >
