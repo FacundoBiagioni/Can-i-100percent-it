@@ -1,7 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { analysisResults, verificationHistory, games } from "@/lib/db/schema";
+import { analysisResults, verificationHistory, games, dlcMappings } from "@/lib/db/schema";
 import type { AnalysisResult } from "@/lib/pipeline/types";
 
 const dlcRequiredRowSchema = z.array(
@@ -39,20 +39,44 @@ export async function getAnalysisResult(gameId: number): Promise<AnalysisResult 
   };
 }
 
-/** Required DLC (with the achievements each one unlocks) for every stored
- * game in `gameIds` that has any. Games never analyzed are simply absent. */
+/** Required DLC (with the achievements each one unlocks) for every game in
+ * `gameIds` that has any: from its full analysis, else from a standalone DLC
+ * mapping. Games with neither are absent. */
 export async function getRequiredDlcByGame(gameIds: number[]): Promise<Map<number, AnalysisResult["dlcRequired"]>> {
   const out = new Map<number, AnalysisResult["dlcRequired"]>();
   if (gameIds.length === 0) return out;
-  const rows = await db
-    .select({ gameId: analysisResults.gameId, dlcRequired: analysisResults.dlcRequired })
-    .from(analysisResults)
-    .where(inArray(analysisResults.gameId, gameIds));
-  for (const row of rows) {
+  const [analyzed, mapped] = await Promise.all([
+    db
+      .select({ gameId: analysisResults.gameId, dlcRequired: analysisResults.dlcRequired })
+      .from(analysisResults)
+      .where(inArray(analysisResults.gameId, gameIds)),
+    db
+      .select({ gameId: dlcMappings.gameId, dlcRequired: dlcMappings.dlcRequired })
+      .from(dlcMappings)
+      .where(inArray(dlcMappings.gameId, gameIds)),
+  ]);
+  // Full analyses go last so they win over a standalone mapping.
+  for (const row of [...mapped, ...analyzed]) {
     const parsed = dlcRequiredRowSchema.safeParse(row.dlcRequired);
     if (parsed.success && parsed.data.length > 0) out.set(row.gameId, parsed.data);
   }
   return out;
+}
+
+/** Whether a game already has a definitive DLC answer, either way. */
+export async function hasDlcAnswer(gameId: number): Promise<boolean> {
+  const [a, m] = await Promise.all([
+    db.select({ id: analysisResults.gameId }).from(analysisResults).where(eq(analysisResults.gameId, gameId)),
+    db.select({ id: dlcMappings.gameId }).from(dlcMappings).where(eq(dlcMappings.gameId, gameId)),
+  ]);
+  return a.length > 0 || m.length > 0;
+}
+
+export async function saveDlcMapping(gameId: number, dlcRequired: AnalysisResult["dlcRequired"], method: string) {
+  await db
+    .insert(dlcMappings)
+    .values({ gameId, dlcRequired, method })
+    .onConflictDoUpdate({ target: dlcMappings.gameId, set: { dlcRequired, method, computedAt: new Date() } });
 }
 
 export async function upsertAnalysisResult(result: AnalysisResult) {

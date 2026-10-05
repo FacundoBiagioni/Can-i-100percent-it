@@ -155,6 +155,19 @@ export const analysisResults = pgTable("analysis_results", {
   computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// --- dlc_mappings (which DLC 100% needs, mapped on its own) --------------
+// Filled by the library view for games never fully analyzed, so it can tell
+// whether a player owns the DLC a game needs. One AI call per game, once:
+// the full pipeline's analysis_results takes precedence when both exist.
+export const dlcMappings = pgTable("dlc_mappings", {
+  gameId: integer("game_id")
+    .primaryKey()
+    .references(() => games.id, { onDelete: "cascade" }),
+  dlcRequired: jsonb("dlc_required").notNull().default([]), // same shape as analysis_results.dlc_required
+  method: text("method").notNull(),
+  computedAt: timestamp("computed_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // --- verification_history (append-only pipeline run log) --------------------
 export const verificationHistory = pgTable(
   "verification_history",

@@ -183,3 +183,9 @@ export async function getFlaggedGames(
     }),
   };
 }
+
+/** One game's DLC ownership for a player, e.g. right after mapping its DLC. */
+export async function getDlcOwnershipForGame(steamId: string, appId: number): Promise<DlcOwnership | null> {
+  const progress = await getPlayerProgress(steamId, [appId]);
+  return (await getDlcOwnership([appId], progress)).get(appId) ?? null;
+}

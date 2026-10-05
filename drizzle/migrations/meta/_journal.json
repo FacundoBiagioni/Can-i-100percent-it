@@ -43,6 +43,13 @@
       "when": 1790759402088,
       "tag": "0005_lowly_multiple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791185455309,
+      "tag": "0006_clammy_quasar",
+      "breakpoints": true
     }
   ]
 }

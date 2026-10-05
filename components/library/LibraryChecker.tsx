@@ -56,7 +56,7 @@ const needsDlc = (g: Card) => g.hasPaidDlc && !dlcOwned(g);
 
 const TAG = "inline-flex items-center gap-1 bg-void/85 px-1.5 py-0.5 text-caption font-medium backdrop-blur-sm";
 
-function Tags({ game }: { game: Card }) {
+function Tags({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
   const complete = isComplete(game);
   return (
     <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
@@ -86,7 +86,7 @@ function Tags({ game }: { game: Card }) {
         ) : (
           <span className={`${TAG} text-chalk`}>
             <Package aria-hidden className="h-3.5 w-3.5" />
-            Paid DLC
+            {checkingDlc ? <span className="motion-safe:animate-pulse">Checking your DLC…</span> : "Paid DLC"}
           </span>
         ))}
     </div>
@@ -106,7 +106,7 @@ function ProgressBar({ game }: { game: Card }) {
   );
 }
 
-function GameCard({ game }: { game: Card }) {
+function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
   const candidates = useMemo(() => artCandidates(game), [game]);
   const [index, setIndex] = useState(0);
   const capsule = useRef<HTMLDivElement>(null);
@@ -175,7 +175,7 @@ function GameCard({ game }: { game: Card }) {
           <span className="flex h-full items-center justify-center p-3 text-center text-body font-medium text-ash">{game.name}</span>
         )}
         <div className="capsule-glare pointer-events-none absolute inset-0" />
-        <Tags game={game} />
+        <Tags game={game} checkingDlc={checkingDlc} />
         {percent !== null && (
           <span className="absolute bottom-2 right-2 bg-void/85 px-1.5 py-0.5 text-nav font-semibold tabular-nums text-chalk backdrop-blur-sm">
             {percent}%
@@ -216,6 +216,8 @@ export default function LibraryChecker() {
   const [cards, setCards] = useState<Card[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const runId = useRef(0);
+  // Paid-DLC games being mapped right now (see the DLC pass in run()).
+  const [dlcPass, setDlcPass] = useState<{ done: number; total: number; pending: number | null; limited: boolean } | null>(null);
 
   // Every state update in here happens after an await, so it's safe to start
   // from an effect (a shared /library?profile= link) as well as from submit.
@@ -240,6 +242,7 @@ export default function LibraryChecker() {
       setPhase("checking");
 
       const byId = new Map(lib.games.map((g) => [g.appId, g]));
+      const collected: FlaggedGame[] = [];
       for (let i = 0; i < lib.games.length; i += BATCH) {
         const appIds = lib.games.slice(i, i + BATCH).map((g) => g.appId);
         const r = await fetch("/api/library/status", {
@@ -257,6 +260,7 @@ export default function LibraryChecker() {
         }
         setChecked((c) => c + batch.checked);
         setUntracked((u) => u + batch.untracked);
+        collected.push(...(batch.flagged as FlaggedGame[]));
         setCards((prev) => [
           ...prev,
           ...(batch.flagged as FlaggedGame[]).map((f) => ({
@@ -267,6 +271,32 @@ export default function LibraryChecker() {
         ]);
       }
       setPhase("done");
+
+      // DLC pass: for paid-DLC games nobody analyzed yet, map which DLC they
+      // need (once, saved for good) so the card can say whether you own it.
+      // One at a time to go easy on the AI quota. Skipped: games at 100%
+      // (ownership is already proven) and games with nothing unlocked (no
+      // achievement could prove it).
+      const queue = collected.filter(
+        (g) => g.hasPaidDlc && g.dlc === null && g.progress !== null && g.progress.unlocked > 0 && g.progress.unlocked < g.progress.total,
+      );
+      for (let i = 0; i < queue.length; i++) {
+        const appId = queue[i].appId;
+        setDlcPass({ done: i, total: queue.length, pending: appId, limited: false });
+        const r = await fetch("/api/library/dlc", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ appId, steamId: lib.steamId }),
+        }).catch(() => null);
+        const out = r?.ok ? await r.json().catch(() => null) : null;
+        if (id !== runId.current) return;
+        if (!out || out.outcome === "daily_limit") {
+          setDlcPass({ done: i, total: queue.length, pending: null, limited: true });
+          return;
+        }
+        if (out.dlc) setCards((prev) => prev.map((c) => (c.appId === appId ? { ...c, dlc: out.dlc } : c)));
+      }
+      setDlcPass(queue.length > 0 ? { done: queue.length, total: queue.length, pending: null, limited: false } : null);
     },
     [router],
   );
@@ -358,6 +388,7 @@ export default function LibraryChecker() {
             setCards([]);
             setChecked(0);
             setUntracked(0);
+            setDlcPass(null);
             setFilter("all");
             run(input.trim());
           }}
@@ -413,6 +444,15 @@ export default function LibraryChecker() {
                   ? `Stopped after checking ${checked.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}.`
                   : `${catchCount} can't be completed without a catch${completedCount > 0 ? ` · ${completedCount} at 100%` : ""}${untracked > 0 ? ` · ${untracked} not covered by the achievement database yet` : ""}.`}
             </p>
+            {dlcPass && (
+              <p className="text-caption text-graphite">
+                {dlcPass.limited
+                  ? `Checked which DLC you own in ${dlcPass.done} of ${dlcPass.total} games. The rest will be checked on a later visit.`
+                  : dlcPass.pending !== null
+                    ? `Checking which DLC you own: ${dlcPass.done} of ${dlcPass.total} games…`
+                    : `Checked which DLC you own in all ${dlcPass.total} games.`}
+              </p>
+            )}
             {total > 0 && (
               <div className="h-px w-full bg-carbon">
                 <div className="h-px bg-chalk transition-[width] duration-300" style={{ width: `${Math.round((checked / total) * 100)}%` }} />
@@ -447,7 +487,7 @@ export default function LibraryChecker() {
           {visible.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
               {visible.map((g) => (
-                <GameCard key={g.appId} game={g} />
+                <GameCard key={g.appId} game={g} checkingDlc={dlcPass?.pending === g.appId} />
               ))}
             </div>
           ) : (
