@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+import { VERDICT } from "@/lib/ui/verdict";
 import Image from "next/image";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
@@ -6,10 +8,30 @@ import { getArgentinaMaxDiscountCut } from "@/lib/pricing/itad";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 import VerdictBlock from "@/components/result/VerdictBlock";
+import VerdictActions from "@/components/result/VerdictActions";
 import RecordRecent from "@/components/result/RecordRecent";
 import BottomSheet from "@/components/result/BottomSheet";
 import AnalysisLoader from "@/components/result/AnalysisLoader";
 import { formatPrice } from "@/lib/ui/price";
+
+/** Per-game title/description, so a shared link previews the verdict
+ * ("Team Fortress 2: 100% impossible") instead of the site's generic text.
+ * Read-only and cached: no game row is created just to build metadata. */
+export async function generateMetadata(props: PageProps<"/games/[appid]">): Promise<Metadata> {
+  const { appid } = await props.params;
+  const appId = Number(appid);
+  if (!Number.isInteger(appId) || appId <= 0) return {};
+  const [details, analysis] = await Promise.all([getAppDetails(appId), getCachedAnalysis(appId)]);
+  if (!details) return {};
+  const title = analysis ? `${details.name}: ${VERDICT[analysis.status].label}` : details.name;
+  const description = analysis?.reasoning ?? `Can you still get 100% of ${details.name}'s Steam achievements?`;
+  return {
+    title: `${title} | can i 100% it?`,
+    description,
+    openGraph: { title, description },
+    twitter: { title, description },
+  };
+}
 
 export default async function GamePage(props: PageProps<"/games/[appid]">) {
   const { appid } = await props.params;
@@ -139,7 +161,10 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
         </div>
 
         {analysis ? (
-          <VerdictBlock analysis={analysis} />
+          <div className="flex flex-col gap-5">
+            <VerdictBlock analysis={analysis} />
+            <VerdictActions appId={appId} gameName={game.name} status={analysis.status} />
+          </div>
         ) : (
           <AnalysisLoader appId={appId} name={game.name} image={game.headerImageUrl ?? null} />
         )}

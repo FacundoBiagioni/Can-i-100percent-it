@@ -5,6 +5,7 @@ import type { AnalysisResult } from "@/lib/pipeline/types";
 import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 import BottomSheet from "./BottomSheet";
 import VerdictBlock from "./VerdictBlock";
+import VerdictActions from "./VerdictActions";
 import { recordRecentGame } from "@/lib/recentGames";
 
 const POLL_INTERVAL_MS = 3000;
@@ -58,7 +59,10 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
   if (analysis) {
     return (
       <>
-        <VerdictBlock analysis={analysis} />
+        <div className="flex flex-col gap-5">
+          <VerdictBlock analysis={analysis} />
+          <VerdictActions appId={appId} gameName={name} status={analysis.status} />
+        </div>
         {analysis.status !== "no_achievements" && <BottomSheet analysis={analysis} achievements={achievements} />}
       </>
     );

@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { ogFonts } from "@/lib/og/geistFont";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
@@ -30,7 +31,7 @@ export default async function GameOpengraphImage({ params }: { params: Promise<{
 
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#000" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", position: "relative", background: "#000", fontFamily: "Geist" }}>
         {heroImage && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -58,7 +59,7 @@ export default async function GameOpengraphImage({ params }: { params: Promise<{
             width: "100%",
           }}
         >
-          <div style={{ display: "flex", fontSize: 72, fontWeight: 700, color: "#ffffff", lineHeight: 0.9, letterSpacing: -3 }}>
+          <div style={{ display: "flex", fontSize: 72, fontWeight: 600, color: "#ffffff", lineHeight: 0.9, letterSpacing: -3 }}>
             {name}
           </div>
           {status && (
@@ -70,7 +71,7 @@ export default async function GameOpengraphImage({ params }: { params: Promise<{
                 padding: "12px 20px",
                 border: `2px solid ${status.color}`,
                 fontSize: 36,
-                fontWeight: 700,
+                fontWeight: 600,
                 color: status.color,
               }}
             >
@@ -81,6 +82,6 @@ export default async function GameOpengraphImage({ params }: { params: Promise<{
         </div>
       </div>
     ),
-    { ...size },
+    { ...size, fonts: await ogFonts() },
   );
 }
