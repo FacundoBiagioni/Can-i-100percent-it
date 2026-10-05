@@ -49,7 +49,9 @@ function artCandidates(game: Card): { url: string; portrait: boolean }[] {
 
 const isComplete = (g: Card) => g.progress !== null && g.progress.unlocked >= g.progress.total;
 const hasCatch = (g: Card) => g.unobtainable > 0 || g.hasPaidDlc;
-const dlcOwned = (g: Card) => g.dlc !== null && g.dlc.owned >= g.dlc.required;
+// A game at 100% proves every required DLC is owned, even for games not
+// analyzed here yet (where `dlc` is unknown).
+const dlcOwned = (g: Card) => isComplete(g) || (g.dlc !== null && g.dlc.owned >= g.dlc.required);
 const needsDlc = (g: Card) => g.hasPaidDlc && !dlcOwned(g);
 
 const TAG = "inline-flex items-center gap-1 bg-void/85 px-1.5 py-0.5 text-caption font-medium backdrop-blur-sm";
@@ -74,7 +76,7 @@ function Tags({ game }: { game: Card }) {
         (dlcOwned(game) ? (
           <span className={`${TAG} text-pass`}>
             <PackageCheck aria-hidden className="h-3.5 w-3.5" />
-            {game.dlc!.required > 1 ? "All DLC owned" : "DLC owned"}
+            {game.dlc && game.dlc.required > 1 ? "All DLC owned" : "DLC owned"}
           </span>
         ) : game.dlc && game.dlc.owned > 0 ? (
           <span className={`${TAG} text-unsure`}>
