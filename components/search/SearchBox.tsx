@@ -36,6 +36,7 @@ export default function SearchBox({
   const [activeIndex, setActiveIndex] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const styles = SIZE_CLASSES[size];
 
   useEffect(() => {
@@ -99,6 +100,21 @@ export default function SearchBox({
 
   const expanded = open && (loading || results.length > 0 || query.trim().length >= 2);
 
+  // The big homepage search sits low in the hero; when its results open past
+  // the bottom of the screen, scroll just enough to show them whole, without
+  // pushing the field under the sticky header.
+  const resultCount = results.length;
+  useEffect(() => {
+    if (!expanded || size !== "lg" || !listRef.current || !containerRef.current) return;
+    const overflow = listRef.current.getBoundingClientRect().bottom + 16 - window.innerHeight;
+    const roomAbove = containerRef.current.getBoundingClientRect().top - 64;
+    const by = Math.min(overflow, roomAbove);
+    if (by > 0) {
+      const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollBy({ top: by, behavior: smooth ? "smooth" : "auto" });
+    }
+  }, [expanded, loading, resultCount, size]);
+
   return (
     <div ref={containerRef} className={`relative w-full ${styles.wrapper}`}>
       {label && (
@@ -137,9 +153,10 @@ export default function SearchBox({
 
       {expanded && (
         <div
+          ref={listRef}
           id={listboxId}
           role="listbox"
-          className={`absolute left-0 top-full z-50 mt-px border border-carbon bg-void ${size === "sm" ? "w-[min(24rem,calc(100vw-2rem))] max-sm:right-0 max-sm:left-auto" : "right-0"}`}
+          className={`absolute left-0 top-full z-50 mt-px max-h-[min(30rem,70dvh)] overflow-y-auto overscroll-contain border border-carbon bg-void ${size === "sm" ? "w-[min(24rem,calc(100vw-2rem))] max-sm:right-0 max-sm:left-auto" : "right-0"}`}
         >
           {loading &&
             Array.from({ length: 3 }).map((_, i) => (
@@ -175,7 +192,7 @@ export default function SearchBox({
               </button>
             ))}
           {!loading && results.length > 0 && (
-            <div className="border-t border-carbon px-3 py-2 text-caption text-graphite">{PRICE_REGION_LABEL}</div>
+            <div className="sticky bottom-0 border-t border-carbon bg-void px-3 py-2 text-caption text-graphite">{PRICE_REGION_LABEL}</div>
           )}
         </div>
       )}

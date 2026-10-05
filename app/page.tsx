@@ -40,10 +40,13 @@ export default async function Home() {
 
   return (
     <main className="flex flex-1 flex-col">
-      <section className="relative flex min-h-[calc(100dvh-3rem)] flex-col overflow-hidden">
+      {/* overflow-x only: clipping the bottom would cut off the search results
+          as they open past the hero's edge. HeroAnimation clips itself. */}
+      <section className="relative flex min-h-[calc(100dvh-3rem)] flex-col overflow-x-clip">
         <HeroAnimation />
 
-        <div className="relative z-10 mx-auto flex w-full max-w-page flex-1 flex-col justify-end gap-10 px-4 pb-28 pt-16 sm:px-6">
+        {/* z-20: above the scroll hint, so open search results cover it. */}
+        <div className="relative z-20 mx-auto flex w-full max-w-page flex-1 flex-col justify-end gap-10 px-4 pb-28 pt-16 sm:px-6">
           <div className="flex flex-col gap-5">
             <p className="text-nav text-ash">Steam achievement checker</p>
             <h1 className="text-mega font-semibold">
