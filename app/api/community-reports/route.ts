@@ -2,7 +2,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { communityReports } from "@/lib/db/schema";
 import { getOrCreateGame } from "@/lib/db/queries/games";
-import { redis } from "@/lib/cache/redis";
+import { overRateLimit } from "@/lib/rateLimit";
 
 const MAX_REPORTS_PER_HOUR = 5;
 
@@ -16,16 +16,6 @@ const bodySchema = z.object({
   website: z.string().optional(),
 });
 
-/** Fixed-window limit per client IP; skipped when Redis isn't configured. */
-async function overLimit(request: Request): Promise<boolean> {
-  if (!redis) return false;
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const key = `ratelimit:reports:${ip}`;
-  const count = await redis.incr(key);
-  if (count === 1) await redis.expire(key, 60 * 60);
-  return count > MAX_REPORTS_PER_HOUR;
-}
-
 export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -34,7 +24,7 @@ export async function POST(request: Request) {
   // Pretend success so a bot gets no signal it was caught.
   if (parsed.data.website) return Response.json({ ok: true }, { status: 201 });
 
-  if (await overLimit(request)) {
+  if (await overRateLimit(request, "reports", MAX_REPORTS_PER_HOUR, 60 * 60)) {
     return Response.json({ error: "rate_limited" }, { status: 429 });
   }
 
