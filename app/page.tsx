@@ -93,6 +93,9 @@ export default async function Home() {
             <Link href="/how-it-works" className="text-ash transition-colors hover:text-chalk">
               How it works
             </Link>
+            <Link href="/about" className="text-ash transition-colors hover:text-chalk">
+              About
+            </Link>
           </span>
           <span>{PRICE_REGION_LABEL}. Not affiliated with Valve or Steam.</span>
         </div>
