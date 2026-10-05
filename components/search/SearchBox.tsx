@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search } from "lucide-react";
-import { formatPrice, PRICE_REGION_LABEL } from "@/lib/ui/price";
+import { formatPrice } from "@/lib/ui/price";
+import { useT } from "@/lib/i18n/client";
 
 type SearchResult = { appId: number; name: string; image?: string; isFree: boolean; priceCents: number | null };
 
@@ -16,7 +17,7 @@ const SIZE_CLASSES = {
 export default function SearchBox({
   size = "lg",
   autoFocus = size === "lg",
-  placeholder = "Search a Steam game",
+  placeholder: placeholderProp,
   label,
 }: {
   size?: "lg" | "sm";
@@ -26,6 +27,8 @@ export default function SearchBox({
    * as the accessible name. */
   label?: string;
 }) {
+  const t = useT();
+  const placeholder = placeholderProp ?? t.search.placeholder;
   const router = useRouter();
   const listboxId = useId();
   const inputId = useId();
@@ -165,7 +168,7 @@ export default function SearchBox({
                 <div className="h-3.5 w-40 animate-pulse bg-cinder" />
               </div>
             ))}
-          {!loading && results.length === 0 && <div className="px-3 py-3 text-body text-graphite">No games found</div>}
+          {!loading && results.length === 0 && <div className="px-3 py-3 text-body text-graphite">{t.search.noResults}</div>}
           {!loading &&
             results.map((r, i) => (
               <button
@@ -187,12 +190,12 @@ export default function SearchBox({
                 )}
                 <span className="line-clamp-1 flex-1">{r.name}</span>
                 <span className="shrink-0 text-caption tabular-nums text-graphite">
-                  {r.isFree ? "Free" : r.priceCents !== null ? formatPrice(r.priceCents) : ""}
+                  {r.isFree ? t.search.free : r.priceCents !== null ? formatPrice(r.priceCents) : ""}
                 </span>
               </button>
             ))}
           {!loading && results.length > 0 && (
-            <div className="sticky bottom-0 border-t border-carbon bg-void px-3 py-2 text-caption text-graphite">{PRICE_REGION_LABEL}</div>
+            <div className="sticky bottom-0 border-t border-carbon bg-void px-3 py-2 text-caption text-graphite">{t.priceRegion}</div>
           )}
         </div>
       )}

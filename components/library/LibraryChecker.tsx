@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowUpRight, Ban, Package, PackageCheck, Trophy } from "lucide-react";
 import type { LibraryGame } from "@/lib/steam/library";
 import type { FlaggedGame } from "@/lib/library/status";
+import { useT } from "@/lib/i18n/client";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 const BATCH = 100;
 const STORAGE_KEY = "library-profile";
@@ -14,23 +16,15 @@ type LibraryInfo = { steamId: string; personaName: string; avatar: string | null
 type Card = FlaggedGame & { name: string; playtimeMinutes: number };
 type Filter = "all" | "impossible" | "dlc" | "owned" | "completed";
 
-const ERRORS: Record<string, string> = {
-  invalid_input: "That doesn't look like a Steam profile. Paste the full link to your profile page.",
-  profile_not_found: "No Steam profile matches that link. Check it's copied completely.",
-  private_profile: "This profile is private. Set \"My profile\" to Public (step 2), then try again.",
-  private_games:
-    "Your game list is private. Set \"Game details\" to Public (step 2), then try again. Steam can take a few minutes to apply the change.",
-  no_games: "This profile doesn't own any games yet.",
-  steam_unavailable: "Steam didn't answer. Please try again in a minute.",
-  steamhunters_unavailable: "Couldn't reach the achievement database. Please try again in a minute.",
-  rate_limited: "Too many checks from this connection. Please try again in a bit.",
-};
+// Errors are kept as codes and worded at render time, so switching the
+// language also switches a message already on screen.
+type LibraryError = { code: string; partial: boolean };
 
 const FILTER_BUTTON = "cursor-pointer border px-2 py-1 text-nav font-medium transition-colors";
 
-function hours(minutes: number) {
-  if (minutes < 60) return minutes > 0 ? "<1 h played" : "Not played";
-  return `${Math.round(minutes / 60).toLocaleString("en-US")} h played`;
+function hours(minutes: number, t: Dictionary) {
+  if (minutes < 60) return minutes > 0 ? t.library.card.underHour : t.library.card.notPlayed;
+  return t.library.card.played(Math.round(minutes / 60).toLocaleString(t.numberLocale));
 }
 
 const LEGACY_CDN = "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps";
@@ -57,36 +51,37 @@ const needsDlc = (g: Card) => g.hasPaidDlc && !dlcOwned(g);
 const TAG = "inline-flex items-center gap-1 bg-void/85 px-1.5 py-0.5 text-caption font-medium backdrop-blur-sm";
 
 function Tags({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
+  const tags = useT().library.tags;
   const complete = isComplete(game);
   return (
     <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
       {complete && (
         <span className={`${TAG} text-pass`}>
           <Trophy aria-hidden className="h-3.5 w-3.5" />
-          Completed
+          {tags.completed}
         </span>
       )}
       {game.unobtainable > 0 && (
         <span className={`${TAG} text-fail`}>
           <Ban aria-hidden className="h-3.5 w-3.5" />
-          {game.unobtainable} impossible
+          {tags.impossible(game.unobtainable)}
         </span>
       )}
       {game.hasPaidDlc &&
         (dlcOwned(game) ? (
           <span className={`${TAG} text-pass`}>
             <PackageCheck aria-hidden className="h-3.5 w-3.5" />
-            {game.dlc && game.dlc.required > 1 ? "All DLC owned" : "DLC owned"}
+            {game.dlc && game.dlc.required > 1 ? tags.allDlcOwned : tags.dlcOwned}
           </span>
         ) : game.dlc && game.dlc.owned > 0 ? (
           <span className={`${TAG} text-unsure`}>
             <Package aria-hidden className="h-3.5 w-3.5" />
-            {game.dlc.owned} of {game.dlc.required} DLC owned
+            {tags.someDlcOwned(game.dlc.owned, game.dlc.required)}
           </span>
         ) : (
           <span className={`${TAG} text-chalk`}>
             <Package aria-hidden className="h-3.5 w-3.5" />
-            {checkingDlc ? <span className="motion-safe:animate-pulse">Checking your DLC…</span> : "Paid DLC"}
+            {checkingDlc ? <span className="motion-safe:animate-pulse">{tags.checkingDlc}</span> : tags.paidDlc}
           </span>
         ))}
     </div>
@@ -107,6 +102,8 @@ function ProgressBar({ game }: { game: Card }) {
 }
 
 function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
+  const t = useT();
+  const c = t.library.card;
   const candidates = useMemo(() => artCandidates(game), [game]);
   const [index, setIndex] = useState(0);
   const capsule = useRef<HTMLDivElement>(null);
@@ -135,9 +132,9 @@ function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
 
   const label = [
     game.name,
-    p && `${p.unlocked} of ${p.total} achievements`,
-    game.unobtainable > 0 && `${game.unobtainable} impossible`,
-    game.hasPaidDlc && (dlcOwned(game) ? "DLC owned" : "needs paid DLC"),
+    p && c.ariaAchievements(p.unlocked, p.total),
+    game.unobtainable > 0 && c.ariaImpossible(game.unobtainable),
+    game.hasPaidDlc && (dlcOwned(game) ? c.ariaDlcOwned : c.ariaNeedsDlc),
   ]
     .filter(Boolean)
     .join(", ");
@@ -185,10 +182,10 @@ function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
       <div className="flex flex-col gap-1.5" aria-hidden>
         <span className="line-clamp-1 text-body font-medium text-chalk transition-colors group-hover:text-fog">{game.name}</span>
         {p && <ProgressBar game={game} />}
-        {p && <span className="text-caption tabular-nums text-ash">{`${p.unlocked} / ${p.total} achievements`}</span>}
+        {p && <span className="text-caption tabular-nums text-ash">{c.achievements(p.unlocked.toLocaleString(t.numberLocale), p.total.toLocaleString(t.numberLocale))}</span>}
         <span className="text-caption tabular-nums text-graphite">
-          {hours(game.playtimeMinutes)}
-          {game.medianHours !== null && !isComplete(game) && ` · ~${Math.max(1, Math.round(game.medianHours)).toLocaleString("en-US")} h to 100%`}
+          {hours(game.playtimeMinutes, t)}
+          {game.medianHours !== null && !isComplete(game) && ` · ${c.toHundred(Math.max(1, Math.round(game.medianHours)).toLocaleString(t.numberLocale))}`}
         </span>
       </div>
     </Link>
@@ -196,6 +193,8 @@ function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
 }
 
 export default function LibraryChecker() {
+  const t = useT();
+  const L = t.library;
   const router = useRouter();
   const searchParams = useSearchParams();
   // This component only renders in the browser (useSearchParams under a
@@ -212,7 +211,7 @@ export default function LibraryChecker() {
   const [phase, setPhase] = useState<"idle" | "loading" | "checking" | "done" | "error">(() =>
     searchParams.get("profile") ? "loading" : "idle",
   );
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<LibraryError | null>(null);
   const [library, setLibrary] = useState<LibraryInfo | null>(null);
   const [checked, setChecked] = useState(0);
   const [untracked, setUntracked] = useState(0);
@@ -236,7 +235,7 @@ export default function LibraryChecker() {
       const data = res ? await res.json().catch(() => null) : null;
       if (id !== runId.current) return;
       if (!data?.ok) {
-        setError(ERRORS[data?.error] ?? ERRORS.steam_unavailable);
+        setError({ code: typeof data?.error === "string" ? data.error : "steam_unavailable", partial: false });
         setPhase("error");
         return;
       }
@@ -257,7 +256,7 @@ export default function LibraryChecker() {
         if (id !== runId.current) return;
         if (!batch) {
           const code = r?.status === 429 ? "rate_limited" : "steamhunters_unavailable";
-          setError(`${ERRORS[code]} Showing what was checked so far.`);
+          setError({ code, partial: true });
           setPhase("error");
           return;
         }
@@ -351,28 +350,28 @@ export default function LibraryChecker() {
         <ol className="flex flex-col pl-px pt-px">
           {[
             <>
-              Open your{" "}
+              {L.steps.openBefore}{" "}
               <a
                 href="https://steamcommunity.com/my/edit/settings"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-0.5 text-chalk underline underline-offset-4 hover:text-ash"
               >
-                Steam privacy settings
+                {L.steps.openLink}
                 <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
               </a>{" "}
-              and sign in if asked.
+              {L.steps.openAfter}
             </>,
             <>
-              Set <span className="text-chalk">My profile</span> and <span className="text-chalk">Game details</span> to{" "}
-              <span className="text-chalk">Public</span>. Nothing else needs to change.
+              {L.steps.setBefore} <span className="text-chalk">{L.steps.myProfile}</span> {L.steps.and}{" "}
+              <span className="text-chalk">{L.steps.gameDetails}</span> {L.steps.to} <span className="text-chalk">{L.steps.public}</span>
+              {L.steps.setAfter}
             </>,
             <>
-              Copy your profile link: on Steam, click your name and choose{" "}
-              <span className="text-chalk">Copy Page URL</span>, or copy it from the browser. It looks like{" "}
-              <span className="text-chalk">steamcommunity.com/id/yourname</span>.
+              {L.steps.copyBefore} <span className="text-chalk">{L.steps.copyPageUrl}</span>
+              {L.steps.copyMiddle} <span className="text-chalk">{L.inputPlaceholder}</span>.
             </>,
-            <>Paste it here and check. Games that can&apos;t be fully completed or need paid DLC show up, plus the ones you already have at 100%.</>,
+            <>{L.steps.paste}</>,
           ].map((step, i) => (
             <li key={i} className="-ml-px -mt-px flex gap-4 border border-carbon p-4">
               <span className="text-heading font-semibold tabular-nums text-graphite">{i + 1}</span>
@@ -398,14 +397,14 @@ export default function LibraryChecker() {
           className="flex flex-col gap-3 self-start"
         >
           <label htmlFor="profile" className="text-nav text-ash">
-            Steam profile link
+            {L.inputLabel}
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
               id="profile"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="steamcommunity.com/id/yourname"
+              placeholder={L.inputPlaceholder}
               autoComplete="off"
               spellCheck={false}
               className="h-12 flex-1 border border-cinder bg-cinder px-4 text-base text-chalk outline-none placeholder:text-graphite focus:border-fog"
@@ -415,15 +414,16 @@ export default function LibraryChecker() {
               disabled={busy || !input.trim()}
               className="h-12 cursor-pointer bg-chalk px-5 text-nav font-semibold text-void transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {busy ? "Checking…" : "Check library"}
+              {busy ? L.checking : L.check}
             </button>
           </div>
           <p className="text-caption text-graphite">
-            Your library is read once from Steam&apos;s public data. Nothing is stored about you.
+            {L.privacy}
           </p>
           {error && (
             <p role="alert" className="text-body text-unsure">
-              {error}
+              {L.errors[error.code] ?? L.errors.steam_unavailable}
+              {error.partial && ` ${L.soFar}`}
             </p>
           )}
         </form>
@@ -437,23 +437,23 @@ export default function LibraryChecker() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={library.avatar} alt="" className="h-10 w-10 border border-carbon" />
               )}
-              <h2 className="text-heading-lg font-semibold">{library.personaName}&apos;s library</h2>
+              <h2 className="text-heading-lg font-semibold">{L.whoseLibrary(library.personaName)}</h2>
             </div>
             <p className="text-body text-ash" role="status" aria-live="polite">
-              {library.totalGames.toLocaleString("en-US")} games, {total.toLocaleString("en-US")} with achievements.{" "}
+              {L.counts(library.totalGames.toLocaleString(t.numberLocale), total.toLocaleString(t.numberLocale))}{" "}
               {phase === "checking"
-                ? `Checking ${checked.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}…`
+                ? L.progress(checked.toLocaleString(t.numberLocale), total.toLocaleString(t.numberLocale))
                 : phase === "error"
-                  ? `Stopped after checking ${checked.toLocaleString("en-US")} of ${total.toLocaleString("en-US")}.`
-                  : `${catchCount} can't be completed without a catch${completedCount > 0 ? ` · ${completedCount} at 100%` : ""}${untracked > 0 ? ` · ${untracked} not covered by the achievement database yet` : ""}.`}
+                  ? L.stopped(checked.toLocaleString(t.numberLocale), total.toLocaleString(t.numberLocale))
+                  : L.summary(catchCount, completedCount, untracked)}
             </p>
             {dlcPass && (
               <p className="text-caption text-graphite">
                 {dlcPass.limited
-                  ? `Checked which DLC you own in ${dlcPass.done} of ${dlcPass.total} games. The rest will be checked on a later visit.`
+                  ? L.dlcPass.limited(dlcPass.done, dlcPass.total)
                   : dlcPass.pending !== null
-                    ? `Checking which DLC you own: ${dlcPass.done} of ${dlcPass.total} games…`
-                    : `Checked which DLC you own in all ${dlcPass.total} games.`}
+                    ? L.dlcPass.running(dlcPass.done, dlcPass.total)
+                    : L.dlcPass.done(dlcPass.total)}
               </p>
             )}
             {total > 0 && (
@@ -464,14 +464,14 @@ export default function LibraryChecker() {
           </div>
 
           {cards.length > 0 && (
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter">
+            <div className="flex flex-wrap gap-2" role="group" aria-label={L.filter}>
               {(
                 [
-                  ["all", `All ${cards.length}`],
-                  ["impossible", `Impossible ${impossibleCount}`],
-                  ["dlc", `Needs paid DLC ${dlcCount}`],
-                  ...(ownedCount > 0 ? [["owned", `DLC owned ${ownedCount}`]] : []),
-                  ...(completedCount > 0 ? [["completed", `100% ${completedCount}`]] : []),
+                  ["all", L.filters.all(cards.length)],
+                  ["impossible", L.filters.impossible(impossibleCount)],
+                  ["dlc", L.filters.dlc(dlcCount)],
+                  ...(ownedCount > 0 ? [["owned", L.filters.owned(ownedCount)]] : []),
+                  ...(completedCount > 0 ? [["completed", L.filters.completed(completedCount)]] : []),
                 ] as [Filter, string][]
               ).map(([value, label]) => (
                 <button
@@ -496,7 +496,7 @@ export default function LibraryChecker() {
           ) : (
             phase === "done" && (
               <p className="text-body text-ash">
-                Good news: every game in this library with achievements can be completed without paid DLC.
+                {L.goodNews}
               </p>
             )
           )}

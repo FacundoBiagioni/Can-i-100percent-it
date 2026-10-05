@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 import { VERDICT } from "@/lib/ui/verdict";
+import { useT } from "@/lib/i18n/client";
 import type { AnalysisStatus } from "@/lib/pipeline/types";
 
 export type GameTileData = {
@@ -17,6 +20,7 @@ export type GameTileData = {
  * the art pushes in, the verdict's color sweeps along its bottom edge and an
  * arrow says the tile opens the game. */
 export default function GameTile({ game }: { game: GameTileData }) {
+  const t = useT();
   const verdict = game.status ? VERDICT[game.status] : null;
   const Icon = verdict?.icon;
 
@@ -50,7 +54,7 @@ export default function GameTile({ game }: { game: GameTileData }) {
         <span className="line-clamp-2 text-body font-medium text-ash transition-colors duration-300 group-hover:text-chalk">{game.name}</span>
         <span className={`mt-auto flex items-center gap-1.5 text-caption ${verdict ? verdict.text : "text-graphite"}`}>
           {Icon && <Icon aria-hidden className="h-3.5 w-3.5 shrink-0" />}
-          {verdict ? verdict.label : "Not checked yet"}
+          {game.status ? t.verdict[game.status].label : t.home.notChecked}
         </span>
       </div>
     </Link>

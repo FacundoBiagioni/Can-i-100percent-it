@@ -1,5 +1,6 @@
 import { getOrFetchWithTtl } from "@/lib/cache/redis";
 import { CacheTTL } from "@/lib/cache/keys";
+import type { Locale } from "@/lib/i18n/config";
 
 /** The site creator's Steam profile, shown on /about. */
 export const CREATOR_STEAM_ID = "76561198931645825";
@@ -11,10 +12,11 @@ const ITEM_CDN = "https://shared.fastly.steamstatic.com/community_assets/images/
 export type SummaryPart = { kind: "text"; text: string } | { kind: "emoticon"; src: string; alt: string };
 export type Badge = { title: string; detail: string; icon: string; href: string };
 export type ShowcaseAchievement = { game: string; name: string; description: string | null; icon: string; href: string };
+/** `title` is Steam's own heading, already in the requested language. */
 export type Showcase =
-  | { kind: "artwork"; image: string; href: string }
-  | { kind: "achievements"; stats: { value: string; label: string }[]; items: ShowcaseAchievement[] }
-  | { kind: "completionist"; games: { appId: number; name: string; header: string; count: string }[] };
+  | { kind: "artwork"; title: string; image: string; href: string }
+  | { kind: "achievements"; title: string; stats: { value: string; label: string }[]; items: ShowcaseAchievement[] }
+  | { kind: "completionist"; title: string; games: { appId: number; name: string; header: string; count: string }[] };
 
 export type CreatorProfile = {
   name: string;
@@ -28,7 +30,10 @@ export type CreatorProfile = {
   xp: { current: number; levelStart: number; levelEnd: number } | null;
   favoriteBadge: { name: string; xp: string; icon: string } | null;
   summary: SummaryPart[];
-  counts: { label: string; value: string }[];
+  /** `key` is the link's path segment (badges, games, friends...), stable
+   * across languages; `label` is Steam's localized text. */
+  counts: { key: string; label: string; value: string }[];
+  perfectGames: string | null;
   badges: Badge[];
   showcases: Showcase[];
 };
@@ -74,11 +79,12 @@ function parseShowcases(html: string, names: Map<number, string>): Showcase[] {
   const area = end > 0 ? html.slice(0, end) : html;
   const showcases: Showcase[] = [];
   for (const block of area.split('<div class="profile_customization_header">').slice(1)) {
-    const title = block.slice(0, block.indexOf("<")).trim();
-    if (title === "Featured Artwork Showcase" || title === "Screenshot Showcase") {
+    // Told apart by markup, not by heading: headings come in the page's language.
+    const title = decode(block.slice(0, block.indexOf("<"))).trim();
+    if (block.includes('class="screenshot_showcase"')) {
       const m = block.match(/screenshot_showcase_screenshot[^>]*href="([^"]+)"[^>]*>\s*<img[^>]*src="([^"]+)"/);
-      if (m) showcases.push({ kind: "artwork", href: decode(m[1]), image: decode(m[2]) });
-    } else if (title === "Achievement Showcase") {
+      if (m) showcases.push({ kind: "artwork", title, href: decode(m[1]), image: decode(m[2]) });
+    } else if (block.includes('class="achievement_showcase"')) {
       const stats = [...block.matchAll(/<div class="value">([^<]*)<\/div>\s*<div class="label">([^<]*)<\/div>/g)].map((m) => ({
         value: m[1].trim(),
         label: m[2].trim(),
@@ -90,22 +96,24 @@ function parseShowcases(html: string, names: Map<number, string>): Showcase[] {
           return { game, name, description: description && !/^NEW_ACHIEVEMENT_/.test(description) ? description : null, href: decode(m[2]), icon: m[3] };
         },
       );
-      if (items.length > 0) showcases.push({ kind: "achievements", stats, items });
-    } else if (title === "Completionist Showcase") {
+      if (items.length > 0) showcases.push({ kind: "achievements", title, stats, items });
+    } else if (block.includes("showcase_achievementscompletionist_games")) {
       const games = [
         ...block.matchAll(
           /steamcommunity\.com\/app\/(\d+)">\s*<img class="game_capsule" src="([^"]+)">\s*<div class="showcase_achievementscompletionist_game_num_achievements">([^<]*)<\/div>/g,
         ),
-      ].map((m) => ({ appId: Number(m[1]), header: decode(m[2]), count: m[3].replace(/\s*Achievements$/i, "").trim(), name: names.get(Number(m[1])) ?? "" }));
-      if (games.length > 0) showcases.push({ kind: "completionist", games });
+      ].map((m) => ({ appId: Number(m[1]), header: decode(m[2]), count: m[3].match(/[\d.,]+\s*\/\s*[\d.,]+/)?.[0] ?? m[3].trim(), name: names.get(Number(m[1])) ?? "" }));
+      if (games.length > 0) showcases.push({ kind: "completionist", title, games });
     }
   }
   return showcases;
 }
 
-async function storeNames(appIds: number[]): Promise<Map<number, string>> {
+const STEAM_LANGUAGE: Record<Locale, string> = { en: "english", es: "spanish" };
+
+async function storeNames(appIds: number[], locale: Locale): Promise<Map<number, string>> {
   if (appIds.length === 0) return new Map();
-  const input = { ids: appIds.map((appid) => ({ appid })), context: { language: "english", country_code: "US" } };
+  const input = { ids: appIds.map((appid) => ({ appid })), context: { language: STEAM_LANGUAGE[locale], country_code: "US" } };
   const data = await api<{ response?: { store_items?: { appid?: number; name?: string }[] } }>(
     `IStoreBrowseService/GetItems/v1/?input_json=${encodeURIComponent(JSON.stringify(input))}`,
   );
@@ -116,12 +124,12 @@ type Summaries = { response: { players: { personaname: string; avatarfull: strin
 type BadgesRes = { response: { player_level?: number; player_xp?: number; player_xp_needed_current_level?: number; player_xp_needed_to_level_up?: number } };
 type Equipped = { response: { profile_background?: { image_large?: string }; avatar_frame?: { image_large?: string; image_small?: string } } };
 
-async function fetchProfile(): Promise<CreatorProfile | null> {
+async function fetchProfile(locale: Locale): Promise<CreatorProfile | null> {
   const [summaries, badges, equipped, pageRes] = await Promise.all([
     api<Summaries>(`ISteamUser/GetPlayerSummaries/v2/?steamids=${CREATOR_STEAM_ID}`),
     api<BadgesRes>(`IPlayerService/GetBadges/v1/?steamid=${CREATOR_STEAM_ID}`),
     api<Equipped>(`IPlayerService/GetProfileItemsEquipped/v1/?steamid=${CREATOR_STEAM_ID}`),
-    fetch(`${CREATOR_PROFILE_URL}?l=english`, { headers: { "Accept-Language": "en" } }).catch(() => null),
+    fetch(`${CREATOR_PROFILE_URL}?l=${STEAM_LANGUAGE[locale]}`, { headers: { "Accept-Language": locale } }).catch(() => null),
   ]);
   const player = summaries?.response.players[0];
   if (!player) return null;
@@ -130,11 +138,12 @@ async function fetchProfile(): Promise<CreatorProfile | null> {
   const html = pageRes?.ok ? await pageRes.text() : "";
 
   const completionistIds = [...html.matchAll(/showcase_achievementscompletionist_game[\s\S]*?steamcommunity\.com\/app\/(\d+)/g)].map((m) => Number(m[1]));
-  const names = await storeNames([...new Set(completionistIds)]);
+  const names = await storeNames([...new Set(completionistIds)], locale);
 
   const b = badges?.response;
   const fav = html.match(/class="favorite_badge"[\s\S]*?<img src="([^"]+)"[\s\S]*?<div class="name ellipsis">([^<]*)<\/div>\s*<div class="xp">([^<]*)<\/div>/);
-  const badgeArea = html.slice(Math.max(0, html.indexOf('count_link_label">Badges')));
+  const badgeStart = html.search(/\/badges\/"[^>]*>\s*<span class="count_link_label">/);
+  const badgeArea = badgeStart >= 0 ? html.slice(badgeStart) : "";
   const badgeRow = badgeArea.slice(0, badgeArea.indexOf("profile_count_link_preview_ctn", 10) > 0 ? badgeArea.indexOf("profile_count_link_preview_ctn", 10) : 4000);
   const status =
     player.gameextrainfo ? { kind: "in-game" as const, game: player.gameextrainfo } : { kind: player.personastate === 0 ? ("offline" as const) : ("online" as const) };
@@ -154,10 +163,12 @@ async function fetchProfile(): Promise<CreatorProfile | null> {
         : null,
     favoriteBadge: fav ? { icon: fav[1], name: decode(fav[2]).trim(), xp: fav[3].trim() } : null,
     summary: parseSummary(html),
-    counts: [...html.matchAll(/count_link_label">([^<]*)<\/span>&nbsp;\s*<span class="profile_count_link_total">\s*([\d,]+)\s*<\/span>/g)].map((m) => ({
-      label: m[1].trim(),
-      value: m[2],
-    })),
+    counts: [
+      ...html.matchAll(
+        /href="https:\/\/steamcommunity\.com\/profiles\/\d+\/(\w+)\/?[^"]*"[^>]*>\s*<span class="count_link_label">([^<]*)<\/span>&nbsp;\s*<span class="profile_count_link_total">\s*([\d.,]+)\s*<\/span>/g,
+      ),
+    ].map((m) => ({ key: m[1], label: decode(m[2]).trim(), value: m[3] })),
+    perfectGames: html.match(/games\/\?tab=perfect"[^>]*>\s*<div class="value">([^<]*)<\/div>/)?.[1]?.trim() ?? null,
     badges: [...badgeRow.matchAll(/profile_badges_badge\s*"\s*data-tooltip-html="([^"]*)">\s*<a href="([^"]+)">\s*<img src="([^"]+)"/g)].map((m) => {
       const [title = "", detail = ""] = tooltipLines(m[1]);
       return { title, detail, href: m[2], icon: m[3] };
@@ -167,6 +178,6 @@ async function fetchProfile(): Promise<CreatorProfile | null> {
 }
 
 /** Refreshed every few hours: new showcases and levels show up on their own. */
-export function getCreatorProfile(): Promise<CreatorProfile | null> {
-  return getOrFetchWithTtl("about:creator-profile:v1", fetchProfile, (p) => (p ? 60 * 60 * 6 : CacheTTL.failureRetry));
+export function getCreatorProfile(locale: Locale): Promise<CreatorProfile | null> {
+  return getOrFetchWithTtl(`about:creator-profile:v2:${locale}`, () => fetchProfile(locale), (p) => (p ? 60 * 60 * 6 : CacheTTL.failureRetry));
 }

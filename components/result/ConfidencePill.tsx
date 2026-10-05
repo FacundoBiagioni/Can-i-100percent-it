@@ -1,7 +1,8 @@
-import type { ConfidenceLevel } from "@/lib/pipeline/types";
+"use client";
 
-const LABEL: Record<ConfidenceLevel, string> = { high: "High confidence", medium: "Medium confidence", low: "Low confidence" };
+import type { ConfidenceLevel } from "@/lib/pipeline/types";
+import { useT } from "@/lib/i18n/client";
 
 export default function ConfidencePill({ confidence }: { confidence: ConfidenceLevel }) {
-  return <span className="text-nav text-ash">{LABEL[confidence]}</span>;
+  return <span className="text-nav text-ash">{useT().confidence[confidence]}</span>;
 }

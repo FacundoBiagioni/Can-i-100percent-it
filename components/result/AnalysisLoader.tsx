@@ -7,11 +7,13 @@ import BottomSheet from "./BottomSheet";
 import VerdictBlock from "./VerdictBlock";
 import VerdictActions from "./VerdictActions";
 import { recordRecentGame } from "@/lib/recentGames";
+import { useT } from "@/lib/i18n/client";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 30; // 90s ceiling — first analysis is normally done in a few seconds
 
 export default function AnalysisLoader({ appId, name, image }: { appId: number; name: string; image: string | null }) {
+  const t = useT();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [achievements, setAchievements] = useState<FlaggedAchievement[]>([]);
   const [timedOut, setTimedOut] = useState(false);
@@ -69,7 +71,7 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
   }
 
   if (timedOut) {
-    return <p className="text-body text-ash">This is taking longer than expected. Reload the page to check again.</p>;
+    return <p className="text-body text-ash">{t.game.takingLonger}</p>;
   }
 
   return (
@@ -84,7 +86,7 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
         ))}
       </div>
       <p className="text-body text-ash" role="status">
-        Analyzing this game for the first time...
+        {t.game.analyzing}
       </p>
     </div>
   );

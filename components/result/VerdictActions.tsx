@@ -4,15 +4,11 @@ import { useRef, useState } from "react";
 import { Flag, Share2, Check, X } from "lucide-react";
 import type { AnalysisStatus } from "@/lib/pipeline/types";
 import { VERDICT } from "@/lib/ui/verdict";
+import { useT } from "@/lib/i18n/client";
 
-const REPORT_TYPES = [
-  { value: "dispute", label: "The verdict is wrong" },
-  { value: "bug_report", label: "An achievement is bugged or can't be unlocked" },
-  { value: "server_status", label: "Online features or servers are down (or back up)" },
-  { value: "confirmation", label: "I got 100% recently, the verdict is right" },
-] as const;
+const REPORT_TYPES = ["dispute", "bug_report", "server_status", "confirmation"] as const;
 
-type ReportType = (typeof REPORT_TYPES)[number]["value"];
+type ReportType = (typeof REPORT_TYPES)[number];
 type SubmitState = "idle" | "sending" | "sent" | "error" | "rate_limited";
 
 const BUTTON =
@@ -20,6 +16,7 @@ const BUTTON =
 
 /** Share + "Is this verdict wrong?" under a game's verdict. */
 export default function VerdictActions({ appId, gameName, status }: { appId: number; gameName: string; status: AnalysisStatus }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [reportType, setReportType] = useState<ReportType>("dispute");
@@ -30,7 +27,7 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
 
   async function share() {
     const url = `${window.location.origin}/games/${appId}`;
-    const text = `${gameName}: ${VERDICT[status].label}`;
+    const text = `${gameName}: ${t.verdict[status].label}`;
     // Native share sheet where it exists (phones); otherwise copy the link.
     if (navigator.share) {
       try {
@@ -45,7 +42,7 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      window.prompt("Copy this link:", url);
+      window.prompt(t.report.copyPrompt, url);
     }
   }
 
@@ -76,11 +73,11 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
     <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={share} className={BUTTON}>
         {copied ? <Check aria-hidden className="h-3.5 w-3.5" /> : <Share2 aria-hidden className="h-3.5 w-3.5" />}
-        {copied ? "Link copied" : "Share"}
+        {copied ? t.report.linkCopied : t.report.share}
       </button>
       <button type="button" onClick={openReport} className={BUTTON}>
         <Flag aria-hidden className="h-3.5 w-3.5" />
-        Is this verdict wrong?
+        {t.report.open}
       </button>
 
       <dialog
@@ -90,12 +87,12 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
       >
         <div className="flex items-center justify-between border-b border-carbon px-4 py-3">
           <h2 id="report-title" className="text-heading-sm font-semibold">
-            Report a problem
+            {t.report.title}
           </h2>
           <button
             type="button"
             onClick={() => dialogRef.current?.close()}
-            aria-label="Close"
+            aria-label={t.report.close}
             className="cursor-pointer p-1 text-graphite transition-colors hover:text-chalk"
           >
             <X aria-hidden className="h-4 w-4" />
@@ -105,39 +102,41 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
         {state === "sent" ? (
           <div className="flex flex-col gap-4 p-4">
             <p className="text-body text-ash">
-              Thanks, your report for <span className="text-chalk">{gameName}</span> was received. Reports are reviewed
-              before they&apos;re used, so it won&apos;t change the page right away.
+              {t.report.thanksBefore}
+              <span className="text-chalk">{gameName}</span>
+              {t.report.thanksAfter}
             </p>
             <button type="button" onClick={() => dialogRef.current?.close()} className={`${BUTTON} w-fit`}>
-              Close
+              {t.report.close}
             </button>
           </div>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-5 p-4">
             <p className="text-body text-ash">
-              About <span className="text-chalk">{gameName}</span>, currently marked{" "}
-              <span className={VERDICT[status].text}>{VERDICT[status].label}</span>.
+              {t.report.about} <span className="text-chalk">{gameName}</span>
+              {t.report.currentlyMarked}{" "}
+              <span className={VERDICT[status].text}>{t.verdict[status].label}</span>.
             </p>
 
             <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-nav text-graphite">What&apos;s the problem?</legend>
-              {REPORT_TYPES.map((t) => (
-                <label key={t.value} className="flex cursor-pointer items-start gap-2 text-body text-ash">
+              <legend className="mb-2 text-nav text-graphite">{t.report.question}</legend>
+              {REPORT_TYPES.map((type) => (
+                <label key={type} className="flex cursor-pointer items-start gap-2 text-body text-ash">
                   <input
                     type="radio"
                     name="reportType"
-                    value={t.value}
-                    checked={reportType === t.value}
-                    onChange={() => setReportType(t.value)}
+                    value={type}
+                    checked={reportType === type}
+                    onChange={() => setReportType(type)}
                     className="mt-1 accent-chalk"
                   />
-                  {t.label}
+                  {t.report.types[type]}
                 </label>
               ))}
             </fieldset>
 
             <label className="flex flex-col gap-2">
-              <span className="text-nav text-graphite">Details (which achievement, what you saw, a link if you have one)</span>
+              <span className="text-nav text-graphite">{t.report.details}</span>
               <textarea
                 required
                 minLength={10}
@@ -150,7 +149,7 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
             </label>
 
             <label className="flex flex-col gap-2">
-              <span className="text-nav text-graphite">Email (optional, only to follow up)</span>
+              <span className="text-nav text-graphite">{t.report.email}</span>
               <input
                 type="email"
                 autoComplete="email"
@@ -174,12 +173,12 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
 
             {state === "error" && (
               <p role="alert" className="text-body text-fail">
-                Couldn&apos;t send the report. Please try again.
+                {t.report.error}
               </p>
             )}
             {state === "rate_limited" && (
               <p role="alert" className="text-body text-unsure">
-                Too many reports from this connection. Please try again in an hour.
+                {t.report.rateLimited}
               </p>
             )}
 
@@ -188,7 +187,7 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
               disabled={state === "sending"}
               className="w-fit cursor-pointer bg-chalk px-3 py-1.5 text-nav font-semibold text-void transition-opacity hover:opacity-85 disabled:cursor-wait disabled:opacity-50"
             >
-              {state === "sending" ? "Sending…" : "Send report"}
+              {state === "sending" ? t.report.sending : t.report.send}
             </button>
           </form>
         )}

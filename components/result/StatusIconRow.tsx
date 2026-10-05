@@ -1,19 +1,24 @@
+"use client";
+
 import { Package, PackageX, Server, ServerOff, Bug, BugOff, GitBranch, Clock, Ban, CircleOff } from "lucide-react";
 import StatusIcon from "@/components/ui/StatusIcon";
 import type { AnalysisResult } from "@/lib/pipeline/types";
 import { formatPrice } from "@/lib/ui/price";
+import { useT } from "@/lib/i18n/client";
+import { localizeReasoning } from "@/lib/i18n/reasoning";
 
 export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }) {
+  const t = useT();
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const delistedRequiredDlc = requiredDlc.filter((d) => d.isDelisted);
 
   const dlcState = delistedRequiredDlc.length > 0 ? "warning" : requiredDlc.length > 0 ? "on" : "off";
   const dlcLabel =
     delistedRequiredDlc.length > 0
-      ? `Requires delisted DLC: ${delistedRequiredDlc.map((d) => d.name).join(", ")}`
+      ? t.icons.dlcDelisted(delistedRequiredDlc.map((d) => d.name).join(", "))
       : requiredDlc.length > 0
-        ? `Requires DLC, ${formatPrice(analysis.totalDlcCostCents)}`
-        : "No DLC required";
+        ? t.icons.dlcRequired(formatPrice(analysis.totalDlcCostCents))
+        : t.icons.noDlc;
 
   const serversState = !analysis.multiplayerRequired
     ? "off"
@@ -21,12 +26,12 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
       ? "warning"
       : "on";
   const serversLabel = !analysis.multiplayerRequired
-    ? "No multiplayer required"
+    ? t.icons.noMultiplayer
     : analysis.serversStatus === "offline"
-      ? "Multiplayer required — servers appear offline"
+      ? t.icons.serversOffline
       : analysis.serversStatus === "online"
-        ? "Multiplayer required — servers online"
-        : "Multiplayer required — server status unknown";
+        ? t.icons.serversOnline
+        : t.icons.serversUnknown;
 
   // "caution", not "warning" — missable achievements don't block 100%, they
   // just need a second playthrough/save, so they shouldn't read as red like
@@ -34,16 +39,16 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
   const missableState = analysis.missableAchievementCount > 0 ? "caution" : "off";
   const missableLabel =
     analysis.missableAchievementCount > 0
-      ? `${analysis.missableAchievementCount} missable achievement(s) — obtainable, but may need a separate playthrough/save`
-      : "No missable achievements reported";
+      ? t.icons.missable(analysis.missableAchievementCount)
+      : t.icons.noMissable;
 
   // "caution", not "warning": a bugged achievement is unreliable to unlock,
   // not impossible, so it must not read like the red blockers.
   const buggedState = analysis.buggedAchievementCount > 0 ? "caution" : "off";
   const buggedLabel =
     analysis.buggedAchievementCount > 0
-      ? `${analysis.buggedAchievementCount} bugged achievement(s) reported`
-      : "No bugged achievements reported";
+      ? t.icons.bugged(analysis.buggedAchievementCount)
+      : t.icons.noBugged;
 
   // Red can come from delisted DLC or dead servers (both already have their
   // own icon above) or from the layer 2 unobtainable-content signal — which
@@ -80,11 +85,11 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
       <StatusIcon
         icon={structuralBlock ? Ban : CircleOff}
         state={structuralBlock ? "warning" : "off"}
-        label={structuralBlock ? analysis.reasoning : "No confirmed permanent blockers found"}
+        label={structuralBlock ? localizeReasoning(analysis.reasoning, t) : t.icons.noBlockers}
         badge={structuralBlock && analysis.unobtainableAchievementCount > 0 ? analysis.unobtainableAchievementCount : undefined}
       />
       {analysis.estimatedHours !== null && (
-        <StatusIcon icon={Clock} state="on" label={`~${Math.round(analysis.estimatedHours)}h estimated to 100%`} />
+        <StatusIcon icon={Clock} state="on" label={t.icons.hours(Math.round(analysis.estimatedHours).toLocaleString(t.numberLocale))} />
       )}
     </div>
   );

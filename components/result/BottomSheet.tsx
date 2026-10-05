@@ -7,18 +7,20 @@ import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 import RequirementsSummary from "./RequirementsSummary";
 import AchievementsTable from "./AchievementsTable";
 import { formatPrice } from "@/lib/ui/price";
+import { useT } from "@/lib/i18n/client";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 const PEEK_PX = 88; // 5.5rem at the default root font size
 
-function buildPeekSummary(analysis: AnalysisResult, achievementCount: number): string | null {
+function buildPeekSummary(analysis: AnalysisResult, achievementCount: number, t: Dictionary): string | null {
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const parts: string[] = [];
-  if (requiredDlc.length > 0) parts.push(`${requiredDlc.length} DLC, ${formatPrice(analysis.totalDlcCostCents)}`);
+  if (requiredDlc.length > 0) parts.push(t.sheet.dlc(requiredDlc.length, formatPrice(analysis.totalDlcCostCents)));
   // Multiplayer is deliberately left out: the server icon (and its tooltip,
   // which carries the server status) already says everything there is to
   // say, so it alone shouldn't open a sheet.
-  if (achievementCount > 0) parts.push(`${achievementCount} achievement${achievementCount === 1 ? "" : "s"} flagged`);
-  if (analysis.estimatedHours !== null) parts.push(`~${Math.round(analysis.estimatedHours)}h to 100%`);
+  if (achievementCount > 0) parts.push(t.sheet.flagged(achievementCount));
+  if (analysis.estimatedHours !== null) parts.push(t.sheet.hours(Math.round(analysis.estimatedHours).toLocaleString(t.numberLocale)));
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
@@ -37,6 +39,7 @@ export default function BottomSheet({
   analysis: AnalysisResult;
   achievements: FlaggedAchievement[];
 }) {
+  const t = useT();
   const [expanded, setExpanded] = useState(false);
   // Pixel offset while a drag is actively in progress — null means "not
   // dragging right now," so the CSS class-based transform (with its
@@ -46,7 +49,7 @@ export default function BottomSheet({
   const dragState = useRef<{ startY: number; startTranslate: number; moved: boolean } | null>(null);
   const justDraggedRef = useRef(false);
 
-  const summary = buildPeekSummary(analysis, achievements.length);
+  const summary = buildPeekSummary(analysis, achievements.length, t);
   if (!summary) return null;
 
   function collapsedTranslate() {

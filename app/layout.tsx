@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/layout/Header";
 import PageTransition from "@/components/layout/PageTransition";
+import { I18nProvider } from "@/lib/i18n/client";
+import { getLocale, getT } from "@/lib/i18n/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,24 +16,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://can-i-100-it.vercel.app"),
-  title: "Can i 100% it?",
-  description: "Search a Steam game and find out if getting 100% of the achievements is realistically possible today.",
-  twitter: {
-    card: "summary_large_image",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getT();
+  return {
+    metadataBase: new URL("https://can-i-100-it.vercel.app"),
+    title: "Can i 100% it?",
+    description: t.meta.siteDescription,
+    twitter: {
+      card: "summary_large_image",
+    },
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getLocale();
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Header />
-        <PageTransition>{children}</PageTransition>
+        <I18nProvider locale={locale}>
+          <Header />
+          <PageTransition>{children}</PageTransition>
+        </I18nProvider>
       </body>
     </html>
   );

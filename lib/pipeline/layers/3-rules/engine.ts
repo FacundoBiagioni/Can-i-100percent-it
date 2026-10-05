@@ -171,7 +171,7 @@ export function deriveStatus(facts: Facts): StatusDerivation {
     return {
       status: "red",
       confidence: "medium",
-      reasoning: "Requires multiplayer, and the current player count is zero — servers appear inactive.",
+      reasoning: "Requires multiplayer, and the current player count is zero, so servers appear inactive.",
     };
   }
 
@@ -201,7 +201,7 @@ export function deriveStatus(facts: Facts): StatusDerivation {
     return {
       status: "yellow",
       confidence: "low",
-      reasoning: "Not enough data to confirm this game yet — no curated achievement data, and community sources couldn't be read.",
+      reasoning: "Not enough data to confirm this game yet: no curated achievement data, and community sources couldn't be read.",
     };
   }
 

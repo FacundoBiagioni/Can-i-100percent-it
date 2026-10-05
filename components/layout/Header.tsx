@@ -5,16 +5,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import SearchBox from "@/components/search/SearchBox";
+import LanguageToggle from "./LanguageToggle";
+import { useT } from "@/lib/i18n/client";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 // Below the breakpoint where these fit (smaller with the search box beside
 // them), the pages outside the homepage move into a menu.
-const NAV = [
-  { href: "/", label: "Index" },
-  { href: "/#recent", label: "Recent" },
-  { href: "/#verdicts", label: "Verdicts" },
-  { href: "/library", label: "Library" },
-  { href: "/how-it-works", label: "How it works" },
-  { href: "/about", label: "About" },
+const NAV: { href: string; label: keyof Dictionary["nav"] }[] = [
+  { href: "/", label: "index" },
+  { href: "/#recent", label: "recent" },
+  { href: "/#verdicts", label: "verdicts" },
+  { href: "/library", label: "library" },
+  { href: "/how-it-works", label: "howItWorks" },
+  { href: "/about", label: "about" },
 ];
 
 // The pages outside the homepage, for the phone menu.
@@ -22,6 +25,7 @@ const MENU = NAV.filter((item) => item.href !== "/" && !item.href.startsWith("/#
 
 export default function Header() {
   const pathname = usePathname();
+  const t = useT();
   const isHome = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -43,12 +47,14 @@ export default function Header() {
 
   return (
     <header ref={menuRef} className="sticky top-0 z-40 border-b border-carbon bg-void">
-      <div className="mx-auto flex h-12 max-w-page items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-12 max-w-page items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="shrink-0 text-base font-semibold tracking-tight text-chalk">
           can i 100% it?
         </Link>
 
-        <nav aria-label="Main" className={`hidden items-center gap-6 ${isHome ? "md:flex" : "lg:flex"}`}>
+        {/* Home: links sit at the right edge, next to the language switch. Other
+            pages: centered between the wordmark and the search box. */}
+        <nav aria-label={t.nav.main} className={`hidden items-center gap-6 ${isHome ? "ml-auto md:flex" : "mx-auto lg:flex"}`}>
           {NAV.map((item) => {
             // Only the plain route can be "current"; hash links are jumps
             // within the homepage, not places of their own.
@@ -62,7 +68,7 @@ export default function Header() {
                   active ? "text-ember" : "text-chalk hover:text-ash"
                 }`}
               >
-                {item.label}
+                {t.nav[item.label]}
               </Link>
             );
           })}
@@ -70,15 +76,16 @@ export default function Header() {
 
         {/* The homepage hero has its own large search box; a second one up
             here would put two search bars on screen at once. */}
-        {/* On home at md+ this would hold nothing visible, and as a third flex
-            child it would pull the nav off the right edge. */}
-        <div className={`flex min-w-0 items-center gap-2 ${isHome ? "md:hidden" : ""}`}>
-          {!isHome && <SearchBox size="sm" autoFocus={false} placeholder="Search another game" />}
+        {/* ml-auto only while the nav is hidden; with it showing, the nav's own
+            auto margins place everything. */}
+        <div className={`ml-auto flex min-w-0 items-center gap-2 ${isHome ? "md:ml-0" : "lg:ml-0"}`}>
+          {!isHome && <SearchBox size="sm" autoFocus={false} placeholder={t.search.placeholderOther} />}
+          <LanguageToggle />
           <button
             type="button"
             aria-expanded={menuOpen}
             aria-controls="mobile-menu"
-            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-label={menuOpen ? t.nav.closeMenu : t.nav.openMenu}
             onClick={() => setMenuOpen((o) => !o)}
             className={`-mr-2 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center text-chalk transition-colors hover:text-ash ${isHome ? "md:hidden" : "lg:hidden"}`}
           >
@@ -88,7 +95,7 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <nav id="mobile-menu" aria-label="Pages" className={`border-t border-carbon bg-void ${isHome ? "md:hidden" : "lg:hidden"}`}>
+        <nav id="mobile-menu" aria-label={t.nav.pages} className={`border-t border-carbon bg-void ${isHome ? "md:hidden" : "lg:hidden"}`}>
           <ul className="mx-auto flex max-w-page flex-col px-4 py-2 sm:px-6">
             {MENU.map((item) => {
               const active = item.href === pathname;
@@ -102,7 +109,7 @@ export default function Header() {
                       active ? "text-ember" : "text-chalk hover:text-ash"
                     }`}
                   >
-                    {item.label}
+                    {t.nav[item.label]}
                     <span aria-hidden className="text-graphite">
                       &rarr;
                     </span>

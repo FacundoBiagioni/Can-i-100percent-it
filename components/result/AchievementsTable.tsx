@@ -1,23 +1,27 @@
+"use client";
+
 import Image from "next/image";
 import { GitBranch, Bug, Ban } from "lucide-react";
 import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
+import { useT } from "@/lib/i18n/client";
 
 const FLAG_CONFIG = {
-  missable: { icon: GitBranch, label: "Missable", className: "border-unsure text-unsure" },
-  bugged: { icon: Bug, label: "Bugged", className: "border-fail text-fail" },
-  unobtainable: { icon: Ban, label: "Unobtainable", className: "border-fail text-fail" },
+  missable: { icon: GitBranch, className: "border-unsure text-unsure" },
+  bugged: { icon: Bug, className: "border-fail text-fail" },
+  unobtainable: { icon: Ban, className: "border-fail text-fail" },
 };
 
 /** Direct, always-visible listing — no accordion, no click-to-load. Renders
  * nothing at all when there's nothing flagged, rather than a "none found"
  * placeholder. */
 export default function AchievementsTable({ achievements }: { achievements: FlaggedAchievement[] }) {
+  const t = useT();
   if (achievements.length === 0) return null;
 
   return (
     <div className="flex w-full flex-col">
       <h2 className="mb-3 text-nav text-graphite">
-        {achievements.length} achievement{achievements.length === 1 ? "" : "s"} to know about
+        {t.achievements.toKnow(achievements.length)}
       </h2>
       <div className="border-l border-t border-carbon">
         {achievements.map((a) => (
@@ -35,7 +39,7 @@ export default function AchievementsTable({ achievements }: { achievements: Flag
                       className={`inline-flex items-center gap-1 border px-1.5 py-px text-caption ${config.className}`}
                     >
                       <Icon aria-hidden className="h-3 w-3" />
-                      {config.label}
+                      {t.achievements[flag]}
                     </span>
                   );
                 })}

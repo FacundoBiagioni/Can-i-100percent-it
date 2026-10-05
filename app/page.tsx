@@ -7,7 +7,7 @@ import VerdictLegend from "@/components/home/VerdictLegend";
 import type { GameTileData } from "@/components/home/GameTile";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
-import { PRICE_REGION_LABEL } from "@/lib/ui/price";
+import { getT } from "@/lib/i18n/server";
 
 // Shown to first-time visitors in place of their (empty) recents. A mix of
 // verdicts on purpose, so it reads as a real sample of what the tool says.
@@ -36,7 +36,7 @@ async function getRecommended(): Promise<GameTileData[]> {
 }
 
 export default async function Home() {
-  const recommended = await getRecommended();
+  const [recommended, t] = await Promise.all([getRecommended(), getT()]);
 
   return (
     <main className="flex flex-1 flex-col">
@@ -48,7 +48,7 @@ export default async function Home() {
         {/* z-20: above the scroll hint, so open search results cover it. */}
         <div className="relative z-20 mx-auto flex w-full max-w-page flex-1 flex-col justify-end gap-10 px-4 pb-28 pt-16 sm:px-6">
           <div className="flex flex-col gap-5">
-            <p className="text-nav text-ash">Steam achievement checker</p>
+            <p className="text-nav text-ash">{t.home.eyebrow}</p>
             <h1 className="text-mega font-semibold">
               Can i<br />
               100% it?
@@ -57,17 +57,17 @@ export default async function Home() {
           <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
             <div className="flex max-w-87.5 flex-col gap-3">
               <p className="text-body text-ash">
-                Search a Steam game to see if getting 100% of the achievements is realistically possible today.
+                {t.home.intro}
               </p>
               <Link
                 href="/library"
                 className="flex w-fit items-center gap-1 text-body text-chalk underline underline-offset-4 transition-colors hover:text-ash"
               >
-                Or check your whole Steam library
+                {t.home.libraryLink}
                 <ArrowRight aria-hidden className="h-4 w-4" />
               </Link>
             </div>
-            <SearchBox size="lg" label="Search Steam" />
+            <SearchBox size="lg" label={t.search.label} />
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default async function Home() {
           href="#recent"
           className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 text-body text-chalk transition-colors hover:text-ash"
         >
-          Scroll to explore
+          {t.home.scroll}
           <ArrowDown aria-hidden className="h-4 w-4" style={{ animation: "nudge-down 2s ease-in-out infinite" }} />
         </a>
       </section>
@@ -94,13 +94,15 @@ export default async function Home() {
           <span className="flex gap-4">
             <span>can i 100% it?</span>
             <Link href="/how-it-works" className="text-ash transition-colors hover:text-chalk">
-              How it works
+              {t.nav.howItWorks}
             </Link>
             <Link href="/about" className="text-ash transition-colors hover:text-chalk">
-              About
+              {t.nav.about}
             </Link>
           </span>
-          <span>{PRICE_REGION_LABEL}. Not affiliated with Valve or Steam.</span>
+          <span>
+            {t.priceRegion}. {t.home.notAffiliated}
+          </span>
         </div>
       </footer>
     </main>

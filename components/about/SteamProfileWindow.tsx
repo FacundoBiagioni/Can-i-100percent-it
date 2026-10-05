@@ -3,20 +3,25 @@
 import Link from "next/link";
 import { ArrowUpRight, Lock, Trophy } from "lucide-react";
 import { CREATOR_PROFILE_URL, type CreatorProfile, type Showcase } from "@/lib/about/creatorProfile";
+import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 // Steam's own level-ring colors, by decade (lvl_0 ... lvl_90 in its CSS).
 const LEVEL_COLORS = ["#9b9b9b", "#c02942", "#d95b43", "#fecc23", "#467a3c", "#4e8ddb", "#7652c9", "#c252c9", "#542437", "#997c52"];
 
 const STATUS = {
-  online: { label: "Currently Online", color: "text-[#57cbde]" },
-  offline: { label: "Currently Offline", color: "text-[#898989]" },
-  "in-game": { label: "Currently In-Game", color: "text-[#90ba3c]" },
+  online: { label: "online", color: "text-[#57cbde]" },
+  offline: { label: "offline", color: "text-[#898989]" },
+  "in-game": { label: "inGame", color: "text-[#90ba3c]" },
 } as const;
 
-const country = (code: string | null) => {
+// Shown in the sidebar, in this order; keyed by the link's path, which is
+// the same in every language.
+const SIDEBAR_COUNTS = ["games", "recommended", "images", "friends"];
+
+const country = (code: string | null, locale: string) => {
   if (!code) return null;
   try {
-    return new Intl.DisplayNames(["en"], { type: "region" }).of(code) ?? code;
+    return new Intl.DisplayNames([locale], { type: "region" }).of(code) ?? code;
   } catch {
     return code;
   }
@@ -42,19 +47,19 @@ function ShowcaseFrame({ title, children }: { title: string; children: React.Rea
   );
 }
 
-function ShowcaseBlock({ showcase }: { showcase: Showcase }) {
+function ShowcaseBlock({ showcase, t }: { showcase: Showcase; t: Dictionary }) {
   if (showcase.kind === "artwork") {
     return (
-      <ShowcaseFrame title="Featured Artwork Showcase">
+      <ShowcaseFrame title={showcase.title}>
         <a href={showcase.href} target="_blank" rel="noreferrer" className="block">
-          <img src={showcase.image} alt="Featured artwork" className="w-full transition-[filter] duration-200 hover:brightness-110" loading="lazy" />
+          <img src={showcase.image} alt={t.about.window.artworkAlt} className="w-full transition-[filter] duration-200 hover:brightness-110" loading="lazy" />
         </a>
       </ShowcaseFrame>
     );
   }
   if (showcase.kind === "achievements") {
     return (
-      <ShowcaseFrame title="Achievement Showcase">
+      <ShowcaseFrame title={showcase.title}>
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap gap-x-8 gap-y-3">
             {showcase.stats.map((s) => (
@@ -93,12 +98,12 @@ function ShowcaseBlock({ showcase }: { showcase: Showcase }) {
     );
   }
   return (
-    <ShowcaseFrame title="Completionist Showcase">
+    <ShowcaseFrame title={showcase.title}>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {showcase.games.map((g) => (
           <li key={g.appId}>
             {/* Into this site's own page for the game: is it still 100%-able? */}
-            <Link href={`/games/${g.appId}`} aria-label={`${g.name || "Game"}: ${g.count} achievements`} className="group/game relative block overflow-hidden">
+            <Link href={`/games/${g.appId}`} aria-label={`${g.name || t.about.window.game}: ${t.about.window.achievementsAria(g.count)}`} className="group/game relative block overflow-hidden">
               <img
                 src={g.header}
                 alt=""
@@ -125,19 +130,21 @@ function ShowcaseBlock({ showcase }: { showcase: Showcase }) {
  * Steam won't let its own page be embedded (X-Frame-Options), so this draws
  * it from live profile data instead, in Steam's colors and type.
  */
-export default function SteamProfileWindow({ profile }: { profile: CreatorProfile }) {
+export default function SteamProfileWindow({ profile, t }: { profile: CreatorProfile; t: Dictionary }) {
+  const w = t.about.window;
   const status = STATUS[profile.status.kind];
-  const where = country(profile.countryCode);
+  const where = country(profile.countryCode, t.numberLocale);
   const xpPercent = profile.xp ? ((profile.xp.current - profile.xp.levelStart) / (profile.xp.levelEnd - profile.xp.levelStart)) * 100 : 0;
-  const counts = profile.counts.filter((c) => ["Badges", "Games", "Reviews", "Artwork", "Friends"].includes(c.label));
+  const badgeCount = profile.counts.find((c) => c.key === "badges")?.value;
+  const counts = SIDEBAR_COUNTS.flatMap((key) => profile.counts.filter((c) => c.key === key));
 
   return (
     <div className="overflow-hidden border border-[#2a3a4d] font-[Arial,Helvetica,sans-serif] shadow-[0_40px_80px_-30px_rgba(26,159,255,0.25)]">
       {/* Client chrome: the top nav, then the address bar. */}
       <div className="flex items-center gap-6 bg-[#171d25] px-4 py-3 text-[13px] font-bold uppercase tracking-wide text-[#dcdedf]">
-        <span className="hidden sm:inline">Store</span>
-        <span className="hidden sm:inline">Library</span>
-        <span className="border-b-2 border-[#1a9fff] pb-0.5 text-[#1a9fff]">Community</span>
+        <span className="hidden sm:inline">{w.store}</span>
+        <span className="hidden sm:inline">{w.library}</span>
+        <span className="border-b-2 border-[#1a9fff] pb-0.5 text-[#1a9fff]">{w.community}</span>
         <span className="min-w-0 truncate">{profile.name}</span>
       </div>
       <div className="flex items-center gap-2 border-y border-black/40 bg-[#0e141b] px-3 py-1.5 text-[12px] text-[#8f98a0]">
@@ -149,7 +156,7 @@ export default function SteamProfileWindow({ profile }: { profile: CreatorProfil
           rel="noreferrer"
           className="ml-auto inline-flex shrink-0 items-center gap-1 text-[#67c1f5] transition-colors hover:text-white"
         >
-          Open on Steam
+          {w.openOnSteam}
           <ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
         </a>
       </div>
@@ -162,7 +169,7 @@ export default function SteamProfileWindow({ profile }: { profile: CreatorProfil
           {/* Header */}
           <div className="flex flex-col gap-6 bg-gradient-to-b from-black/30 to-black/60 p-5 sm:flex-row sm:items-start">
             <div className="relative h-[120px] w-[120px] shrink-0 sm:h-[166px] sm:w-[166px]">
-              <img src={profile.avatar} alt={`${profile.name}'s Steam avatar`} className="h-full w-full" />
+              <img src={profile.avatar} alt={w.avatarAlt(profile.name)} className="h-full w-full" />
               {profile.avatarFrame && (
                 <img src={profile.avatarFrame} alt="" aria-hidden className="pointer-events-none absolute -inset-[11%] h-[122%] w-[122%] max-w-none" />
               )}
@@ -187,7 +194,7 @@ export default function SteamProfileWindow({ profile }: { profile: CreatorProfil
             </div>
             <div className="flex w-full shrink-0 flex-col gap-3 sm:w-[268px]">
               <p className="flex items-center gap-2 text-[24px] text-white">
-                Level <LevelRing level={profile.level} />
+                {w.level} <LevelRing level={profile.level} />
               </p>
               {profile.favoriteBadge && (
                 <div className="flex items-center gap-3 bg-black/25 p-2">
@@ -204,7 +211,7 @@ export default function SteamProfileWindow({ profile }: { profile: CreatorProfil
                     <div className="h-full bg-gradient-to-r from-[#47bfff] to-[#1a9fff]" style={{ width: `${xpPercent}%` }} />
                   </div>
                   <p className="text-[11px] text-[#8f98a0]">
-                    {(profile.xp.levelEnd - profile.xp.current).toLocaleString("en-US")} XP to level {profile.level + 1}
+                    {w.xpToLevel((profile.xp.levelEnd - profile.xp.current).toLocaleString(t.numberLocale), profile.level + 1)}
                   </p>
                 </div>
               )}
@@ -215,18 +222,18 @@ export default function SteamProfileWindow({ profile }: { profile: CreatorProfil
           <div className="grid grid-cols-1 gap-4 bg-black/55 p-3 sm:p-5 lg:grid-cols-[1fr_268px]">
             <div className="flex min-w-0 flex-col gap-4">
               {profile.showcases.map((s, i) => (
-                <ShowcaseBlock key={i} showcase={s} />
+                <ShowcaseBlock key={i} showcase={s} t={t} />
               ))}
             </div>
             <aside className="flex flex-col gap-6 text-[13px]">
               <p className={`text-[20px] font-light ${status.color}`}>
-                {status.label}
+                {w[status.label]}
                 {profile.status.game && <span className="block text-[14px] text-[#90ba3c]">{profile.status.game}</span>}
               </p>
               {profile.badges.length > 0 && (
                 <div className="flex flex-col gap-2">
                   <p className="text-[16px] text-[#c6d4df]">
-                    Badges <span className="text-[#8f98a0]">{counts.find((c) => c.label === "Badges")?.value}</span>
+                    {w.badges} <span className="text-[#8f98a0]">{badgeCount}</span>
                   </p>
                   <ul className="flex flex-wrap gap-2">
                     {profile.badges.map((b) => (
@@ -241,9 +248,8 @@ export default function SteamProfileWindow({ profile }: { profile: CreatorProfil
               )}
               <ul className="flex flex-col gap-1.5">
                 {counts
-                  .filter((c) => c.label !== "Badges")
                   .map((c) => (
-                    <li key={c.label} className="flex items-baseline gap-2">
+                    <li key={c.key} className="flex items-baseline gap-2">
                       <span className="text-[16px] text-[#c6d4df]">{c.label}</span>
                       <span className="text-[#8f98a0]">{c.value}</span>
                     </li>
@@ -251,8 +257,8 @@ export default function SteamProfileWindow({ profile }: { profile: CreatorProfil
               </ul>
               {profile.memberSince && (
                 <p className="text-[12px] text-[#8f98a0]">
-                  Member since{" "}
-                  {new Date(profile.memberSince * 1000).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                  {w.memberSince}{" "}
+                  {new Date(profile.memberSince * 1000).toLocaleDateString(t.numberLocale, { year: "numeric", month: "long", day: "numeric" })}
                 </p>
               )}
             </aside>

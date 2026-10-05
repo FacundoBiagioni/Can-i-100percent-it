@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { VERDICT } from "@/lib/ui/verdict";
 import Image from "next/image";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
@@ -13,6 +12,8 @@ import RecordRecent from "@/components/result/RecordRecent";
 import BottomSheet from "@/components/result/BottomSheet";
 import AnalysisLoader from "@/components/result/AnalysisLoader";
 import { formatPrice } from "@/lib/ui/price";
+import { getT } from "@/lib/i18n/server";
+import { localizeReasoning } from "@/lib/i18n/reasoning";
 
 /** Per-game title/description, so a shared link previews the verdict
  * ("Team Fortress 2: 100% impossible") instead of the site's generic text.
@@ -21,10 +22,10 @@ export async function generateMetadata(props: PageProps<"/games/[appid]">): Prom
   const { appid } = await props.params;
   const appId = Number(appid);
   if (!Number.isInteger(appId) || appId <= 0) return {};
-  const [details, analysis] = await Promise.all([getAppDetails(appId), getCachedAnalysis(appId)]);
+  const [details, analysis, t] = await Promise.all([getAppDetails(appId), getCachedAnalysis(appId), getT()]);
   if (!details) return {};
-  const title = analysis ? `${details.name}: ${VERDICT[analysis.status].label}` : details.name;
-  const description = analysis?.reasoning ?? `Can you still get 100% of ${details.name}'s Steam achievements?`;
+  const title = analysis ? `${details.name}: ${t.verdict[analysis.status].label}` : details.name;
+  const description = analysis ? localizeReasoning(analysis.reasoning, t) : t.meta.gameDescription(details.name);
   return {
     title: `${title} | can i 100% it?`,
     description,
@@ -43,7 +44,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   // list) and zero players, so analyzing it as a game produced nonsense
   // like "requires multiplayer, servers appear offline". Send the visitor
   // to the game it belongs to instead.
-  const details = await getAppDetails(appId);
+  const [details, t] = await Promise.all([getAppDetails(appId), getT()]);
   if (details?.type === "dlc" && details.fullGameAppId) redirect(`/games/${details.fullGameAppId}`);
 
   const game = await getOrCreateGame(appId);
@@ -117,7 +118,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
           {(isFree || currentPrice) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-body text-ash">
               {isFree ? (
-                <span>Free to play</span>
+                <span>{t.game.freeToPlay}</span>
               ) : (
                 currentPrice && (
                   <span className="flex items-center gap-2">
@@ -134,7 +135,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
                     <span className={`tabular-nums ${activeDiscount ? "font-semibold text-chalk" : ""}`}>
                       {formatPrice(currentPrice.priceCents)}
                     </span>
-                    <span>USD, Steam Argentina</span>
+                    <span>{t.game.usdArgentina}</span>
                   </span>
                 )
               )}
@@ -142,7 +143,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
                 <>
                   <span aria-hidden className="hidden text-graphite sm:inline">/</span>
                   <span>
-                    Lowest ever <span className="font-semibold text-pass">-{historicalLow.cut}%</span>{" "}
+                    {t.game.lowestEver} <span className="font-semibold text-pass">-{historicalLow.cut}%</span>{" "}
                     <span className="tabular-nums">({formatPrice(historicalLow.priceCents)})</span>
                   </span>
                 </>
@@ -151,8 +152,8 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
                 <>
                   <span aria-hidden className="hidden text-graphite sm:inline">/</span>
                   <span>
-                    <span className="font-semibold text-pass">All-time low</span>, never been cheaper on Steam
-                    Argentina
+                    <span className="font-semibold text-pass">{t.game.allTimeLow}</span>
+                    {t.game.neverCheaper}
                   </span>
                 </>
               )}
