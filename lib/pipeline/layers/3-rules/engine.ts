@@ -8,6 +8,12 @@ type BaseFacts = {
   multiplayerRequired: boolean;
 };
 
+/** SteamHunters tracks this game: its curated list of unobtainable
+ * achievements is then the source of truth for "is 100% still possible". */
+export function steamHuntersTracks(claims: EvidenceClaim[]): boolean {
+  return claims.some((c) => c.sourceKey === "steamhunters" && c.claim.type === "unobtainable_count");
+}
+
 /** Pure function: combines every analyzer's claims into one Facts object. */
 export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
   // Which DLC are required is decided before this point, by
@@ -15,6 +21,7 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
   // free-text DLC claims from forums/guides/Wikipedia are only context for
   // that step, never a flag on their own.
   const dlcNeeded = base.dlcNeeded;
+  const curated = steamHuntersTracks(allClaims);
 
   const multiplayerRequired =
     base.multiplayerRequired ||
@@ -34,10 +41,17 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
         .map((c) => c.achievementApiName!),
     ),
   ];
+  // With SteamHunters' curated list available, AI reads of forum threads
+  // don't get to add "unobtainable" achievements on top of it.
   const unobtainableAchievements = [
     ...new Set(
       allClaims
-        .filter((c) => c.claim.type === "achievement_unobtainable" && c.achievementApiName)
+        .filter(
+          (c) =>
+            c.claim.type === "achievement_unobtainable" &&
+            c.achievementApiName &&
+            (!curated || c.sourceKey === "steamhunters"),
+        )
         .map((c) => c.achievementApiName!),
     ),
   ];
@@ -58,7 +72,12 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
 
   let serversStatus: ServerStatus = "unknown";
   if (multiplayerRequired) {
-    if (currentPlayers !== null) serversStatus = currentPlayers > 0 ? "online" : "offline";
+    if (currentPlayers !== null && currentPlayers > 0) serversStatus = "online";
+    // Zero players at one moment doesn't prove servers are gone (off-peak
+    // hours, a small game). When SteamHunters tracks the game, a real
+    // shutdown shows up as its online achievements marked unobtainable, so
+    // only call servers "offline" when that has happened.
+    else if (currentPlayers === 0) serversStatus = curated && unobtainableAchievements.length === 0 ? "unknown" : "offline";
   } else {
     serversStatus = "online"; // no multiplayer dependency to worry about
   }
@@ -79,40 +98,39 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
   };
 }
 
-export type ConflictGroup = { key: string; claims: EvidenceClaim[] };
-
-/** Groups claims by fact key and flags any group with disagreeing boolean values. */
-// DLC signals no longer decide anything on their own (resolveRequiredDlc
-// does), so a disagreement between them isn't worth an AI resolver call.
-const NON_CONFLICT_TYPES = new Set(["dlc_required", "dlc_required_signal", "paid_dlc_required"]);
-
-export function detectConflicts(claims: EvidenceClaim[]): ConflictGroup[] {
-  const byKey = new Map<string, EvidenceClaim[]>();
-  for (const claim of claims) {
-    const type = claim.claim.type;
-    if (typeof type !== "string" || typeof claim.claim.value !== "boolean") continue;
-    if (NON_CONFLICT_TYPES.has(type)) continue;
-    const key = claim.achievementApiName ? `${type}:${claim.achievementApiName}` : type;
-    byKey.set(key, [...(byKey.get(key) ?? []), claim]);
-  }
-
-  const conflicts: ConflictGroup[] = [];
-  for (const [key, group] of byKey) {
-    const values = new Set(group.map((c) => c.claim.value));
-    if (values.size > 1) conflicts.push({ key, claims: group });
-  }
-  return conflicts;
-}
-
 export type StatusDerivation = {
   status: AnalysisStatus;
   confidence: ConfidenceLevel;
   reasoning: string;
 };
 
-const CONFIDENCE_RANK: Record<ConfidenceLevel, number> = { high: 3, medium: 2, low: 1 };
+function namesOf(facts: Facts, apiNames: string[]): string[] {
+  const byApi = new Map(
+    facts.claims
+      .filter((c) => c.claim.type === "achievement_unobtainable" && c.achievementApiName && typeof c.claim.name === "string")
+      .map((c) => [c.achievementApiName!, String(c.claim.name)]),
+  );
+  return apiNames.map((a) => byApi.get(a) ?? a);
+}
 
-export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
+function listNames(names: string[], max = 3): string {
+  const shown = names.slice(0, max).map((n) => `"${n}"`);
+  return names.length > max ? `${shown.join(", ")} and ${names.length - max} more` : shown.join(", ");
+}
+
+/**
+ * Red = 100% is impossible today, and only on hard evidence: achievements a
+ * curated source marks unobtainable, or required DLC that can't be bought.
+ * Yellow = there's a credible report of a block that can't be confirmed.
+ * Green otherwise. Bugged, missable and DLC findings are disclosed through
+ * their own icons but never change the color: none of them stop 100%.
+ *
+ * When SteamHunters tracks a game, its curated list decides; AI reads of
+ * forum threads (which vary from run to run and confuse one-save lockouts,
+ * bugs and old patches with real blocks) are only used for games it doesn't
+ * track, and even then one source alone can't make a game red.
+ */
+export function deriveStatus(facts: Facts): StatusDerivation {
   if (!facts.foundOnSteam) {
     return { status: "yellow", confidence: "high", reasoning: "This AppID was not found on Steam." };
   }
@@ -122,10 +140,31 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
     return {
       status: "red",
       confidence: "high",
-      reasoning: `Requires delisted DLC that can no longer be purchased: ${delistedRequiredDlc.map((d) => d.name).join(", ")}.`,
+      reasoning: `Requires DLC that can no longer be purchased: ${delistedRequiredDlc.map((d) => d.name).join(", ")}.`,
     };
   }
 
+  const requirements: string[] = [];
+  if (facts.dlcNeeded.some((d) => d.required)) requirements.push("DLC");
+  if (facts.multiplayerRequired) requirements.push("multiplayer");
+  const greenReasoning =
+    requirements.length > 0
+      ? `100% appears obtainable. Requires: ${requirements.join(", ")}.`
+      : "100% appears obtainable with no known blockers.";
+
+  if (steamHuntersTracks(facts.claims)) {
+    if (facts.unobtainableAchievements.length > 0) {
+      const names = namesOf(facts, facts.unobtainableAchievements);
+      return {
+        status: "red",
+        confidence: "high",
+        reasoning: `${names.length} achievement${names.length === 1 ? " is" : "s are"} no longer obtainable: ${listNames(names)}.`,
+      };
+    }
+    return { status: "green", confidence: "high", reasoning: greenReasoning };
+  }
+
+  // --- Not tracked by SteamHunters: weaker, uncurated evidence only. ---
   if (facts.multiplayerRequired && facts.serversStatus === "offline") {
     return {
       status: "red",
@@ -134,104 +173,35 @@ export function deriveStatus(facts: Facts, aiUsed: boolean): StatusDerivation {
     };
   }
 
-  // AI-classified signal from Steam forum discussions — e.g. an achievement
-  // tied to delisted/never-released promo DLC that Steam's own metadata
-  // doesn't expose at all (appdetails.dlc is empty for these).
-  const unobtainableClaim = facts.claims.find(
-    (c) => c.claim.type === "achievement_unobtainable_signal" && c.claim.value === true,
+  const unobtainableReports = facts.claims.filter(
+    (c) => c.claim.type === "achievement_unobtainable_signal" && c.claim.value === true && c.confidence !== "low",
   );
-  if (unobtainableClaim) {
+  const reportingSources = new Set(unobtainableReports.map((c) => c.sourceKey));
+  if (reportingSources.size >= 2) {
     return {
-      status: unobtainableClaim.confidence === "high" ? "red" : "yellow",
-      confidence: unobtainableClaim.confidence,
-      reasoning: String(
-        unobtainableClaim.reasoning ?? "Steam Community discussions suggest an achievement may be permanently unobtainable.",
-      ),
+      status: "red",
+      confidence: "medium",
+      reasoning: String(unobtainableReports[0].reasoning ?? "Several sources report an achievement that can no longer be earned."),
+    };
+  }
+  if (reportingSources.size === 1) {
+    return {
+      status: "yellow",
+      confidence: "medium",
+      reasoning: `Unconfirmed: ${String(unobtainableReports[0].reasoning ?? "one source reports an achievement that may no longer be earnable.")}`,
     };
   }
 
-  const buggedReportClaim = facts.claims.find((c) => c.claim.type === "bugged_achievements_reported");
-  if (facts.buggedAchievements.length > 0 || buggedReportClaim) {
+  // Nothing curated and none of the text sources could be read (e.g. the AI
+  // step was unavailable): say so instead of claiming a clean result.
+  const textSourcesRead = facts.claims.some((c) => c.claim.type === "achievement_unobtainable_signal");
+  if (!textSourcesRead) {
     return {
       status: "yellow",
       confidence: "low",
-      reasoning: buggedReportClaim
-        ? String(buggedReportClaim.reasoning ?? "Some completers report broken achievement unlocks.")
-        : `Reported bugged achievements: ${facts.buggedAchievements.join(", ")}.`,
+      reasoning: "Not enough data to confirm this game yet — no curated achievement data, and community sources couldn't be read.",
     };
   }
 
-  // Only claims that actually gate the verdict count toward the confidence
-  // floor — informational metadata (estimated playtime, raw player counts,
-  // per-achievement unlock rarity) shouldn't turn a clean result yellow.
-  // DLC requirement and missable achievements are here too: unlike delisted
-  // DLC (its own red path above) or true unobtainable/bugged achievements,
-  // required-but-purchasable DLC and missable-but-recoverable achievements
-  // are disclosed (icon + list) but never themselves a blocker — a player
-  // can still reach 100%, so an unsure reading of either (e.g. a Wikipedia
-  // article that doesn't discuss DLC, or a source that doesn't mention any
-  // missable achievement) shouldn't make an otherwise-clean game provisional.
-  const INFORMATIONAL_CLAIM_TYPES = new Set([
-    "estimated_hours",
-    "current_players",
-    "global_unlock_percent",
-    "dlc_required",
-    "dlc_required_signal",
-    "dlc_achievement_requirement",
-    "paid_dlc_required",
-    "curator_note",
-    // Required DLC are disclosed but never block 100%, so failing to pin down
-    // WHICH DLC (e.g. the AI step is out of quota) mustn't turn a verdict
-    // provisional either.
-    "required_dlc_resolution",
-    "missable_signal",
-    "missable",
-  ]);
-  // Community tags describing mechanics rather than completion risk (a
-  // single stray vote on "Steam Inventory" shouldn't make a clean game
-  // provisional the same way "MP Required" should).
-  const NON_BLOCKING_TAG_SLUGS = new Set([
-    "controller-required",
-    "multiple-playthroughs",
-    "chapter-select",
-    "new-game-plus",
-    "cheese-available",
-    "steam-inventory",
-    "mobile-cross-save",
-    "completion-achievement",
-  ]);
-  const verdictRelevantClaims = facts.claims.filter((c) => {
-    if (typeof c.claim.type !== "string") return true;
-    if (INFORMATIONAL_CLAIM_TYPES.has(c.claim.type)) return false;
-    if (c.claim.type === "community_tag" && typeof c.claim.slug === "string" && NON_BLOCKING_TAG_SLUGS.has(c.claim.slug)) {
-      return false;
-    }
-    return true;
-  });
-
-  const lowestConfidence = verdictRelevantClaims.reduce<ConfidenceLevel>(
-    (worst, c) => (CONFIDENCE_RANK[c.confidence] < CONFIDENCE_RANK[worst] ? c.confidence : worst),
-    "high",
-  );
-
-  if (lowestConfidence === "low" && !aiUsed) {
-    return {
-      status: "yellow",
-      confidence: "low",
-      reasoning: "Evidence is thin or unverified for at least one requirement — treat this result as provisional.",
-    };
-  }
-
-  const requirements: string[] = [];
-  if (facts.dlcNeeded.some((d) => d.required)) requirements.push("DLC");
-  if (facts.multiplayerRequired) requirements.push("multiplayer");
-
-  return {
-    status: "green",
-    confidence: lowestConfidence,
-    reasoning:
-      requirements.length > 0
-        ? `100% appears obtainable. Requires: ${requirements.join(", ")}.`
-        : "100% appears obtainable with no known blockers.",
-  };
+  return { status: "green", confidence: "medium", reasoning: greenReasoning };
 }

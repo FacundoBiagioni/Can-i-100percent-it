@@ -37,7 +37,9 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
       ? `${analysis.missableAchievementCount} missable achievement(s) — obtainable, but may need a separate playthrough/save`
       : "No missable achievements reported";
 
-  const buggedState = analysis.buggedAchievementCount > 0 ? "warning" : "off";
+  // "caution", not "warning": a bugged achievement is unreliable to unlock,
+  // not impossible, so it must not read like the red blockers.
+  const buggedState = analysis.buggedAchievementCount > 0 ? "caution" : "off";
   const buggedLabel =
     analysis.buggedAchievementCount > 0
       ? `${analysis.buggedAchievementCount} bugged achievement(s) reported`
@@ -70,7 +72,7 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
         badge={analysis.missableAchievementCount > 0 ? analysis.missableAchievementCount : undefined}
       />
       <StatusIcon
-        icon={buggedState === "warning" ? Bug : BugOff}
+        icon={buggedState === "caution" ? Bug : BugOff}
         state={buggedState}
         label={buggedLabel}
         badge={analysis.buggedAchievementCount > 0 ? analysis.buggedAchievementCount : undefined}

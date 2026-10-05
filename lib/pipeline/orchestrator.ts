@@ -7,10 +7,9 @@ import { steamAnalyzer, getAppDetails, getArgentinaPricing } from "./layers/1-st
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import { resolveRequiredDlc } from "./dlc/resolveRequiredDlc";
 import { runAllScrapers } from "./layers/2-scrapers";
-import { applyRules, detectConflicts, deriveStatus } from "./layers/3-rules/engine";
+import { applyRules, deriveStatus, steamHuntersTracks } from "./layers/3-rules/engine";
 import { applyRecencyDecay } from "./layers/4-recency/scorer";
 import { fetchAcceptedCommunityClaims } from "./layers/5-community/reports";
-import { resolveConflicts } from "./layers/6-ai-resolver/resolver";
 import { matchAchievementName } from "./achievementMatcher";
 import type { AnalysisResult, EvidenceClaim, DlcRequirement } from "./types";
 
@@ -80,6 +79,13 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
       fetchAcceptedCommunityClaims(appId),
     ]);
     allClaims = [...allClaims, ...scraperClaims, ...communityClaims];
+    // SteamHunters' curated list decides which achievements are unobtainable
+    // when it tracks the game; AI reads of forum threads naming one (often a
+    // one-save lockout, an old bug, or a pre-relaunch list) would otherwise
+    // show up in the detail sheet contradicting it.
+    if (steamHuntersTracks(allClaims)) {
+      allClaims = allClaims.filter((c) => c.claim.type !== "achievement_unobtainable" || c.sourceKey === "steamhunters");
+    }
 
     // AI-extracted "achievement_unobtainable"/"missable" claims only carry
     // the free-text name a source used — resolve it to a real achievement
@@ -135,27 +141,10 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
 
   allClaims = applyRecencyDecay(allClaims);
 
-  let facts = buildFacts(appId, gameName, foundOnSteam, dlcNeeded, multiplayerFromSteam, allClaims);
-
-  let aiUsed = false;
-  const conflicts = detectConflicts(allClaims);
-  if (conflicts.length > 0) {
-    const resolutions = await resolveConflicts(gameName, conflicts);
-    if (resolutions.length > 0) {
-      aiUsed = true;
-      const resolvedClaims: EvidenceClaim[] = resolutions.map((r) => ({
-        sourceKey: "ai_resolver",
-        claim: { type: r.key.split(":")[0], value: r.resolvedValue },
-        confidence: r.confidence,
-        reasoning: r.reasoning,
-        checkedAt: new Date(),
-      }));
-      allClaims = [...allClaims, ...resolvedClaims];
-      facts = buildFacts(appId, gameName, foundOnSteam, dlcNeeded, multiplayerFromSteam, allClaims);
-    }
-  }
-
-  const { status, confidence, reasoning } = deriveStatus(facts, aiUsed);
+  const facts = buildFacts(appId, gameName, foundOnSteam, dlcNeeded, multiplayerFromSteam, allClaims);
+  const { status, confidence, reasoning } = deriveStatus(facts);
+  // AI took part in the verdict's inputs when it mapped achievements to DLC.
+  const aiUsed = allClaims.some((c) => c.claim.type === "required_dlc_resolution" && c.claim.method === "ai_mapped");
 
   const result: AnalysisResult = {
     gameId: appId,

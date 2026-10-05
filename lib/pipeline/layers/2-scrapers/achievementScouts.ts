@@ -3,7 +3,6 @@ import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
 import {
   scoutStatsResponseSchema,
   communityTagsResponseSchema,
-  steamHuntersPlayersResponseSchema,
   curationsResponseSchema,
 } from "@/lib/validation/schemas";
 import type { EvidenceClaim } from "../../types";
@@ -56,22 +55,6 @@ async function fetchCurations(appId: number) {
   });
 }
 
-/** Achievement Scouts proxies SteamHunters' own per-player data — this is
- * the only path we have to any SteamHunters signal, since steamhunters.com
- * itself is behind a Cloudflare challenge we can't pass with a plain fetch. */
-async function fetchSteamHuntersSample(appId: number) {
-  return getOrFetch(
-    CacheKeys.scrape("achievement_scouts:steamhunters_players", appId),
-    CacheTTL.scrapeSuccess,
-    async () => {
-      const res = await fetch(`${API_BASE}/steamhunters/apps/${appId}/players?page=1&limit=20`);
-      if (!res.ok) return [];
-      const parsed = steamHuntersPlayersResponseSchema.safeParse(await res.json());
-      return parsed.success ? parsed.data.items : [];
-    },
-  );
-}
-
 export const achievementScoutsAdapter: ScraperAdapter = {
   source: "achievement_scouts",
 
@@ -80,10 +63,9 @@ export const achievementScoutsAdapter: ScraperAdapter = {
     const claims: EvidenceClaim[] = [];
 
     try {
-      const [stats, tags, huntersSample, curations] = await Promise.all([
+      const [stats, tags, curations] = await Promise.all([
         fetchScoutStats(appId),
         fetchCommunityTags(appId),
-        fetchSteamHuntersSample(appId),
         fetchCurations(appId),
       ]);
 
@@ -144,16 +126,6 @@ export const achievementScoutsAdapter: ScraperAdapter = {
         }
       }
 
-      const brokenReports = huntersSample.filter((p) => p.unlocked_broken > 0).length;
-      if (huntersSample.length > 0 && brokenReports > 0) {
-        claims.push({
-          sourceKey: "achievement_scouts",
-          claim: { type: "bugged_achievements_reported", sampledPlayers: huntersSample.length, brokenReports },
-          confidence: "low", // inferred from a sample of top completers, not exhaustive
-          reasoning: `${brokenReports} of ${huntersSample.length} sampled SteamHunters completers report broken achievement unlocks (data proxied via Achievement Scouts)`,
-          checkedAt,
-        });
-      }
     } catch {
       // Undocumented internal API — degrade to no claims rather than fail the pipeline.
       return [];

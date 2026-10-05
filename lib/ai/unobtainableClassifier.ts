@@ -132,7 +132,8 @@ For question 2: is there credible evidence that some CURRENT achievement can be 
 
 For question 3: if the text names the specific DLC/expansion(s) required, list them in requiredDlc with the exact name as written and a one-sentence reason each; leave it empty if requiresPaidDlc is false or no specific DLC is named.`;
 
-  const text = await generateJson(prompt, unobtainableClassificationSchema);
+  // Temperature 0: the same text should get the same reading every run.
+  const text = await generateJson(prompt, unobtainableClassificationSchema, 2, { temperature: 0 });
   if (!text) return null;
   try {
     const parsed = unobtainableClassificationZodSchema.safeParse(JSON.parse(text));

@@ -29,6 +29,8 @@ export const appDetailsDataSchema = z.object({
   steam_appid: z.number(),
   is_free: z.boolean().optional(),
   dlc: z.array(z.number()).optional().default([]),
+  // Set on DLC apps: the base game they belong to (appid comes as a string).
+  fullgame: z.object({ appid: z.coerce.number() }).optional(),
   header_image: z.string().optional(),
   background_raw: z.string().optional(),
   // background_raw is a deliberately faint store-page background (meant to
@@ -123,19 +125,6 @@ export const communityTagResponseSchema = z.object({
 
 export const communityTagsResponseSchema = z.array(communityTagResponseSchema);
 
-export const steamHuntersPlayerSchema = z.object({
-  rank: z.number(),
-  achievements_unlocked: z.number(),
-  achievements_total: z.number(),
-  unlocked_broken: z.number(),
-  is_completed: z.boolean(),
-  completion_time: z.number().nullable(), // minutes
-});
-
-export const steamHuntersPlayersResponseSchema = z.object({
-  items: z.array(steamHuntersPlayerSchema),
-});
-
 // --- Achievement Scouts curations (/curations/by-app/{appId}) — verified
 // live 2026-10-02. Short human-written notes from the Achievement Scouts
 // Steam curator groups, e.g. "Paid 'Phantom Liberty' DLC required."
@@ -156,6 +145,7 @@ export const curationsResponseSchema = z.array(
 export const steamHuntersAppResponseSchema = z.object({
   appId: z.number(),
   hasPaidDlc: z.boolean(),
+  unobtainableAchievementCount: z.number().optional().default(0),
 });
 
 // --- IStoreBrowseService/GetItems — verified live 2026-10-02. Batch store
@@ -184,3 +174,18 @@ export const storeItemsResponseSchema = z.object({
       .default([]),
   }),
 });
+
+// --- SteamHunters achievement list (steamhunters.com/api/apps/{appId}/
+// achievements) — verified live 2026-10-04. obtainability is SteamHunters'
+// community-curated status per achievement; 3 = unobtainable (servers shut
+// down, removed content, ended events...). Checked across a dozen games, the
+// number of 3s always equals the app's own unobtainableAchievementCount. The
+// other non-zero codes (1, 2) aren't documented anywhere public, so they're
+// deliberately not interpreted.
+export const steamHuntersAchievementsResponseSchema = z.array(
+  z.object({
+    apiName: z.string(),
+    name: z.string(),
+    obtainability: z.number(),
+  }),
+);
