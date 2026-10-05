@@ -22,7 +22,7 @@ async function fetchBatch(appIds: number[]): Promise<DlcCatalogEntry[] | null> {
   const input = {
     ids: appIds.map((appid) => ({ appid })),
     context: { language: "english", country_code: "US" },
-    data_request: { include_basic_info: true, include_all_purchase_options: true },
+    data_request: { include_basic_info: true, include_all_purchase_options: true, include_release: true },
   };
   const res = await fetch(`${GET_ITEMS_URL}?input_json=${encodeURIComponent(JSON.stringify(input))}`);
   if (!res.ok) return null;
@@ -41,6 +41,11 @@ async function fetchBatch(appIds: number[]): Promise<DlcCatalogEntry[] | null> {
     // Soundtracks (type 11) and the odd non-DLC app Steam lists among a
     // game's DLC (e.g. a re-release's own appid) never gate achievements.
     if (item.type !== TYPE_DLC) return;
+    // Announced but unreleased DLC ("Coming soon") can't be bought yet and
+    // its achievements don't exist yet, so it can be neither required nor
+    // "delisted" — counting it as delisted turned The Witcher 3 red over an
+    // expansion that simply hadn't launched.
+    if (item.release?.is_coming_soon) return;
     const isFree = item.is_free === true;
     entries.push({
       appId,

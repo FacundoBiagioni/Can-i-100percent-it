@@ -166,6 +166,7 @@ export const storeItemsResponseSchema = z.object({
           name: z.string().optional(),
           is_free: z.boolean().optional(),
           basic_info: z.object({ short_description: z.string().optional() }).optional(),
+          release: z.object({ is_coming_soon: z.boolean().optional() }).optional(),
           best_purchase_option: z.object({}).passthrough().optional(),
           purchase_options: z.array(z.object({}).passthrough()).optional(),
         }),

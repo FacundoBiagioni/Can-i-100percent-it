@@ -21,7 +21,8 @@ export const CacheKeys = {
   // v2: entries now carry fullGameAppId (a DLC's base game).
   steamAppDetails: (appId: number) => `steam:appdetails:v2:${appId}`,
   steamArPricing: (appId: number) => `steam:pricing:ar:${appId}`,
-  steamDlcCatalog: (appId: number) => `steam:dlccatalog:${appId}`,
+  // v2: unreleased ("coming soon") DLC are excluded.
+  steamDlcCatalog: (appId: number) => `steam:dlccatalog:v2:${appId}`,
   steamSchema: (appId: number) => `steam:schema:${appId}`,
   steamGlobalPct: (appId: number) => `steam:globalpct:${appId}`,
   steamCurrentPlayers: (appId: number) => `steam:currentplayers:${appId}`,
