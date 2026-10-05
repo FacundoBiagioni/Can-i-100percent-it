@@ -470,7 +470,7 @@ export default function LibraryChecker() {
       {library && (
         <section className="flex flex-col gap-8">
           <div
-            className={`relative flex flex-col gap-4 ${library.background ? "pb-6 pt-48 [text-shadow:0_1px_12px_rgb(0_0_0/0.7)] sm:pt-72" : ""}`}
+            className={`relative flex flex-col gap-4 ${library.background ? "pb-6 pt-30 [text-shadow:0_1px_12px_rgb(0_0_0/0.7)] sm:pt-55" : ""}`}
           >
             {library.background && <ProfileBackdrop background={library.background} />}
             <div className="relative flex items-center gap-3">
