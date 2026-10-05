@@ -70,7 +70,9 @@ export default function Header() {
 
         {/* The homepage hero has its own large search box; a second one up
             here would put two search bars on screen at once. */}
-        <div className="flex min-w-0 items-center gap-2">
+        {/* On home at md+ this would hold nothing visible, and as a third flex
+            child it would pull the nav off the right edge. */}
+        <div className={`flex min-w-0 items-center gap-2 ${isHome ? "md:hidden" : ""}`}>
           {!isHome && <SearchBox size="sm" autoFocus={false} placeholder="Search another game" />}
           <button
             type="button"
