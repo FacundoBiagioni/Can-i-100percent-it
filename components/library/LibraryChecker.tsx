@@ -200,14 +200,15 @@ function GameCard({ game, checkingDlc }: { game: Card; checkingDlc: boolean }) {
 }
 
 /** The player's own Steam profile background behind their library's heading,
- * full width, dimmed and fading into the page. Animated backgrounds play as
+ * full width and at full strength, shaded only behind the text and where it
+ * fades into the page. Animated backgrounds play as
  * a muted loop, except with reduced motion, where the still image shows. */
 function ProfileBackdrop({ background }: { background: ProfileBackground }) {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-screen -translate-x-1/2 overflow-hidden">
       {background.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={background.image} alt="" className="absolute inset-0 h-full w-full object-cover opacity-60" />
+        <img src={background.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
       )}
       {background.video && (
         <video
@@ -217,12 +218,14 @@ function ProfileBackdrop({ background }: { background: ProfileBackground }) {
           muted
           loop
           playsInline
-          className="absolute inset-0 h-full w-full object-cover opacity-60 motion-reduce:hidden"
+          className="absolute inset-0 h-full w-full object-cover motion-reduce:hidden"
         />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-void via-void/75 to-void/30" />
-      <div className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-void to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-r from-void/80 via-void/30 to-transparent" />
+      {/* Shaded only where text sits (bottom-left) and at the edges where it
+          meets the page; the rest of the art shows at full strength. */}
+      <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-void via-void/55 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-void to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-void/50 via-transparent to-transparent" />
     </div>
   );
 }
@@ -466,7 +469,9 @@ export default function LibraryChecker() {
 
       {library && (
         <section className="flex flex-col gap-8">
-          <div className={`relative flex flex-col gap-4 ${library.background ? "pb-6 pt-32" : ""}`}>
+          <div
+            className={`relative flex flex-col gap-4 ${library.background ? "pb-6 pt-48 [text-shadow:0_1px_12px_rgb(0_0_0/0.7)] sm:pt-72" : ""}`}
+          >
             {library.background && <ProfileBackdrop background={library.background} />}
             <div className="relative flex items-center gap-3">
               {library.avatar && (
