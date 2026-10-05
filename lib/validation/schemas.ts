@@ -190,3 +190,73 @@ export const steamHuntersAchievementsResponseSchema = z.array(
     obtainability: z.number(),
   }),
 );
+
+// --- Library import (verified live 2026-10-05) -------------------------------
+// ISteamUser/ResolveVanityURL: success 1 = found, 42 = no match.
+export const resolveVanityResponseSchema = z.object({
+  response: z.object({ success: z.number(), steamid: z.string().optional() }),
+});
+
+// ISteamUser/GetPlayerSummaries: communityvisibilitystate 3 = public profile.
+export const playerSummariesResponseSchema = z.object({
+  response: z.object({
+    players: z.array(
+      z.object({
+        steamid: z.string(),
+        personaname: z.string(),
+        avatarfull: z.string().optional(),
+        communityvisibilitystate: z.number().optional(),
+      }),
+    ),
+  }),
+});
+
+// IPlayerService/GetOwnedGames: `games` is missing entirely when the game
+// list is private. has_community_visible_stats marks games with achievements.
+export const ownedGamesResponseSchema = z.object({
+  response: z.object({
+    game_count: z.number().optional(),
+    games: z
+      .array(
+        z.object({
+          appid: z.number(),
+          name: z.string().optional(),
+          playtime_forever: z.number().optional().default(0),
+          has_community_visible_stats: z.boolean().optional(),
+        }),
+      )
+      .optional(),
+  }),
+});
+
+// SteamHunters bulk app lookup (/api/apps?appIds=..., at most 100 ids).
+export const steamHuntersBulkResponseSchema = z.array(
+  z.object({
+    appId: z.number(),
+    hasPaidDlc: z.boolean(),
+    unobtainableAchievementCount: z.number().optional().default(0),
+  }),
+);
+
+// GetItems with include_assets: asset_url_format is e.g.
+// "steam/apps/440/${FILENAME}?t=..." relative to the store_item_assets CDN.
+export const storeAssetsResponseSchema = z.object({
+  response: z.object({
+    store_items: z
+      .array(
+        z.object({
+          appid: z.number().optional(),
+          success: z.number(),
+          assets: z
+            .object({
+              asset_url_format: z.string().optional(),
+              library_capsule: z.string().optional(),
+              header: z.string().optional(),
+            })
+            .optional(),
+        }),
+      )
+      .optional()
+      .default([]),
+  }),
+});

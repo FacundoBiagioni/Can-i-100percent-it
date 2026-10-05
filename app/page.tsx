@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowRight } from "lucide-react";
 import SearchBox from "@/components/search/SearchBox";
 import HeroAnimation from "@/components/home/HeroAnimation";
 import RecentGames from "@/components/home/RecentGames";
@@ -52,9 +52,18 @@ export default async function Home() {
             </h1>
           </div>
           <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-            <p className="max-w-87.5 text-body text-ash">
-              Search a Steam game to see if getting 100% of the achievements is realistically possible today.
-            </p>
+            <div className="flex max-w-87.5 flex-col gap-3">
+              <p className="text-body text-ash">
+                Search a Steam game to see if getting 100% of the achievements is realistically possible today.
+              </p>
+              <Link
+                href="/library"
+                className="flex w-fit items-center gap-1 text-body text-chalk underline underline-offset-4 transition-colors hover:text-ash"
+              >
+                Or check your whole Steam library
+                <ArrowRight aria-hidden className="h-4 w-4" />
+              </Link>
+            </div>
             <SearchBox size="lg" label="Search Steam" />
           </div>
         </div>

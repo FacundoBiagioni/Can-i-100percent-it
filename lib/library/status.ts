@@ -1,0 +1,104 @@
+import { redis } from "@/lib/cache/redis";
+import { CacheTTL } from "@/lib/cache/keys";
+import { steamHuntersBulkResponseSchema, storeAssetsResponseSchema } from "@/lib/validation/schemas";
+
+/** SteamHunters' bulk endpoint rejects more than 100 ids per request. */
+export const MAX_IDS_PER_REQUEST = 100;
+const ASSET_CDN = "https://shared.akamai.steamstatic.com/store_item_assets/";
+
+export type AppStatus = { appId: number; tracked: boolean; unobtainable: number; hasPaidDlc: boolean };
+export type FlaggedGame = AppStatus & { capsule: string | null; header: string | null };
+
+const statusKey = (appId: number) => `library:sh:${appId}`;
+const assetsKey = (appId: number) => `library:assets:${appId}`;
+
+/**
+ * The two facts the library view filters on — unobtainable achievements and
+ * paid DLC needed for 100% — straight from SteamHunters' curated data, for up
+ * to 100 games in ONE request and with no AI involved, so an 800-game library
+ * costs 8 requests and zero Gemini quota. Same source the game page's verdict
+ * uses, so a card and the page it links to agree. Cached per game for a day.
+ */
+export async function getAppStatuses(appIds: number[]): Promise<AppStatus[] | null> {
+  const ids = [...new Set(appIds)].slice(0, MAX_IDS_PER_REQUEST);
+  if (ids.length === 0) return [];
+
+  const cached = redis ? await redis.mget<(AppStatus | null)[]>(...ids.map(statusKey)) : ids.map(() => null);
+  const result = new Map<number, AppStatus>();
+  cached.forEach((c, i) => c && result.set(ids[i], c));
+  const missing = ids.filter((id) => !result.has(id));
+
+  if (missing.length > 0) {
+    const res = await fetch(`https://steamhunters.com/api/apps?appIds=${missing.join(",")}`, {
+      headers: { "User-Agent": "can-i-100-it/1.0" },
+    });
+    if (!res.ok) return null;
+    const parsed = steamHuntersBulkResponseSchema.safeParse(await res.json());
+    if (!parsed.success) return null;
+    const found = new Map(parsed.data.map((a) => [a.appId, a]));
+    for (const id of missing) {
+      const a = found.get(id);
+      // Not in the response = SteamHunters doesn't track it.
+      const status: AppStatus = a
+        ? { appId: id, tracked: true, unobtainable: a.unobtainableAchievementCount, hasPaidDlc: a.hasPaidDlc }
+        : { appId: id, tracked: false, unobtainable: 0, hasPaidDlc: false };
+      result.set(id, status);
+    }
+    if (redis) {
+      const pipe = redis.pipeline();
+      for (const id of missing) pipe.set(statusKey(id), result.get(id)!, { ex: CacheTTL.scrapeSuccess });
+      await pipe.exec();
+    }
+  }
+  return ids.map((id) => result.get(id)!);
+}
+
+type Assets = { capsule: string | null; header: string | null };
+
+/** Library capsule (600x900) and header art for each game, via one batched
+ * store lookup. Paths include a per-game hash on newer assets, so they're
+ * read from Steam rather than guessed. */
+async function getAssets(appIds: number[]): Promise<Map<number, Assets>> {
+  const out = new Map<number, Assets>();
+  if (appIds.length === 0) return out;
+  const cached = redis ? await redis.mget<(Assets | null)[]>(...appIds.map(assetsKey)) : appIds.map(() => null);
+  cached.forEach((c, i) => c && out.set(appIds[i], c));
+  const missing = appIds.filter((id) => !out.has(id));
+  if (missing.length === 0) return out;
+
+  const input = {
+    ids: missing.map((appid) => ({ appid })),
+    context: { language: "english", country_code: "US" },
+    data_request: { include_assets: true },
+  };
+  const res = await fetch(`https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?input_json=${encodeURIComponent(JSON.stringify(input))}`);
+  const parsed = res.ok ? storeAssetsResponseSchema.safeParse(await res.json()) : null;
+  const items = parsed?.success ? parsed.data.response.store_items : [];
+  items.forEach((item, i) => {
+    const appId = item.appid ?? missing[i];
+    const format = item.assets?.asset_url_format;
+    const url = (file?: string) => (format && file ? ASSET_CDN + format.replace("${FILENAME}", file) : null);
+    out.set(appId, { capsule: url(item.assets?.library_capsule), header: url(item.assets?.header) });
+  });
+  const toCache = missing.filter((id) => out.has(id));
+  // Upstash throws on an empty pipeline, so only write when there's something.
+  if (redis && toCache.length > 0) {
+    const pipe = redis.pipeline();
+    for (const id of toCache) pipe.set(assetsKey(id), out.get(id)!, { ex: 60 * 60 * 24 * 7 });
+    await pipe.exec();
+  }
+  return out;
+}
+
+/** Statuses for a batch, plus art for just the games worth showing. */
+export async function getFlaggedGames(appIds: number[]): Promise<{ checked: number; untracked: number; flagged: FlaggedGame[] } | null> {
+  const statuses = await getAppStatuses(appIds);
+  if (!statuses) return null;
+  const flaggedStatuses = statuses.filter((s) => s.unobtainable > 0 || s.hasPaidDlc);
+  const assets = await getAssets(flaggedStatuses.map((s) => s.appId));
+  return {
+    checked: statuses.length,
+    untracked: statuses.filter((s) => !s.tracked).length,
+    flagged: flaggedStatuses.map((s) => ({ ...s, capsule: assets.get(s.appId)?.capsule ?? null, header: assets.get(s.appId)?.header ?? null })),
+  };
+}

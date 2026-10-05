@@ -8,8 +8,9 @@ import SearchBox from "@/components/search/SearchBox";
 // and the four links don't fit next to it.
 const NAV = [
   { href: "/", label: "Index", wide: true },
-  { href: "/#recent", label: "Recent", wide: false },
+  { href: "/#recent", label: "Recent", wide: true },
   { href: "/#verdicts", label: "Verdicts", wide: true },
+  { href: "/library", label: "Library", wide: false },
   { href: "/how-it-works", label: "How it works", wide: false },
 ];
 
