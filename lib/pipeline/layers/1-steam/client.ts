@@ -156,6 +156,13 @@ export async function getArgentinaPricing(appId: number): Promise<ArPricing | nu
   });
 }
 
+/** A DLC's displayed price: 0 when free, null when it isn't sold on its own
+ * in Argentina (only inside bundles), otherwise its regional price. */
+export function dlcPriceCents(pricing: ArPricing | null): number | null {
+  if (!pricing) return null;
+  return pricing.isFree ? 0 : pricing.priceCents;
+}
+
 export type SteamAchievementSchema = {
   name: string;
   displayName: string;

@@ -3,7 +3,7 @@ import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
 import { getAnalysisResult } from "@/lib/db/queries/analysis";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { runPipeline } from "./orchestrator";
-import { getArgentinaPricing } from "./layers/1-steam/client";
+import { getArgentinaPricing, dlcPriceCents } from "./layers/1-steam/client";
 import type { AnalysisResult } from "./types";
 
 export type AnalysisOutcome =
@@ -39,7 +39,7 @@ async function withArgentinaDlcPrices(analysis: AnalysisResult): Promise<Analysi
   const dlcRequired = await Promise.all(
     analysis.dlcRequired.map(async (d) => ({
       ...d,
-      priceCents: (await getArgentinaPricing(d.dlcAppId))?.priceCents ?? null,
+      priceCents: dlcPriceCents(await getArgentinaPricing(d.dlcAppId)),
     })),
   );
   return {

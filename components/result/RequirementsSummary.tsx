@@ -28,7 +28,7 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
                     )}
                   </td>
                   <td className="py-2 text-right align-top tabular-nums text-graphite">
-                    {d.priceCents !== null ? formatPrice(d.priceCents) : "-"}
+                    {d.priceCents === null ? "Not sold alone" : d.priceCents === 0 ? "Free" : formatPrice(d.priceCents)}
                   </td>
                 </tr>
               ))}

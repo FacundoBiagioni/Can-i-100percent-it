@@ -3,7 +3,7 @@ import { CacheKeys } from "@/lib/cache/keys";
 import { upsertAnalysisResult, insertVerificationHistory, getAnalysisResult } from "@/lib/db/queries/analysis";
 import { insertEvidence } from "@/lib/db/queries/evidence";
 import { getAchievementsForGame, getOrCreateGame } from "@/lib/db/queries/games";
-import { steamAnalyzer, getAppDetails, getArgentinaPricing } from "./layers/1-steam/client";
+import { steamAnalyzer, getAppDetails, getArgentinaPricing, dlcPriceCents } from "./layers/1-steam/client";
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import { resolveRequiredDlc } from "./dlc/resolveRequiredDlc";
 import { runAllScrapers } from "./layers/2-scrapers";
@@ -133,7 +133,7 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
           const evidence = resolution.required.get(d.dlcAppId);
           if (!evidence) return d;
           const pricing = await getArgentinaPricing(d.dlcAppId);
-          return { ...d, required: true, evidence, priceCents: pricing?.priceCents ?? null };
+          return { ...d, required: true, evidence, priceCents: dlcPriceCents(pricing) };
         }),
       );
     }
