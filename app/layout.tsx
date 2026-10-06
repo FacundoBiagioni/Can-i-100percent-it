@@ -6,6 +6,8 @@ import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { RegionProvider } from "@/lib/pricing/client";
 import { getRegion } from "@/lib/pricing/server";
+import { PreferencesProvider } from "@/lib/preferences/client";
+import { getPreferences } from "@/lib/preferences/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,17 +33,20 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [locale, region] = await Promise.all([getLocale(), getRegion()]);
+  const [locale, region, prefs] = await Promise.all([getLocale(), getRegion(), getPreferences()]);
   return (
     <html
       lang={locale}
+      data-motion={prefs.reduceMotion ? "off" : undefined}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale}>
           <RegionProvider region={region}>
-            <Header />
-            <PageTransition>{children}</PageTransition>
+            <PreferencesProvider initial={prefs}>
+              <Header />
+              <PageTransition>{children}</PageTransition>
+            </PreferencesProvider>
           </RegionProvider>
         </I18nProvider>
       </body>

@@ -36,7 +36,12 @@ export function localizeReasoning(text: string, t: Dictionary): string {
 /** Per-achievement notes written by this app (not quoted from a source),
  * in the visitor's language. Anything else is shown as written. */
 export function localizeClaimReason(text: string, t: Dictionary): string {
-  if (text === "Marked as no longer obtainable in its community-curated achievement list.") return t.achievements.reasonUnobtainable;
+  if (
+    text === "Marked as no longer obtainable in its community-curated achievement list." ||
+    // Older wording, still on rows stored before it changed.
+    text === "Marked as no longer obtainable on SteamHunters (community-curated)."
+  )
+    return t.achievements.reasonUnobtainable;
   if (text === "Not in the game yet: its content hasn't been added. It should become obtainable once it is.") return t.achievements.reasonUpcoming;
   return text;
 }

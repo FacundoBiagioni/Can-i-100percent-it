@@ -190,3 +190,25 @@ body::after {
     opacity: 0.25;
   }
 }
+
+/* "Reduce animations" in settings: the same treatment as the system's
+   reduced-motion preference, keyed on <html data-motion="off">. */
+html[data-motion="off"] {
+  scroll-behavior: auto;
+}
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+html[data-motion="off"] .group:hover .capsule,
+html[data-motion="off"] .group:focus-visible .capsule {
+  transform: none;
+}
+html[data-motion="off"] .flow-pulse {
+  animation: none;
+  stroke-dasharray: none;
+  opacity: 0.25;
+}

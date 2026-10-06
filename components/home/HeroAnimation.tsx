@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { plexMono } from "@/lib/ui/fonts";
+import { MOTION_EVENT, motionReduced } from "@/lib/preferences/config";
 
 // Only the homepage canvases use this face (the glyphs are imagery, not UI
 // type), so it isn't loaded in the root layout.
@@ -651,6 +652,8 @@ export default function HeroAnimation() {
     let lastNow: number | null = null;
     const view: View = { width: 1, height: 1, k: 1, ox: 0, oy: 0 };
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // The system setting or "reduce animations" in the site's settings.
+    const still = () => motionReduced();
 
     function fit() {
       if (!canvas) return;
@@ -669,13 +672,13 @@ export default function HeroAnimation() {
 
     function render() {
       if (!scene || !renderer) return;
-      const count = buildFrame(scene, reduce.matches ? STILL_T : clock % TOTAL);
+      const count = buildFrame(scene, still() ? STILL_T : clock % TOTAL);
       renderer.draw(scene.inst, count, view);
     }
 
     function tick(now: number) {
       raf = 0;
-      if (disposed || !visible || reduce.matches) return;
+      if (disposed || !visible || still()) return;
       if (lastNow !== null) clock += Math.min(now - lastNow, 100) / 1000;
       lastNow = now;
       render();
@@ -683,7 +686,7 @@ export default function HeroAnimation() {
     }
 
     function start() {
-      if (raf || disposed || !renderer || !visible || reduce.matches) return;
+      if (raf || disposed || !renderer || !visible || still()) return;
       lastNow = null;
       raf = requestAnimationFrame(tick);
     }
@@ -742,6 +745,7 @@ export default function HeroAnimation() {
         resize.observe(canvas);
         io.observe(canvas);
         reduce.addEventListener("change", onMotionChange);
+        window.addEventListener(MOTION_EVENT, onMotionChange);
         start();
       });
 
@@ -751,6 +755,7 @@ export default function HeroAnimation() {
       resize.disconnect();
       io.disconnect();
       reduce.removeEventListener("change", onMotionChange);
+      window.removeEventListener(MOTION_EVENT, onMotionChange);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       renderer?.dispose();

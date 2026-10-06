@@ -10,6 +10,8 @@ export type FlaggedAchievement = {
   displayName: string;
   description: string | null;
   iconUrl: string | null;
+  /** Steam marks it hidden (a spoiler until unlocked). */
+  hidden: boolean;
   /** "upcoming": unobtainable only because its content isn't in the game yet. */
   flags: ("missable" | "bugged" | "unobtainable" | "upcoming")[];
   reasons: { sourceName: string; reasoning: string | null; rawUrl: string | null }[];
@@ -24,6 +26,7 @@ export async function getFlaggedAchievements(gameId: number): Promise<FlaggedAch
       displayName: achievements.displayName,
       description: achievements.description,
       iconUrl: achievements.iconUrl,
+      hidden: achievements.hidden,
       claimType: evidence.claim,
       reasoning: evidence.reasoning,
       rawUrl: evidence.rawUrl,
@@ -54,6 +57,7 @@ export async function getFlaggedAchievements(gameId: number): Promise<FlaggedAch
         displayName: row.displayName,
         description: row.description,
         iconUrl: row.iconUrl,
+        hidden: row.hidden,
         flags: [flag],
         reasons: [reason],
       });

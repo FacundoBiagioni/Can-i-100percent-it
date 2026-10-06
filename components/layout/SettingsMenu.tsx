@@ -7,6 +7,7 @@ import { LOCALE_COOKIE, type Locale } from "@/lib/i18n/config";
 import { useLocale, useT } from "@/lib/i18n/client";
 import { useRegion } from "@/lib/pricing/client";
 import { AUTO_REGION, REGION_COOKIE, STORE_REGIONS, countryName } from "@/lib/pricing/regions";
+import { usePreferences } from "@/lib/preferences/client";
 
 const LANGUAGES: { value: Locale; label: string }[] = [
   { value: "en", label: "English" },
@@ -21,6 +22,39 @@ function setCookie(name: string, value: string) {
   document.cookie = `${name}=${value}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
 }
 
+/** A square on/off switch, in the site's flat style. */
+function Switch({ label, hint, checked, onChange }: { label: string; hint: string; checked: boolean; onChange: (v: boolean) => void }) {
+  const hintId = useId();
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-1">
+        <span className="text-nav text-ash">{label}</span>
+        <span id={hintId} className="text-caption text-graphite">
+          {hint}
+        </span>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        aria-describedby={hintId}
+        onClick={() => onChange(!checked)}
+        className={`relative mt-0.5 h-5 w-9 shrink-0 cursor-pointer border transition-colors ${
+          checked ? "border-chalk bg-chalk" : "border-carbon bg-cinder hover:border-fog"
+        }`}
+      >
+        <span
+          aria-hidden
+          className={`absolute top-0.5 h-3.5 w-3.5 transition-[left,background-color] duration-200 ${
+            checked ? "left-[calc(100%-1.125rem)] bg-void" : "left-0.5 bg-graphite"
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
 /**
  * The gear in the navbar: language and store region. Both are cookies (a
  * year); a change re-renders the server parts in place with
@@ -30,6 +64,7 @@ export default function SettingsMenu() {
   const t = useT();
   const { locale, setLocale } = useLocale();
   const region = useRegion();
+  const prefs = usePreferences();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -147,6 +182,22 @@ export default function SettingsMenu() {
               <ChevronDown aria-hidden className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-graphite" />
             </div>
             <p className="text-caption text-graphite">{t.settings.regionHint}</p>
+          </div>
+
+          <div className="flex flex-col gap-4 border-t border-carbon pt-4">
+            <p className="text-caption text-graphite">{t.settings.display}</p>
+            <Switch
+              label={t.settings.hideSpoilers}
+              hint={t.settings.hideSpoilersHint}
+              checked={prefs.hideSpoilers}
+              onChange={prefs.setHideSpoilers}
+            />
+            <Switch
+              label={t.settings.reduceMotion}
+              hint={t.settings.reduceMotionHint}
+              checked={prefs.reduceMotion}
+              onChange={prefs.setReduceMotion}
+            />
           </div>
         </div>
       )}

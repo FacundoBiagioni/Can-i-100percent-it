@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { plexMono } from "@/lib/ui/fonts";
+import { MOTION_EVENT, motionReduced } from "@/lib/preferences/config";
 
 const GLYPHS = "100%";
 const RGB = "255,77,0";
@@ -22,7 +23,7 @@ export default function DriftingDigits() {
     const canvas = ref.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let reduced = motionReduced();
     let glyphs: Glyph[] = [];
     let w = 0;
     let h = 0;
@@ -99,12 +100,22 @@ export default function DriftingDigits() {
     io.observe(canvas.parentElement ?? canvas);
     const onVisibility = () => (document.hidden ? stop() : visible && start());
     document.addEventListener("visibilitychange", onVisibility);
+    // "Reduce animations" toggled in settings: hold still or resume.
+    const onMotion = () => {
+      reduced = motionReduced();
+      if (reduced) {
+        stop();
+        draw();
+      } else if (visible) start();
+    };
+    window.addEventListener(MOTION_EVENT, onMotion);
 
     return () => {
       stop();
       ro.disconnect();
       io.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener(MOTION_EVENT, onMotion);
     };
   }, []);
 
