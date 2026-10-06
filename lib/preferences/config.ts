@@ -2,7 +2,7 @@
  * the server renders pages with them already applied. Shared by server and
  * client code. */
 export const MOTION_COOKIE = "motion"; // "off" = reduce animations
-export const SPOILERS_COOKIE = "spoilers"; // "hide" = cover hidden achievements
+export const SPOILERS_COOKIE = "spoilers"; // "show" = uncover hidden achievements (covered by default)
 
 export type Preferences = { reduceMotion: boolean; hideSpoilers: boolean };
 
