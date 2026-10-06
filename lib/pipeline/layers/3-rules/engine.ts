@@ -161,10 +161,22 @@ export function deriveStatus(facts: Facts): StatusDerivation {
   if (steamHuntersTracks(facts.claims)) {
     if (facts.unobtainableAchievements.length > 0) {
       const names = namesOf(facts, facts.unobtainableAchievements);
+      // Still red (they can't be unlocked today), but when every one of them
+      // is only waiting for its content to be added, say so.
+      const upcoming = new Set(
+        facts.claims
+          .filter((c) => c.claim.type === "achievement_unobtainable" && c.claim.upcoming === true && c.achievementApiName)
+          .map((c) => c.achievementApiName!),
+      );
+      const allUpcoming = facts.unobtainableAchievements.every((a) => upcoming.has(a));
       return {
         status: "red",
         confidence: "high",
-        reasoning: `${names.length} achievement${names.length === 1 ? " is" : "s are"} no longer obtainable: ${listNames(names)}.`,
+        reasoning: allUpcoming
+          ? names.length === 1
+            ? `1 achievement can't be unlocked yet: ${listNames(names)}. Its content isn't in the game yet; it should become obtainable once it's added.`
+            : `${names.length} achievements can't be unlocked yet: ${listNames(names)}. Their content isn't in the game yet; they should become obtainable once it's added.`
+          : `${names.length} achievement${names.length === 1 ? " is" : "s are"} no longer obtainable: ${listNames(names)}.`,
       };
     }
     return { status: "green", confidence: "high", reasoning: greenReasoning };

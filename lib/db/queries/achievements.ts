@@ -10,7 +10,8 @@ export type FlaggedAchievement = {
   displayName: string;
   description: string | null;
   iconUrl: string | null;
-  flags: ("missable" | "bugged" | "unobtainable")[];
+  /** "upcoming": unobtainable only because its content isn't in the game yet. */
+  flags: ("missable" | "bugged" | "unobtainable" | "upcoming")[];
   reasons: { sourceName: string; reasoning: string | null; rawUrl: string | null }[];
 };
 
@@ -38,7 +39,8 @@ export async function getFlaggedAchievements(gameId: number): Promise<FlaggedAch
   for (const row of rows) {
     const type = typeof row.claimType === "object" && row.claimType !== null ? (row.claimType as { type?: unknown }).type : undefined;
     if (typeof type !== "string" || !FLAGGED_CLAIM_TYPES.includes(type)) continue;
-    const flag = type === "achievement_unobtainable" ? "unobtainable" : (type as "missable" | "bugged");
+    const upcoming = (row.claimType as { upcoming?: unknown }).upcoming === true;
+    const flag = type === "achievement_unobtainable" ? (upcoming ? "upcoming" : "unobtainable") : (type as "missable" | "bugged");
 
     const existing = byAchievement.get(row.achievementId);
     const reason = { sourceName: row.sourceName, reasoning: row.reasoning, rawUrl: row.rawUrl };

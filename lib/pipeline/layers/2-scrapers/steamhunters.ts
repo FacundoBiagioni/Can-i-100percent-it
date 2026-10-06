@@ -26,6 +26,10 @@ type SteamHuntersApp =
  *   content, ended events) — the one deterministic answer to "is 100%
  *   impossible?", unlike AI reads of forum threads, which flip between runs.
  */
+export const UNOBTAINABLE_REASON = "Marked as no longer obtainable in its community-curated achievement list.";
+export const UPCOMING_REASON = "Not in the game yet: its content hasn't been added. It should become obtainable once it is.";
+const isUpcoming = (name: string) => /^\s*coming soon\b/i.test(name);
+
 /** Below this many players at 100%, a median is too noisy to show. */
 const MIN_PERFECTED_FOR_HOURS = 3;
 
@@ -117,9 +121,11 @@ export const steamHuntersAdapter: ScraperAdapter = {
         claims.push({
           sourceKey: "steamhunters",
           achievementApiName: a.apiName,
-          claim: { type: "achievement_unobtainable", name: a.name },
+          // "COMING SOON: ..." achievements are in the list before their
+          // content is in the game: unobtainable today, but not for good.
+          claim: { type: "achievement_unobtainable", name: a.name, ...(isUpcoming(a.name) ? { upcoming: true } : {}) },
           confidence: "high",
-          reasoning: "Marked as no longer obtainable in its community-curated achievement list.",
+          reasoning: isUpcoming(a.name) ? UPCOMING_REASON : UNOBTAINABLE_REASON,
           rawUrl,
           checkedAt,
         });

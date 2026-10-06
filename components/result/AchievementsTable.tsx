@@ -1,14 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { GitBranch, Bug, Ban } from "lucide-react";
+import { GitBranch, Bug, Ban, Hourglass } from "lucide-react";
 import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 import { useT } from "@/lib/i18n/client";
+import { localizeClaimReason } from "@/lib/i18n/reasoning";
 
 const FLAG_CONFIG = {
   missable: { icon: GitBranch, className: "border-unsure text-unsure" },
   bugged: { icon: Bug, className: "border-fail text-fail" },
   unobtainable: { icon: Ban, className: "border-fail text-fail" },
+  upcoming: { icon: Hourglass, className: "border-fail text-fail" },
 };
 
 /** Direct, always-visible listing — no accordion, no click-to-load. Renders
@@ -47,7 +49,7 @@ export default function AchievementsTable({ achievements }: { achievements: Flag
               {a.description && <p className="text-caption text-graphite">{a.description}</p>}
               {a.reasons.map((r, i) => (
                 <p key={i} className="text-caption text-ash">
-                  <span className="text-graphite">{r.sourceName}:</span> {r.reasoning}
+                  <span className="text-graphite">{r.sourceName}:</span> {r.reasoning && localizeClaimReason(r.reasoning, t)}
                 </p>
               ))}
             </div>

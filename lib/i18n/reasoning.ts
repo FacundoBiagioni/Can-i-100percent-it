@@ -23,8 +23,20 @@ export function localizeReasoning(text: string, t: Dictionary): string {
     const names = m[2].replace(/ and (\d+) more$/, (_, n) => ` ${r.andMore(Number(n))}`);
     return r.unobtainable(Number(m[1]), names);
   }
+  if ((m = text.match(/^(\d+) achievements? can't be unlocked yet: (.+)\. (?:Its|Their) content isn't in the game yet;/))) {
+    const names = m[2].replace(/ and (\d+) more$/, (_, n) => ` ${r.andMore(Number(n))}`);
+    return r.upcoming(Number(m[1]), names);
+  }
   if (/^Requires multiplayer, and the current player count is zero/.test(text)) return r.serversDead;
   if (/^Not enough data to confirm this game yet/.test(text)) return r.notEnoughData;
   if ((m = text.match(/^Unconfirmed: (.+)$/))) return `${r.unconfirmed} ${m[1]}`;
   return text.replace(/\s+—\s+/g, ", ");
+}
+
+/** Per-achievement notes written by this app (not quoted from a source),
+ * in the visitor's language. Anything else is shown as written. */
+export function localizeClaimReason(text: string, t: Dictionary): string {
+  if (text === "Marked as no longer obtainable in its community-curated achievement list.") return t.achievements.reasonUnobtainable;
+  if (text === "Not in the game yet: its content hasn't been added. It should become obtainable once it is.") return t.achievements.reasonUpcoming;
+  return text;
 }

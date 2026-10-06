@@ -109,6 +109,9 @@ export const es: Dictionary = {
     missable: "Perdible",
     bugged: "Bugueado",
     unobtainable: "Imposible",
+    upcoming: "Todavía no disponible",
+    reasonUnobtainable: "Marcado como imposible en su lista de logros curada por la comunidad.",
+    reasonUpcoming: "Todavía no está en el juego: su contenido aún no se agregó. Se podrá conseguir cuando lo agreguen.",
   },
   report: {
     share: "Compartir",
@@ -146,6 +149,10 @@ export const es: Dictionary = {
     unobtainable: (n: number, names: string) =>
       `${n} logro${n === 1 ? " ya no se puede" : "s ya no se pueden"} conseguir: ${names}.`,
     andMore: (n: number) => `y ${n} más`,
+    upcoming: (n: number, names: string) =>
+      n === 1
+        ? `1 logro todavía no se puede desbloquear: ${names}. Su contenido aún no está en el juego; se podrá conseguir cuando lo agreguen.`
+        : `${n} logros todavía no se pueden desbloquear: ${names}. Su contenido aún no está en el juego; se podrán conseguir cuando lo agreguen.`,
     serversDead: "Requiere multijugador y no hay nadie jugando ahora, así que los servidores parecen inactivos.",
     unconfirmed: "Sin confirmar:",
     notEnoughData:

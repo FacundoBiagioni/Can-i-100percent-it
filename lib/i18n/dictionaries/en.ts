@@ -108,6 +108,9 @@ export const en = {
     missable: "Missable",
     bugged: "Bugged",
     unobtainable: "Unobtainable",
+    upcoming: "Not available yet",
+    reasonUnobtainable: "Marked as no longer obtainable in its community-curated achievement list.",
+    reasonUpcoming: "Not in the game yet: its content hasn't been added. It should become obtainable once it is.",
   },
   report: {
     share: "Share",
@@ -144,6 +147,10 @@ export const en = {
     requirementMultiplayer: "multiplayer",
     unobtainable: (n: number, names: string) => `${n} achievement${n === 1 ? " is" : "s are"} no longer obtainable: ${names}.`,
     andMore: (n: number) => `and ${n} more`,
+    upcoming: (n: number, names: string) =>
+      n === 1
+        ? `1 achievement can't be unlocked yet: ${names}. Its content isn't in the game yet; it should become obtainable once it's added.`
+        : `${n} achievements can't be unlocked yet: ${names}. Their content isn't in the game yet; they should become obtainable once it's added.`,
     serversDead: "Requires multiplayer, and the current player count is zero, so servers appear inactive.",
     unconfirmed: "Unconfirmed:",
     notEnoughData: "Not enough data to confirm this game yet: no curated achievement data, and community sources couldn't be read.",
