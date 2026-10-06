@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Search } from "lucide-react";
-import { formatPrice } from "@/lib/ui/price";
+import { useFormatPrice, useRegion } from "@/lib/pricing/client";
+import { countryName } from "@/lib/pricing/regions";
 import { useT } from "@/lib/i18n/client";
 
 type SearchResult = { appId: number; name: string; image?: string; isFree: boolean; priceCents: number | null };
@@ -28,6 +29,8 @@ export default function SearchBox({
   label?: string;
 }) {
   const t = useT();
+  const formatPrice = useFormatPrice();
+  const { cc } = useRegion();
   const placeholder = placeholderProp ?? t.search.placeholder;
   const router = useRouter();
   const listboxId = useId();
@@ -195,7 +198,7 @@ export default function SearchBox({
               </button>
             ))}
           {!loading && results.length > 0 && (
-            <div className="sticky bottom-0 border-t border-carbon bg-void px-3 py-2 text-caption text-graphite">{t.priceRegion}</div>
+            <div className="sticky bottom-0 border-t border-carbon bg-void px-3 py-2 text-caption text-graphite">{t.priceRegion(countryName(cc, t.numberLocale))}</div>
           )}
         </div>
       )}

@@ -24,7 +24,15 @@ export const en = {
     about: "About",
     openMenu: "Open menu",
     closeMenu: "Close menu",
-    switchLanguage: "Cambiar a español",
+    settings: "Settings",
+  },
+  settings: {
+    title: "Settings",
+    language: "Language",
+    region: "Store region",
+    automatic: (country: string) => `Automatic (${country})`,
+    automaticUnknown: "Automatic",
+    regionHint: "Prices, discounts and all-time lows come from this country's Steam store.",
   },
   search: {
     placeholder: "Search a Steam game",
@@ -33,7 +41,7 @@ export const en = {
     noResults: "No games found",
     free: "Free",
   },
-  priceRegion: "Steam Argentina prices, in USD",
+  priceRegion: (country: string) => `Steam ${country} store prices`,
   verdict: {
     green: { label: "100% obtainable", blurb: "Every achievement can still be earned today." },
     red: {
@@ -63,10 +71,10 @@ export const en = {
   },
   game: {
     freeToPlay: "Free to play",
-    usdArgentina: "USD, Steam Argentina",
+    storeIn: (country: string) => `Steam ${country}`,
     lowestEver: "Lowest ever",
     allTimeLow: "All-time low",
-    neverCheaper: ", never been cheaper on Steam Argentina",
+    neverCheaper: (country: string) => `, never been cheaper on Steam ${country}`,
     analyzing: "Analyzing this game for the first time...",
     takingLonger: "This is taking longer than expected. Reload the page to check again.",
   },
@@ -252,7 +260,7 @@ export const en = {
     sourcesLabel: "Sources",
     sourcesTitle: "Where the data comes from.",
     sources: {
-      steam: "The game itself: its achievement list and unlock rates, its DLC, how many people are playing right now, and its Argentina store price.",
+      steam: "The game itself: its achievement list and unlock rates, its DLC, how many people are playing right now, and its price in your region's store.",
       steamhunters:
         "A community-curated achievement database. It keeps the list of achievements that can no longer be unlocked, says whether 100% needs paid DLC, and measures how long players really took to unlock everything.",
       scouts:
@@ -260,7 +268,7 @@ export const en = {
       forumsName: "Forums, guides and Wikipedia",
       forums:
         "Steam discussion threads, Steam community guides and Wikipedia articles, read by an AI model to spot missable or bugged achievements and DLC mentions. Each reading is kept, so the same thread is never read twice.",
-      itad: "The biggest discount the game has ever had on the Argentina store, to tell you when it's at its all-time low.",
+      itad: "The biggest discount the game has ever had in your region's store, to tell you when it's at its all-time low.",
       reportsName: "Your reports",
       reports: 'The "Is this verdict wrong?" button on every game. Reports are reviewed by hand before they\'re used.',
     },
@@ -307,7 +315,7 @@ export const en = {
       "AI reads of forums and guides can misread a thread. They never decide a verdict on their own when curated data exists.",
       "Results are re-checked over time, oldest first, so a game's page may be a few days behind.",
       "When the AI is unavailable, a game keeps what its sources said at its last check, and its verdict still comes from curated data. It's read again as soon as the AI is back.",
-      "Prices are Steam's Argentina store, in USD.",
+      "Prices come from the Steam store of your country, detected from your connection. You can pick another one in settings.",
     ],
     limitsOutro: 'If something looks wrong, use "Is this verdict wrong?" on the game\'s page.',
     cta: "Check a game",

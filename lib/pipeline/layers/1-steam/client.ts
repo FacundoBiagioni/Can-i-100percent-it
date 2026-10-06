@@ -16,9 +16,10 @@ export type SteamGameSummary = {
   name: string;
   image?: string;
   isFree: boolean;
-  priceCents: number | null;
 };
 
+/** Search results without prices: those depend on the visitor's region and
+ * are added per request (see app/api/search). */
 export async function searchGames(query: string): Promise<SteamGameSummary[]> {
   return getOrFetch(CacheKeys.steamSearch(query), CacheTTL.steamSearch, async () => {
     const url = `${STEAM_ENDPOINTS.storeSearch}?term=${encodeURIComponent(query)}&l=english&cc=US`;
@@ -34,8 +35,7 @@ export async function searchGames(query: string): Promise<SteamGameSummary[]> {
     // Knight's "Official Soundtrack" both report type "app" there). Real
     // classification ("game", "dlc", "music", ...) only comes from
     // appdetails — reusing the full getAppDetails call (already cached
-    // 24h) instead of a separate lighter one. Price comes from the
-    // Argentina storefront like every other price shown in the app.
+    // 24h) instead of a separate lighter one.
     // Games always kept. Non-game software (Steam's own "application"
     // type, e.g. Wallpaper Engine) only kept if it actually has
     // achievements — otherwise there's nothing for this app to do with
@@ -48,19 +48,17 @@ export async function searchGames(query: string): Promise<SteamGameSummary[]> {
           details.type === "game" ||
           (details.type === "application" && (await getAchievementSchema(item.id)).length > 0);
         if (!keep) return null;
-        const pricing = await getArgentinaPricing(item.id);
-        return { item, details, pricing };
+        return { item, details };
       }),
     );
 
     return classified
       .filter((c): c is NonNullable<typeof c> => c !== null)
-      .map(({ item, details, pricing }) => ({
+      .map(({ item, details }) => ({
         appId: item.id,
         name: item.name,
         image: item.tiny_image,
         isFree: details.isFree,
-        priceCents: pricing?.priceCents ?? null,
       }));
   });
 }
@@ -86,7 +84,7 @@ export type SteamAppDetails = {
 
 /** Region-neutral metadata only (fetched as cc=us so region-locked titles
  * still resolve). Prices deliberately aren't exposed here: every price in
- * the app comes from getArgentinaPricing, so US and AR figures never mix. */
+ * the app comes from the visitor's region (lib/pricing/steamPrices). */
 export async function getAppDetails(appId: number): Promise<SteamAppDetails | null> {
   return getOrFetch(CacheKeys.steamAppDetails(appId), CacheTTL.steamAppDetails, async () => {
     const url = `${STEAM_ENDPOINTS.appDetails}?appids=${appId}&cc=us&l=english`;
@@ -111,56 +109,6 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
       isFree: entry.data.is_free ?? false,
     };
   });
-}
-
-export type ArPricing = {
-  isFree: boolean;
-  currency: string;
-  priceCents: number | null;
-  /** Pre-discount regular price — needed to apply a discount % (e.g. an
-   * ITAD historical-low cut) against a USD-denominated figure, and to show
-   * a struck-through "was" price when the game is currently on sale. */
-  initialPriceCents: number | null;
-  /** Steam's own current discount %, 0 when not on sale. */
-  discountPercent: number;
-};
-
-/**
- * Argentina's Steam storefront pricing — verified live to be genuinely
- * discounted vs. the US price (Hollow Knight: $4.99 at cc=ar vs $14.99 at
- * cc=us), even though Valve denominates it in USD rather than ARS for this
- * region. A separate call/cache key from getAppDetails since it's a
- * different `cc` on the same endpoint.
- */
-export async function getArgentinaPricing(appId: number): Promise<ArPricing | null> {
-  return getOrFetch(CacheKeys.steamArPricing(appId), CacheTTL.steamArPricing, async () => {
-    const url = `${STEAM_ENDPOINTS.appDetails}?appids=${appId}&cc=ar&l=english`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const parsed = appDetailsResponseSchema(appId).safeParse(await res.json());
-    if (!parsed.success) return null;
-    const entry = parsed.data[String(appId)];
-    if (!entry.success || !entry.data) return null;
-
-    if (entry.data.is_free) {
-      return { isFree: true, currency: "", priceCents: null, initialPriceCents: null, discountPercent: 0 };
-    }
-    if (!entry.data.price_overview) return null;
-    return {
-      isFree: false,
-      currency: entry.data.price_overview.currency,
-      priceCents: entry.data.price_overview.final,
-      initialPriceCents: entry.data.price_overview.initial,
-      discountPercent: entry.data.price_overview.discount_percent,
-    };
-  });
-}
-
-/** A DLC's displayed price: 0 when free, null when it isn't sold on its own
- * in Argentina (only inside bundles), otherwise its regional price. */
-export function dlcPriceCents(pricing: ArPricing | null): number | null {
-  if (!pricing) return null;
-  return pricing.isFree ? 0 : pricing.priceCents;
 }
 
 export type SteamAchievementSchema = {

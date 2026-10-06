@@ -3,7 +3,7 @@ import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
 import { getAnalysisResult } from "@/lib/db/queries/analysis";
 import { getOrCreateGame } from "@/lib/db/queries/games";
 import { runPipeline } from "./orchestrator";
-import { getArgentinaPricing, dlcPriceCents } from "./layers/1-steam/client";
+import { getRegionalPrices } from "@/lib/pricing/steamPrices";
 import type { AnalysisResult } from "./types";
 
 export type AnalysisOutcome =
@@ -20,28 +20,31 @@ export type AnalysisOutcome =
 export async function getCachedAnalysis(appId: number): Promise<AnalysisResult | null> {
   const cacheKey = CacheKeys.analysis(appId);
   const cached = redis ? await redis.get<AnalysisResult>(cacheKey) : null;
-  if (cached) return withArgentinaDlcPrices(cached);
+  if (cached) return cached;
 
   const existing = await getAnalysisResult(appId);
   if (existing && redis) await redis.set(cacheKey, existing, { ex: CacheTTL.analysis });
-  return existing && withArgentinaDlcPrices(existing);
+  return existing;
 }
 
 /**
- * Re-prices required DLC from the Argentina storefront at read time. A
- * stored analysis freezes whatever prices existed when it ran — including
- * US-storefront prices from before every price in the app moved to AR —
- * and would otherwise go stale across sales until the next re-verification.
- * Cheap: getArgentinaPricing is cached 24h, and most games require no DLC.
+ * Prices a result's required DLC in one Steam store (the visitor's region):
+ * stored results carry no prices, since they're shared by everyone. One
+ * batched, cached lookup for all the game's required DLC. A DLC Steam
+ * doesn't sell on its own there stays null ("Not sold alone").
  */
-async function withArgentinaDlcPrices(analysis: AnalysisResult): Promise<AnalysisResult> {
-  if (analysis.dlcRequired.length === 0) return analysis;
-  const dlcRequired = await Promise.all(
-    analysis.dlcRequired.map(async (d) =>
-      // An unlisted DLC has no store page to price.
-      d.unlisted ? d : { ...d, priceCents: dlcPriceCents(await getArgentinaPricing(d.dlcAppId)) },
-    ),
+export async function priceDlcForRegion(analysis: AnalysisResult, cc: string): Promise<AnalysisResult> {
+  const priced = analysis.dlcRequired.filter((d) => !d.unlisted);
+  if (priced.length === 0) return analysis;
+  const prices = await getRegionalPrices(
+    priced.map((d) => d.dlcAppId),
+    cc,
   );
+  const dlcRequired = analysis.dlcRequired.map((d) => {
+    if (d.unlisted) return d;
+    const p = prices.get(d.dlcAppId);
+    return { ...d, priceCents: p ? (p.isFree ? 0 : p.priceCents) : null };
+  });
   return {
     ...analysis,
     dlcRequired,

@@ -6,13 +6,18 @@ import type { AnalysisResult } from "@/lib/pipeline/types";
 import type { FlaggedAchievement } from "@/lib/db/queries/achievements";
 import RequirementsSummary from "./RequirementsSummary";
 import AchievementsTable from "./AchievementsTable";
-import { formatPrice } from "@/lib/ui/price";
+import { useFormatPrice } from "@/lib/pricing/client";
 import { useT } from "@/lib/i18n/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
 const PEEK_PX = 88; // 5.5rem at the default root font size
 
-function buildPeekSummary(analysis: AnalysisResult, achievementCount: number, t: Dictionary): string | null {
+function buildPeekSummary(
+  analysis: AnalysisResult,
+  achievementCount: number,
+  t: Dictionary,
+  formatPrice: (cents: number) => string,
+): string | null {
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const parts: string[] = [];
   if (requiredDlc.length > 0) {
@@ -47,6 +52,7 @@ export default function BottomSheet({
   achievements: FlaggedAchievement[];
 }) {
   const t = useT();
+  const formatPrice = useFormatPrice();
   const [expanded, setExpanded] = useState(false);
   // Pixel offset while a drag is actively in progress — null means "not
   // dragging right now," so the CSS class-based transform (with its
@@ -56,7 +62,7 @@ export default function BottomSheet({
   const dragState = useRef<{ startY: number; startTranslate: number; moved: boolean } | null>(null);
   const justDraggedRef = useRef(false);
 
-  const summary = buildPeekSummary(analysis, achievements.length, t);
+  const summary = buildPeekSummary(analysis, achievements.length, t, formatPrice);
   if (!summary) return null;
 
   function collapsedTranslate() {

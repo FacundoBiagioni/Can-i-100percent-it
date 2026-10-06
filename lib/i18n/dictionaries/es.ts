@@ -25,7 +25,15 @@ export const es: Dictionary = {
     about: "Acerca de",
     openMenu: "Abrir menú",
     closeMenu: "Cerrar menú",
-    switchLanguage: "Switch to English",
+    settings: "Ajustes",
+  },
+  settings: {
+    title: "Ajustes",
+    language: "Idioma",
+    region: "Región de la tienda",
+    automatic: (country: string) => `Automática (${country})`,
+    automaticUnknown: "Automática",
+    regionHint: "Los precios, descuentos y mínimos históricos salen de la tienda de Steam de este país.",
   },
   search: {
     placeholder: "Buscá un juego de Steam",
@@ -34,7 +42,7 @@ export const es: Dictionary = {
     noResults: "No se encontraron juegos",
     free: "Gratis",
   },
-  priceRegion: "Precios de Steam Argentina, en USD",
+  priceRegion: (country: string) => `Precios de la tienda de Steam ${country}`,
   verdict: {
     green: { label: "100% posible", blurb: "Todos los logros se pueden conseguir hoy." },
     red: {
@@ -64,10 +72,10 @@ export const es: Dictionary = {
   },
   game: {
     freeToPlay: "Gratis",
-    usdArgentina: "USD, Steam Argentina",
+    storeIn: (country: string) => `Steam ${country}`,
     lowestEver: "Mínimo histórico",
     allTimeLow: "Mínimo histórico",
-    neverCheaper: ", nunca estuvo más barato en Steam Argentina",
+    neverCheaper: (country: string) => `, nunca estuvo más barato en Steam ${country}`,
     analyzing: "Analizando este juego por primera vez...",
     takingLonger: "Está tardando más de lo esperado. Recargá la página para volver a revisar.",
   },
@@ -255,7 +263,7 @@ export const es: Dictionary = {
     sourcesLabel: "Fuentes",
     sourcesTitle: "De dónde salen los datos.",
     sources: {
-      steam: "El juego en sí: su lista de logros y qué porcentaje los desbloqueó, sus DLC, cuánta gente lo está jugando ahora y su precio en la tienda de Argentina.",
+      steam: "El juego en sí: su lista de logros y qué porcentaje los desbloqueó, sus DLC, cuánta gente lo está jugando ahora y su precio en la tienda de tu región.",
       steamhunters:
         "Una base de logros curada por la comunidad. Lleva la lista de logros que ya no se pueden desbloquear, dice si el 100% necesita DLC pagos y mide cuánto tardaron de verdad los jugadores en sacarlo todo.",
       scouts:
@@ -263,7 +271,7 @@ export const es: Dictionary = {
       forumsName: "Foros, guías y Wikipedia",
       forums:
         "Hilos de discusión de Steam, guías de la comunidad y artículos de Wikipedia, leídos por un modelo de IA para detectar logros perdibles o bugueados y menciones de DLC. Cada lectura se guarda, así que el mismo hilo nunca se lee dos veces.",
-      itad: "El mayor descuento que tuvo el juego en la tienda de Argentina, para avisarte cuando está en su mínimo histórico.",
+      itad: "El mayor descuento que tuvo el juego en la tienda de tu región, para avisarte cuando está en su mínimo histórico.",
       reportsName: "Tus reportes",
       reports: 'El botón "¿Este veredicto está mal?" de cada juego. Los reportes se revisan a mano antes de usarse.',
     },
@@ -310,7 +318,7 @@ export const es: Dictionary = {
       "La IA que lee foros y guías puede interpretar mal un hilo. Nunca decide un veredicto por sí sola cuando hay datos curados.",
       "Los resultados se vuelven a revisar con el tiempo, primero los más viejos, así que la página de un juego puede estar unos días atrasada.",
       "Cuando la IA no está disponible, el juego conserva lo que decían sus fuentes en la última revisión, y el veredicto sigue saliendo de los datos curados. Se vuelve a leer apenas vuelve la IA.",
-      "Los precios son de la tienda de Steam Argentina, en USD.",
+      "Los precios salen de la tienda de Steam de tu país, detectado por tu conexión. Podés elegir otro en ajustes.",
     ],
     limitsOutro: 'Si algo parece estar mal, usá "¿Este veredicto está mal?" en la página del juego.',
     cta: "Revisar un juego",

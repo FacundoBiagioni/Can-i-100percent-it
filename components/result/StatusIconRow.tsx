@@ -3,12 +3,13 @@
 import { Package, PackageX, Server, ServerOff, Bug, BugOff, GitBranch, Clock, Ban, CircleOff } from "lucide-react";
 import StatusIcon from "@/components/ui/StatusIcon";
 import type { AnalysisResult } from "@/lib/pipeline/types";
-import { formatPrice } from "@/lib/ui/price";
+import { useFormatPrice } from "@/lib/pricing/client";
 import { useT } from "@/lib/i18n/client";
 import { localizeReasoning } from "@/lib/i18n/reasoning";
 
 export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }) {
   const t = useT();
+  const formatPrice = useFormatPrice();
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const delistedRequiredDlc = requiredDlc.filter((d) => d.isDelisted);
 

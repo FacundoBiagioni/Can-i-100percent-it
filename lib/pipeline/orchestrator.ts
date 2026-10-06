@@ -8,7 +8,7 @@ import {
 } from "@/lib/db/queries/analysis";
 import { insertEvidence, getStoredClaims } from "@/lib/db/queries/evidence";
 import { getAchievementsForGame, getOrCreateGame } from "@/lib/db/queries/games";
-import { steamAnalyzer, getAppDetails, getArgentinaPricing, dlcPriceCents } from "./layers/1-steam/client";
+import { steamAnalyzer, getAppDetails } from "./layers/1-steam/client";
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import { resolveRequiredDlc } from "./dlc/resolveRequiredDlc";
 import { unlistedDlcRequirement } from "./dlc/unlisted";
@@ -146,16 +146,12 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
       // say it's no longer sold (see dlc/unlisted.ts).
       const unlisted = unlistedDlcRequirement(resolution.required, catalog, allClaims);
       if (unlisted) resolution.required.clear();
-      // Prices only for what's required — Steam Argentina's regional price,
-      // same as every other price in the app.
-      dlcNeeded = await Promise.all(
-        dlcNeeded.map(async (d) => {
-          const evidence = resolution.required.get(d.dlcAppId);
-          if (!evidence) return d;
-          const pricing = await getArgentinaPricing(d.dlcAppId);
-          return { ...d, required: true, evidence, priceCents: dlcPriceCents(pricing) };
-        }),
-      );
+      // Prices aren't stored: they depend on the visitor's region and are
+      // added when the result is shown (priceDlcForRegion).
+      dlcNeeded = dlcNeeded.map((d) => {
+        const evidence = resolution.required.get(d.dlcAppId);
+        return evidence ? { ...d, required: true, evidence } : d;
+      });
       if (unlisted) dlcNeeded = [...dlcNeeded, unlisted];
     }
   }

@@ -1,4 +1,5 @@
-import { getOrRunAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
+import { getOrRunAnalysis, priceDlcForRegion } from "@/lib/pipeline/getOrRunAnalysis";
+import { getRegion } from "@/lib/pricing/server";
 import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 
 export async function GET(
@@ -18,6 +19,6 @@ export async function GET(
   if (outcome.state === "pending") {
     return Response.json({ status: "pending" }, { status: 202 });
   }
-  const achievements = await getFlaggedAchievements(appId);
-  return Response.json({ analysis: outcome.analysis, achievements });
+  const [achievements, region] = await Promise.all([getFlaggedAchievements(appId), getRegion()]);
+  return Response.json({ analysis: await priceDlcForRegion(outcome.analysis, region.cc), achievements });
 }

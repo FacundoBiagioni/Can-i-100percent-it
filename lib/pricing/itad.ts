@@ -36,27 +36,24 @@ async function lookupItadId(appId: number, apiKey: string): Promise<string | nul
 }
 
 /**
- * The biggest discount % Steam has ever run on this game in Argentina —
- * only the percentage, not ITAD's own price figure, since ITAD's regional
- * data is denominated in real ARS while the rest of this app shows Steam's
- * own USD-denominated AR price (per request — "como aparece en Steam,
- * pero en dólares"). The caller applies this % to the current USD regular
- * price (getArgentinaPricing's initialPriceCents) instead, since cut is a
- * dimensionless percentage that carries over regardless of currency.
+ * The biggest discount % Steam has ever run on this game in one country's
+ * store. Only the percentage is used, applied by the caller to that store's
+ * current regular price: ITAD's own price figures are sometimes in another
+ * currency than Steam uses today (it still reports Turkey in TRY), while a
+ * cut is the same whatever the currency.
  *
  * Requires ITAD_API_KEY (a free developer key from isthereanydeal.com/apps/my)
- * — returns null immediately if it's not configured, same degrade-gracefully
- * pattern as every other optional data source in this pipeline.
+ * and returns null without it, like every other optional data source.
  */
-export async function getArgentinaMaxDiscountCut(appId: number): Promise<number | null> {
+export async function getMaxDiscountCut(appId: number, cc: string): Promise<number | null> {
   const apiKey = process.env.ITAD_API_KEY;
   if (!apiKey) return null;
 
   const itadId = await lookupItadId(appId, apiKey);
   if (!itadId) return null;
 
-  return getOrFetch(CacheKeys.itadDeal(appId), CacheTTL.itadDeal, async () => {
-    const res = await fetch(`${ITAD_BASE}/games/storelow/v2?key=${apiKey}&country=AR&shops=${STEAM_SHOP_ID}`, {
+  return getOrFetch(CacheKeys.itadDeal(appId, cc), CacheTTL.itadDeal, async () => {
+    const res = await fetch(`${ITAD_BASE}/games/storelow/v2?key=${apiKey}&country=${cc}&shops=${STEAM_SHOP_ID}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify([itadId]),

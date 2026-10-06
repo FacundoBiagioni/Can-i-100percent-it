@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import SearchBox from "@/components/search/SearchBox";
-import LanguageToggle from "./LanguageToggle";
+import SettingsMenu from "./SettingsMenu";
 import { useT } from "@/lib/i18n/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
@@ -80,7 +80,7 @@ export default function Header() {
             auto margins place everything. */}
         <div className={`ml-auto flex min-w-0 items-center gap-2 ${isHome ? "md:ml-0" : "lg:ml-0"}`}>
           {!isHome && <SearchBox size="sm" autoFocus={false} placeholder={t.search.placeholderOther} />}
-          <LanguageToggle />
+          <SettingsMenu />
           <button
             type="button"
             aria-expanded={menuOpen}

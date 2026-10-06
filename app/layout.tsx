@@ -4,6 +4,8 @@ import Header from "@/components/layout/Header";
 import PageTransition from "@/components/layout/PageTransition";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { RegionProvider } from "@/lib/pricing/client";
+import { getRegion } from "@/lib/pricing/server";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const locale = await getLocale();
+  const [locale, region] = await Promise.all([getLocale(), getRegion()]);
   return (
     <html
       lang={locale}
@@ -37,8 +39,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col">
         <I18nProvider locale={locale}>
-          <Header />
-          <PageTransition>{children}</PageTransition>
+          <RegionProvider region={region}>
+            <Header />
+            <PageTransition>{children}</PageTransition>
+          </RegionProvider>
         </I18nProvider>
       </body>
     </html>

@@ -1,7 +1,8 @@
 "use client";
 
 import type { AnalysisResult } from "@/lib/pipeline/types";
-import { formatPrice } from "@/lib/ui/price";
+import { useFormatPrice, useRegion } from "@/lib/pricing/client";
+import { countryName } from "@/lib/pricing/regions";
 import { useT } from "@/lib/i18n/client";
 
 /** Direct, always-visible facts — no accordion, and a fact that has nothing
@@ -10,6 +11,8 @@ import { useT } from "@/lib/i18n/client";
  * its tooltip already cover it. */
 export default function RequirementsSummary({ analysis }: { analysis: AnalysisResult }) {
   const t = useT();
+  const formatPrice = useFormatPrice();
+  const { cc } = useRegion();
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
 
   return (
@@ -40,7 +43,7 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
               ))}
             </tbody>
           </table>
-          <p className="mt-3 text-caption text-graphite">{t.priceRegion}</p>
+          <p className="mt-3 text-caption text-graphite">{t.priceRegion(countryName(cc, t.numberLocale))}</p>
         </div>
       )}
 

@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Image from "next/image";
 import { getOrCreateGame } from "@/lib/db/queries/games";
-import { getAppDetails, getArgentinaPricing } from "@/lib/pipeline/layers/1-steam/client";
-import { getArgentinaMaxDiscountCut } from "@/lib/pricing/itad";
-import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
+import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
+import { getMaxDiscountCut } from "@/lib/pricing/itad";
+import { getRegionalPrice } from "@/lib/pricing/steamPrices";
+import { getRegion } from "@/lib/pricing/server";
+import { countryName } from "@/lib/pricing/regions";
+import { getCachedAnalysis, priceDlcForRegion } from "@/lib/pipeline/getOrRunAnalysis";
 import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
 import VerdictBlock from "@/components/result/VerdictBlock";
 import VerdictActions from "@/components/result/VerdictActions";
@@ -53,37 +56,36 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   // Read-only check — never blocks the page on a first-time pipeline run.
   // If nothing's cached yet, AnalysisLoader kicks the run off client-side
   // and swaps itself for the real result once it lands, no manual reload.
-  const analysis = await getCachedAnalysis(appId);
+  const region = await getRegion();
+  const stored = await getCachedAnalysis(appId);
+  const analysis = stored && (await priceDlcForRegion(stored, region.cc));
   const achievements = analysis ? await getFlaggedAchievements(appId) : [];
+  const money = (cents: number) => formatPrice(cents, region.currency, t.numberLocale);
+  const country = countryName(region.cc, t.numberLocale);
   const heroImage = details?.heroImage || game.headerImageUrl;
 
-  // getArgentinaPricing is Steam's own AR-regional price — genuinely
-  // discounted vs. US, but denominated in USD since our server isn't seen
-  // as Argentina-based (that's how Steam itself shows this region, so it's
-  // shown as-is rather than converted). getArgentinaMaxDiscountCut is the
-  // biggest % Steam has ever discounted this game in Argentina (via
-  // IsThereAnyDeal, whose own price data is in real ARS) — applied to the
-  // current USD regular price rather than shown in ITAD's own currency, to
-  // keep both figures in the same USD terms.
-  const [arPricing, maxDiscountCut] = await Promise.all([getArgentinaPricing(appId), getArgentinaMaxDiscountCut(appId)]);
-  const isFree = arPricing?.isFree ?? false;
+  // The visitor's store: its price, in its own currency, and the biggest %
+  // Steam has ever discounted the game there (via IsThereAnyDeal), applied
+  // to that store's regular price so both figures are in the same currency.
+  const [storePrice, maxDiscountCut] = await Promise.all([getRegionalPrice(appId, region.cc), getMaxDiscountCut(appId, region.cc)]);
+  const isFree = storePrice?.isFree ?? false;
   const currentPrice =
-    arPricing && !arPricing.isFree && arPricing.priceCents !== null
-      ? { priceCents: arPricing.priceCents }
+    storePrice && !storePrice.isFree && storePrice.priceCents !== null
+      ? { priceCents: storePrice.priceCents }
       : null;
   // Steam's own live discount on this price — shown as a struck-through
   // "was" price next to the current one, not folded into "the" price, so a
   // game that's just on sale right now doesn't read as if that were its
   // normal cost.
   const activeDiscount =
-    arPricing && !arPricing.isFree && arPricing.discountPercent > 0 && arPricing.initialPriceCents !== null
-      ? { percent: arPricing.discountPercent, initialPriceCents: arPricing.initialPriceCents }
+    storePrice && !storePrice.isFree && storePrice.discountPercent > 0 && storePrice.initialPriceCents !== null
+      ? { percent: storePrice.discountPercent, initialPriceCents: storePrice.initialPriceCents }
       : null;
   const historicalLow =
-    maxDiscountCut && maxDiscountCut > 0 && arPricing?.initialPriceCents
+    maxDiscountCut && maxDiscountCut > 0 && storePrice?.initialPriceCents
       ? {
           cut: maxDiscountCut,
-          priceCents: Math.round(arPricing.initialPriceCents * (1 - maxDiscountCut / 100)),
+          priceCents: Math.round(storePrice.initialPriceCents * (1 - maxDiscountCut / 100)),
         }
       : null;
   // On sale right now at (or past) the biggest discount it has ever had.
@@ -128,14 +130,14 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
                           -{activeDiscount.percent}%
                         </span>
                         <span className="tabular-nums text-graphite line-through">
-                          {formatPrice(activeDiscount.initialPriceCents)}
+                          {money(activeDiscount.initialPriceCents)}
                         </span>
                       </>
                     )}
                     <span className={`tabular-nums ${activeDiscount ? "font-semibold text-chalk" : ""}`}>
-                      {formatPrice(currentPrice.priceCents)}
+                      {money(currentPrice.priceCents)}
                     </span>
-                    <span>{t.game.usdArgentina}</span>
+                    <span>{t.game.storeIn(country)}</span>
                   </span>
                 )
               )}
@@ -144,7 +146,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
                   <span aria-hidden className="hidden text-graphite sm:inline">/</span>
                   <span>
                     {t.game.lowestEver} <span className="font-semibold text-pass">-{historicalLow.cut}%</span>{" "}
-                    <span className="tabular-nums">({formatPrice(historicalLow.priceCents)})</span>
+                    <span className="tabular-nums">({money(historicalLow.priceCents)})</span>
                   </span>
                 </>
               )}
@@ -153,7 +155,7 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
                   <span aria-hidden className="hidden text-graphite sm:inline">/</span>
                   <span>
                     <span className="font-semibold text-pass">{t.game.allTimeLow}</span>
-                    {t.game.neverCheaper}
+                    {t.game.neverCheaper(country)}
                   </span>
                 </>
               )}

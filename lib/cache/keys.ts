@@ -1,7 +1,6 @@
 export const CacheTTL = {
   steamSearch: 60 * 60, // 1h
   steamAppDetails: 60 * 60 * 24, // 24h
-  steamArPricing: 60 * 60 * 24, // 24h
   steamDlcCatalog: 60 * 60 * 24, // 24h
   failureRetry: 60, // 1m — don't let a transient failure stick
   steamSchema: 60 * 60 * 24 * 7, // 7d
@@ -16,11 +15,10 @@ export const CacheTTL = {
 } as const;
 
 export const CacheKeys = {
-  // v2: results now carry Argentina-storefront prices; v1 entries had US ones.
-  steamSearch: (query: string) => `steam:search:v2:${query.toLowerCase()}`,
+  // v3: no prices inside (they depend on the visitor's region; added per request).
+  steamSearch: (query: string) => `steam:search:v3:${query.toLowerCase()}`,
   // v2: entries now carry fullGameAppId (a DLC's base game).
   steamAppDetails: (appId: number) => `steam:appdetails:v2:${appId}`,
-  steamArPricing: (appId: number) => `steam:pricing:ar:${appId}`,
   // v2: unreleased ("coming soon") DLC are excluded.
   steamDlcCatalog: (appId: number) => `steam:dlccatalog:v2:${appId}`,
   steamSchema: (appId: number) => `steam:schema:${appId}`,
@@ -30,5 +28,5 @@ export const CacheKeys = {
   analysis: (appId: number) => `analysis:${appId}`,
   pipelineLock: (appId: number) => `lock:pipeline:${appId}`,
   itadLookup: (appId: number) => `itad:lookup:${appId}`,
-  itadDeal: (appId: number) => `itad:deal:ar:${appId}`,
+  itadDeal: (appId: number, cc: string) => `itad:deal:${cc.toLowerCase()}:${appId}`,
 };
