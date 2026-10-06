@@ -32,6 +32,9 @@ export type DlcRequirement = {
   isDelisted: boolean;
   /** Achievements that need this DLC (only set on required DLC). */
   evidence?: string[];
+  /** A DLC Steam no longer sells or lists: no name or appId to show
+   * (dlcAppId is UNLISTED_DLC_APP_ID), only the achievements it gates. */
+  unlisted?: boolean;
 };
 
 export type Facts = {

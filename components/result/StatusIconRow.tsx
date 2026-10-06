@@ -15,7 +15,9 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
   const dlcState = delistedRequiredDlc.length > 0 ? "warning" : requiredDlc.length > 0 ? "on" : "off";
   const dlcLabel =
     delistedRequiredDlc.length > 0
-      ? t.icons.dlcDelisted(delistedRequiredDlc.map((d) => d.name).join(", "))
+      ? delistedRequiredDlc.every((d) => d.unlisted)
+        ? t.icons.dlcUnlisted
+        : t.icons.dlcDelisted(delistedRequiredDlc.filter((d) => !d.unlisted).map((d) => d.name).join(", "))
       : requiredDlc.length > 0
         ? t.icons.dlcRequired(formatPrice(analysis.totalDlcCostCents))
         : t.icons.noDlc;

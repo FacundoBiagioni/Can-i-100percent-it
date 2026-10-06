@@ -139,10 +139,14 @@ export function deriveStatus(facts: Facts): StatusDerivation {
 
   const delistedRequiredDlc = facts.dlcNeeded.filter((d) => d.required && d.isDelisted);
   if (delistedRequiredDlc.length > 0) {
+    const named = delistedRequiredDlc.filter((d) => !d.unlisted).map((d) => d.name);
     return {
       status: "red",
       confidence: "high",
-      reasoning: `Requires DLC that can no longer be purchased: ${delistedRequiredDlc.map((d) => d.name).join(", ")}.`,
+      reasoning:
+        named.length > 0
+          ? `Requires DLC that can no longer be purchased: ${named.join(", ")}.`
+          : "Requires a DLC that Steam no longer sells.",
     };
   }
 

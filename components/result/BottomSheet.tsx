@@ -15,7 +15,14 @@ const PEEK_PX = 88; // 5.5rem at the default root font size
 function buildPeekSummary(analysis: AnalysisResult, achievementCount: number, t: Dictionary): string | null {
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const parts: string[] = [];
-  if (requiredDlc.length > 0) parts.push(t.sheet.dlc(requiredDlc.length, formatPrice(analysis.totalDlcCostCents)));
+  if (requiredDlc.length > 0) {
+    // A DLC Steam no longer sells has no price to add up.
+    parts.push(
+      requiredDlc.every((d) => d.unlisted)
+        ? t.icons.dlcUnlisted
+        : t.sheet.dlc(requiredDlc.length, formatPrice(analysis.totalDlcCostCents)),
+    );
+  }
   // Multiplayer is deliberately left out: the server icon (and its tooltip,
   // which carries the server status) already says everything there is to
   // say, so it alone shouldn't open a sheet.

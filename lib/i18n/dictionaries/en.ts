@@ -74,6 +74,7 @@ export const en = {
     dlcDelisted: (names: string) => `Requires delisted DLC: ${names}`,
     dlcRequired: (price: string) => `Requires DLC, ${price}`,
     noDlc: "No DLC required",
+    dlcUnlisted: "Requires a DLC that Steam no longer sells",
     noMultiplayer: "No multiplayer required",
     serversOffline: "Multiplayer required, servers appear offline",
     serversOnline: "Multiplayer required, servers online",
@@ -94,6 +95,8 @@ export const en = {
   requirements: {
     dlcRequired: (n: number) => `${n} DLC required`,
     delisted: "(delisted)",
+    unlistedName: "A DLC Steam no longer sells",
+    noLongerSold: "No longer sold",
     neededFor: "Needed for:",
     notSoldAlone: "Not sold alone",
     free: "Free",
@@ -134,6 +137,7 @@ export const en = {
   reasoning: {
     notFound: "This AppID was not found on Steam.",
     delistedDlc: (names: string) => `Requires DLC that can no longer be purchased: ${names}.`,
+    unlistedDlc: "Requires a DLC that Steam no longer sells.",
     obtainableWith: (reqs: string) => `100% appears obtainable. Requires: ${reqs}.`,
     obtainable: "100% appears obtainable with no known blockers.",
     requirementDlc: "DLC",

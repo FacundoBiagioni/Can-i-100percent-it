@@ -75,6 +75,7 @@ export const es: Dictionary = {
     dlcDelisted: (names: string) => `Requiere DLC que ya no se vende: ${names}`,
     dlcRequired: (price: string) => `Requiere DLC, ${price}`,
     noDlc: "No requiere DLC",
+    dlcUnlisted: "Requiere un DLC que Steam ya no vende",
     noMultiplayer: "No requiere multijugador",
     serversOffline: "Requiere multijugador, los servidores parecen caídos",
     serversOnline: "Requiere multijugador, servidores en línea",
@@ -95,6 +96,8 @@ export const es: Dictionary = {
   requirements: {
     dlcRequired: (n: number) => `${n} DLC necesario${n === 1 ? "" : "s"}`,
     delisted: "(ya no se vende)",
+    unlistedName: "Un DLC que Steam ya no vende",
+    noLongerSold: "Ya no se vende",
     neededFor: "Necesario para:",
     notSoldAlone: "No se vende aparte",
     free: "Gratis",
@@ -135,6 +138,7 @@ export const es: Dictionary = {
   reasoning: {
     notFound: "Este AppID no existe en Steam.",
     delistedDlc: (names: string) => `Requiere DLC que ya no se puede comprar: ${names}.`,
+    unlistedDlc: "Requiere un DLC que Steam ya no vende.",
     obtainableWith: (reqs: string) => `El 100% parece posible. Requiere: ${reqs}.`,
     obtainable: "El 100% parece posible y no hay bloqueos conocidos.",
     requirementDlc: "DLC",

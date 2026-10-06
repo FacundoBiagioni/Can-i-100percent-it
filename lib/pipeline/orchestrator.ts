@@ -11,6 +11,7 @@ import { getAchievementsForGame, getOrCreateGame } from "@/lib/db/queries/games"
 import { steamAnalyzer, getAppDetails, getArgentinaPricing, dlcPriceCents } from "./layers/1-steam/client";
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import { resolveRequiredDlc } from "./dlc/resolveRequiredDlc";
+import { unlistedDlcRequirement } from "./dlc/unlisted";
 import { runAllScrapers } from "./layers/2-scrapers";
 import { applyRules, deriveStatus, steamHuntersTracks } from "./layers/3-rules/engine";
 import { applyRecencyDecay } from "./layers/4-recency/scorer";
@@ -141,6 +142,10 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
       );
       allClaims = [...allClaims, resolution.claim];
       if (["ai_unavailable", "previous_result"].includes(String(resolution.claim.claim.method))) partial = true;
+      // Paid DLC needed, but nothing listed can be bought: name no DLC, just
+      // say it's no longer sold (see dlc/unlisted.ts).
+      const unlisted = unlistedDlcRequirement(resolution.required, catalog, allClaims);
+      if (unlisted) resolution.required.clear();
       // Prices only for what's required — Steam Argentina's regional price,
       // same as every other price in the app.
       dlcNeeded = await Promise.all(
@@ -151,6 +156,7 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
           return { ...d, required: true, evidence, priceCents: dlcPriceCents(pricing) };
         }),
       );
+      if (unlisted) dlcNeeded = [...dlcNeeded, unlisted];
     }
   }
 

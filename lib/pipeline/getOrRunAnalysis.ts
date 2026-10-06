@@ -37,10 +37,10 @@ export async function getCachedAnalysis(appId: number): Promise<AnalysisResult |
 async function withArgentinaDlcPrices(analysis: AnalysisResult): Promise<AnalysisResult> {
   if (analysis.dlcRequired.length === 0) return analysis;
   const dlcRequired = await Promise.all(
-    analysis.dlcRequired.map(async (d) => ({
-      ...d,
-      priceCents: dlcPriceCents(await getArgentinaPricing(d.dlcAppId)),
-    })),
+    analysis.dlcRequired.map(async (d) =>
+      // An unlisted DLC has no store page to price.
+      d.unlisted ? d : { ...d, priceCents: dlcPriceCents(await getArgentinaPricing(d.dlcAppId)) },
+    ),
   );
   return {
     ...analysis,

@@ -5,6 +5,7 @@ import { hasDlcAnswer, saveDlcMapping } from "@/lib/db/queries/analysis";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
 import { resolveRequiredDlc } from "@/lib/pipeline/dlc/resolveRequiredDlc";
+import { unlistedDlcRequirement } from "@/lib/pipeline/dlc/unlisted";
 import { steamHuntersAdapter } from "@/lib/pipeline/layers/2-scrapers/steamhunters";
 import { achievementScoutsAdapter } from "@/lib/pipeline/layers/2-scrapers/achievementScouts";
 
@@ -66,9 +67,10 @@ export async function mapRequiredDlc(appId: number): Promise<MappingOutcome> {
     if (!DEFINITIVE.has(method)) return "failed";
 
     const byId = new Map(catalog.map((d) => [d.appId, d]));
+    const unlisted = unlistedDlcRequirement(resolution.required, catalog, claims);
     await saveDlcMapping(
       appId,
-      [...resolution.required].map(([dlcAppId, evidence]) => {
+      unlisted ? [unlisted] : [...resolution.required].map(([dlcAppId, evidence]) => {
         const d = byId.get(dlcAppId);
         return {
           dlcAppId,

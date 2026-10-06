@@ -18,6 +18,7 @@ export function localizeReasoning(text: string, t: Dictionary): string {
     return r.obtainableWith(reqs.join(", "));
   }
   if ((m = text.match(/^Requires DLC that can no longer be purchased: (.+)\.$/))) return r.delistedDlc(m[1]);
+  if (/^Requires a DLC that Steam no longer sells\.$/.test(text)) return r.unlistedDlc;
   if ((m = text.match(/^(\d+) achievements? (?:is|are) no longer obtainable: (.+)\.$/))) {
     const names = m[2].replace(/ and (\d+) more$/, (_, n) => ` ${r.andMore(Number(n))}`);
     return r.unobtainable(Number(m[1]), names);

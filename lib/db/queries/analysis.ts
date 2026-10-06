@@ -12,6 +12,7 @@ const dlcRequiredRowSchema = z.array(
     required: z.boolean(),
     isDelisted: z.boolean(),
     evidence: z.array(z.string()).optional(),
+    unlisted: z.boolean().optional(),
   }),
 );
 
