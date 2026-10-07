@@ -17,6 +17,7 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [achievements, setAchievements] = useState<FlaggedAchievement[]>([]);
   const [timedOut, setTimedOut] = useState(false);
+  const [limited, setLimited] = useState(false);
   const attempts = useRef(0);
 
   useEffect(() => {
@@ -36,6 +37,10 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
             setAchievements(data.achievements ?? []);
             recordRecentGame({ appId, name, image, status: data.analysis.status });
           }
+          return;
+        }
+        if (res.status === 429) {
+          if (!cancelled) setLimited(true);
           return;
         }
         // 202 (pending) or a transient error — keep polling up to the cap.
@@ -68,6 +73,10 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
         {analysis.status !== "no_achievements" && <BottomSheet analysis={analysis} achievements={achievements} />}
       </>
     );
+  }
+
+  if (limited) {
+    return <p className="text-body text-unsure">{t.game.rateLimited}</p>;
   }
 
   if (timedOut) {

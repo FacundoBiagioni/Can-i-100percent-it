@@ -29,6 +29,34 @@ export default function Header() {
   const isHome = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  // Home only: which section is in view ("#recent", "#verdicts", or "" for
+  // the hero), so the nav highlights where you are, not always "Index".
+  const [section, setSection] = useState("");
+
+  useEffect(() => {
+    if (!isHome) return;
+    const targets = ["recent", "verdicts"].map((id) => document.getElementById(id)).filter((el): el is HTMLElement => el !== null);
+    const inView = new Set<string>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) inView.add(e.target.id);
+          else inView.delete(e.target.id);
+        }
+        // The lowest section crossing the middle band wins.
+        const current = ["verdicts", "recent"].find((id) => inView.has(id));
+        setSection(current ? `#${current}` : "");
+      },
+      { rootMargin: "-45% 0px -50% 0px" },
+    );
+    targets.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [isHome]);
+
+  const isActive = (href: string) => {
+    if (!isHome) return href === pathname;
+    return href === "/" ? section === "" : section !== "" && href === `/${section}`;
+  };
 
   // Close on Escape or a tap outside the menu.
   useEffect(() => {
@@ -56,9 +84,8 @@ export default function Header() {
             pages: centered between the wordmark and the search box. */}
         <nav aria-label={t.nav.main} className={`hidden items-center gap-6 ${isHome ? "ml-auto md:flex" : "mx-auto lg:flex"}`}>
           {NAV.map((item) => {
-            // Only the plain route can be "current"; hash links are jumps
-            // within the homepage, not places of their own.
-            const active = item.href === pathname;
+            // On home, the section in view; elsewhere, the current route.
+            const active = isActive(item.href);
             return (
               <Link
                 key={item.href}
@@ -80,7 +107,9 @@ export default function Header() {
             auto margins place everything. */}
         <div className={`ml-auto flex min-w-0 items-center gap-2 ${isHome ? "md:ml-0" : "lg:ml-0"}`}>
           {!isHome && <SearchBox size="sm" autoFocus={false} placeholder={t.search.placeholderOther} />}
-          <SettingsMenu />
+          {/* Pulled out by the icon's own padding so its edge lines up with
+              the page edge, when it's the last thing in the row. */}
+          <SettingsMenu className={isHome ? "md:-mr-[11px]" : "lg:-mr-[11px]"} />
           <button
             type="button"
             aria-expanded={menuOpen}

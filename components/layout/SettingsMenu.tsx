@@ -60,7 +60,7 @@ function Switch({ label, hint, checked, onChange }: { label: string; hint: strin
  * year); a change re-renders the server parts in place with
  * router.refresh(), so there's no full reload and the page keeps its state.
  */
-export default function SettingsMenu() {
+export default function SettingsMenu({ className = "" }: { className?: string }) {
   const t = useT();
   const { locale, setLocale } = useLocale();
   const region = useRegion();
@@ -110,7 +110,7 @@ export default function SettingsMenu() {
   }
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={`relative ${className}`}>
       <button
         type="button"
         aria-label={t.nav.settings}

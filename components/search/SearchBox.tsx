@@ -39,6 +39,7 @@ export default function SearchBox({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [limited, setLimited] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +68,7 @@ export default function SearchBox({
       setOpen(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
+        setLimited(res.status === 429);
         const data = await res.json();
         setResults(data.results ?? []);
         setActiveIndex(-1);
@@ -171,7 +173,9 @@ export default function SearchBox({
                 <div className="h-3.5 w-40 animate-pulse bg-cinder" />
               </div>
             ))}
-          {!loading && results.length === 0 && <div className="px-3 py-3 text-body text-graphite">{t.search.noResults}</div>}
+          {!loading && results.length === 0 && (
+            <div className="px-3 py-3 text-body text-graphite">{limited ? t.search.rateLimited : t.search.noResults}</div>
+          )}
           {!loading &&
             results.map((r, i) => (
               <button

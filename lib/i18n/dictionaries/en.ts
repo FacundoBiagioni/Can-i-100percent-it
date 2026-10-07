@@ -44,6 +44,7 @@ export const en = {
     placeholderOther: "Search another game",
     label: "Search Steam",
     noResults: "No games found",
+    rateLimited: "Too many searches. Please wait a minute.",
     free: "Free",
   },
   priceRegion: (country: string) => `Steam ${country} store prices`,
@@ -82,6 +83,7 @@ export const en = {
     neverCheaper: (country: string) => `, never been cheaper on Steam ${country}`,
     analyzing: "Analyzing this game for the first time...",
     takingLonger: "This is taking longer than expected. Reload the page to check again.",
+    rateLimited: "Too many new games checked from this connection. Please try this one again in a while.",
   },
   icons: {
     dlcDelisted: (names: string) => `Requires delisted DLC: ${names}`,

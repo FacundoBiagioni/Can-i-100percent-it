@@ -47,27 +47,30 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   // list) and zero players, so analyzing it as a game produced nonsense
   // like "requires multiplayer, servers appear offline". Send the visitor
   // to the game it belongs to instead.
-  const [details, t] = await Promise.all([getAppDetails(appId), getT()]);
+  const [details, t, region] = await Promise.all([getAppDetails(appId), getT(), getRegion()]);
   if (details?.type === "dlc" && details.fullGameAppId) redirect(`/games/${details.fullGameAppId}`);
 
-  const game = await getOrCreateGame(appId);
+  // Everything else at once: none of it depends on the rest. The analysis
+  // read is cache-only and never blocks on a first-time pipeline run; if
+  // there's none yet, AnalysisLoader starts it client-side and swaps itself
+  // for the result once it lands, no manual reload. The price is the
+  // visitor's store, in its own currency, and the biggest % Steam has ever
+  // discounted the game there (via IsThereAnyDeal), applied to that store's
+  // regular price so both figures are in the same currency.
+  const [game, stored, achievementsIfAny, storePrice, maxDiscountCut] = await Promise.all([
+    getOrCreateGame(appId),
+    getCachedAnalysis(appId),
+    getFlaggedAchievements(appId),
+    getRegionalPrice(appId, region.cc),
+    getMaxDiscountCut(appId, region.cc),
+  ]);
   if (!game) notFound();
-
-  // Read-only check — never blocks the page on a first-time pipeline run.
-  // If nothing's cached yet, AnalysisLoader kicks the run off client-side
-  // and swaps itself for the real result once it lands, no manual reload.
-  const region = await getRegion();
-  const stored = await getCachedAnalysis(appId);
   const analysis = stored && (await priceDlcForRegion(stored, region.cc));
-  const achievements = analysis ? await getFlaggedAchievements(appId) : [];
+  const achievements = analysis ? achievementsIfAny : [];
   const money = (cents: number) => formatPrice(cents, region.currency, t.numberLocale);
   const country = countryName(region.cc, t.numberLocale);
   const heroImage = details?.heroImage || game.headerImageUrl;
 
-  // The visitor's store: its price, in its own currency, and the biggest %
-  // Steam has ever discounted the game there (via IsThereAnyDeal), applied
-  // to that store's regular price so both figures are in the same currency.
-  const [storePrice, maxDiscountCut] = await Promise.all([getRegionalPrice(appId, region.cc), getMaxDiscountCut(appId, region.cc)]);
   const isFree = storePrice?.isFree ?? false;
   const currentPrice =
     storePrice && !storePrice.isFree && storePrice.priceCents !== null

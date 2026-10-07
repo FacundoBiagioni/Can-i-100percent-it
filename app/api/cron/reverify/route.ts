@@ -8,8 +8,13 @@ import { aiExhausted } from "@/lib/ai/gemini";
 export const maxDuration = 120;
 
 export async function GET(request: NextRequest) {
-  const secret = request.nextUrl.searchParams.get("secret") ?? request.headers.get("x-cron-secret");
-  if (secret !== process.env.CRON_SECRET) {
+  // Vercel Cron sends "Authorization: Bearer <CRON_SECRET>". The old
+  // ?secret= / x-cron-secret forms only ever worked for manual calls, which
+  // is why the daily job never ran.
+  const expected = process.env.CRON_SECRET;
+  const bearer = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const secret = bearer ?? request.headers.get("x-cron-secret");
+  if (!expected || secret !== expected) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 

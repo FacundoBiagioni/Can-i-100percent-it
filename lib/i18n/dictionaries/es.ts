@@ -45,6 +45,7 @@ export const es: Dictionary = {
     placeholderOther: "Buscar juego",
     label: "Buscar en Steam",
     noResults: "No se encontraron juegos",
+    rateLimited: "Demasiadas búsquedas. Esperá un minuto.",
     free: "Gratis",
   },
   priceRegion: (country: string) => `Precios de la tienda de Steam ${country}`,
@@ -83,6 +84,7 @@ export const es: Dictionary = {
     neverCheaper: (country: string) => `, nunca estuvo más barato en Steam ${country}`,
     analyzing: "Analizando este juego por primera vez...",
     takingLonger: "Está tardando más de lo esperado. Recargá la página para volver a revisar.",
+    rateLimited: "Demasiados juegos nuevos revisados desde esta conexión. Probá con este más tarde.",
   },
   icons: {
     dlcDelisted: (names: string) => `Requiere DLC que ya no se vende: ${names}`,

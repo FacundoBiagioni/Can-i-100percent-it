@@ -35,6 +35,7 @@ export default function StatusIcon({
     <Tooltip label={label}>
       <span
         tabIndex={0}
+        role="img"
         aria-label={label}
         className={`relative inline-flex h-12 w-12 items-center justify-center border bg-void transition-colors ${TILE_STYLES[state]}`}
       >
