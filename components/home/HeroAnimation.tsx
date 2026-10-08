@@ -635,6 +635,9 @@ function create2DRenderer(canvas: HTMLCanvasElement, atlas: Atlas): Renderer | n
  */
 export default function HeroAnimation() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  // The hero's own box: what "on screen" means for pausing, since the canvas
+  // itself is fixed and always in the viewport.
+  const boxRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -743,7 +746,7 @@ export default function HeroAnimation() {
         render();
         setReady(true);
         resize.observe(canvas);
-        io.observe(canvas);
+        io.observe(boxRef.current ?? canvas);
         reduce.addEventListener("change", onMotionChange);
         window.addEventListener(MOTION_EVENT, onMotionChange);
         start();
@@ -763,13 +766,20 @@ export default function HeroAnimation() {
   }, []);
 
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden bg-void">
-      <canvas
-        ref={canvasRef}
-        className={`block h-full w-full transition-opacity duration-1000 ${ready ? "opacity-100" : "opacity-0"}`}
-      />
-      {/* Flat scrim, no gradient: keeps the white type legible over any frame. */}
-      <div className="absolute inset-0 bg-void/55" />
+    // The canvas is pinned to the viewport (fixed) and clipped to the hero
+    // (clip-path on this box), so it's never partly scrolled off screen.
+    // A WebGL canvas half out of view isn't repainted right by browsers that
+    // composite in software: the part still on screen froze as a dark block
+    // over the search box. Pinned, it also gives the hero a parallax feel.
+    <div aria-hidden ref={boxRef} className="pointer-events-none absolute inset-0 bg-void [clip-path:inset(0)]">
+      <div className="fixed inset-x-0 bottom-0 top-12">
+        <canvas
+          ref={canvasRef}
+          className={`block h-full w-full transition-opacity duration-1000 ${ready ? "opacity-100" : "opacity-0"}`}
+        />
+        {/* Flat scrim, no gradient: keeps the white type legible over any frame. */}
+        <div className="absolute inset-0 bg-void/55" />
+      </div>
     </div>
   );
 }
