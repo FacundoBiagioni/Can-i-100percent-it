@@ -4,7 +4,7 @@ import { communityReports } from "@/lib/db/schema";
 
 /**
  * Keeps the privacy policy's promise on report emails: an email is only
- * kept while its report is pending, and never more than 12 months. Clears
+ * kept while its report is pending, and never more than 6 months. Clears
  * the email (the report itself stays, anonymous). Run daily by the cron.
  * Returns how many emails were removed.
  */
@@ -15,7 +15,7 @@ export async function purgeReportEmails(): Promise<number> {
     .where(
       and(
         isNotNull(communityReports.submittedByEmail),
-        or(ne(communityReports.status, "pending"), lt(communityReports.createdAt, sql`now() - interval '12 months'`)),
+        or(ne(communityReports.status, "pending"), lt(communityReports.createdAt, sql`now() - interval '6 months'`)),
       ),
     )
     .returning({ id: communityReports.id });

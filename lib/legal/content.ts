@@ -61,7 +61,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
         {
           heading: "Reportes",
           paragraphs: [
-            'Si usás "¿Este veredicto está mal?", guardamos tu mensaje, el juego y, solo si lo dejás, tu email, para revisar el reporte y responderte si hace falta. El email se borra solo, automáticamente, cuando el reporte se resuelve, y como máximo a los 12 meses aunque siga pendiente; el reporte queda sin ningún dato tuyo. No incluyas datos personales de otras personas.',
+            'Si usás "¿Este veredicto está mal?", guardamos tu mensaje, el juego y, solo si lo dejás, tu email, para revisar el reporte y responderte si hace falta. El email se borra solo, automáticamente, cuando el reporte se resuelve, y como máximo a los 6 meses aunque siga pendiente; el reporte queda sin ningún dato tuyo. No incluyas datos personales de otras personas.',
           ],
         },
         {
@@ -131,7 +131,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
       {
         heading: "Reports",
         paragraphs: [
-          'If you use "Is this verdict wrong?", we store your message, the game and, only if you leave it, your email, to review the report and answer you if needed. The email is deleted automatically once the report is handled, and after 12 months at most even if it\'s still pending; the report then keeps no data about you. Please don\'t include other people\'s personal data.',
+          'If you use "Is this verdict wrong?", we store your message, the game and, only if you leave it, your email, to review the report and answer you if needed. The email is deleted automatically once the report is handled, and after 6 months at most even if it\'s still pending; the report then keeps no data about you. Please don\'t include other people\'s personal data.',
         ],
       },
       {
