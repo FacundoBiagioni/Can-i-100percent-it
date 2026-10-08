@@ -9,9 +9,10 @@ import type { Locale } from "@/lib/i18n/config";
 export type LegalSection = { heading: string; paragraphs: string[] };
 export type LegalDoc = { title: string; updated: string; intro: string; sections: LegalSection[] };
 
-/** Contact for privacy requests and anything legal. Unset until the site
- * has a public address; the text falls back to the report form then. */
-export const CONTACT_EMAIL = process.env.CONTACT_EMAIL ?? null;
+/** Contact for privacy requests and anything legal. CONTACT_EMAIL overrides
+ * it (the creator's personal address is a stand-in until the site has its
+ * own); with none, the text falls back to the report form. */
+export const CONTACT_EMAIL: string | null = process.env.CONTACT_EMAIL ?? "facundobiagioni@gmail.com";
 
 const contactEn = (email: string | null) =>
   email
@@ -60,7 +61,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
         {
           heading: "Reportes",
           paragraphs: [
-            'Si usás "¿Este veredicto está mal?", guardamos tu mensaje, el juego y, solo si lo dejás, tu email, para revisar el reporte y responderte si hace falta. El email se borra una vez resuelto el reporte, y como máximo a los 12 meses. No incluyas datos personales de otras personas.',
+            'Si usás "¿Este veredicto está mal?", guardamos tu mensaje, el juego y, solo si lo dejás, tu email, para revisar el reporte y responderte si hace falta. El email se borra solo, automáticamente, cuando el reporte se resuelve, y como máximo a los 12 meses aunque siga pendiente; el reporte queda sin ningún dato tuyo. No incluyas datos personales de otras personas.',
           ],
         },
         {
@@ -80,6 +81,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
           heading: "Tus derechos",
           paragraphs: [
             "Podés pedir ver, corregir o borrar los datos que tengamos sobre vos (en la práctica, un reporte y su email). También podés poner tu perfil de Steam en privado cuando quieras; desde ese momento no se puede revisar.",
+            "Este sitio se opera desde Argentina y se rige por la Ley 25.326 de Protección de Datos Personales. La Agencia de Acceso a la Información Pública, en su carácter de Órgano de Control de la Ley 25.326, tiene la atribución de atender las denuncias y reclamos que se interpongan con relación al incumplimiento de las normas sobre protección de datos personales.",
           ],
         },
         {
@@ -129,7 +131,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
       {
         heading: "Reports",
         paragraphs: [
-          'If you use "Is this verdict wrong?", we store your message, the game and, only if you leave it, your email, to review the report and answer you if needed. The email is deleted once the report is handled, and after 12 months at most. Please don\'t include other people\'s personal data.',
+          'If you use "Is this verdict wrong?", we store your message, the game and, only if you leave it, your email, to review the report and answer you if needed. The email is deleted automatically once the report is handled, and after 12 months at most even if it\'s still pending; the report then keeps no data about you. Please don\'t include other people\'s personal data.',
         ],
       },
       {
@@ -149,6 +151,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
         heading: "Your rights",
         paragraphs: [
           "You can ask to see, correct or delete any data we hold about you (in practice, a report and its email). You can also set your Steam profile to private at any time; from then on it can't be checked.",
+          "This site is run from Argentina and follows its Personal Data Protection Law (Ley 25.326). Argentina's Agency for Access to Public Information (Agencia de Acceso a la Información Pública), as the authority in charge of that law, handles complaints about breaches of personal data rules.",
         ],
       },
       {
@@ -220,6 +223,12 @@ export function termsOfUse(locale: Locale, email: string | null): LegalDoc {
           ],
         },
         {
+          heading: "Ley aplicable",
+          paragraphs: [
+            "Estos términos se rigen por las leyes de la República Argentina, desde donde se opera el sitio. Si vivís en otro país, eso no te quita los derechos que te den las leyes de protección al consumidor de tu país.",
+          ],
+        },
+        {
           heading: "Cambios y contacto",
           paragraphs: [
             "Si estos términos cambian, actualizamos la fecha de arriba; seguir usando el sitio implica aceptar la nueva versión.",
@@ -281,6 +290,12 @@ export function termsOfUse(locale: Locale, email: string | null): LegalDoc {
         heading: "Availability and liability",
         paragraphs: [
           'The site is provided "as is" and may change, be interrupted or stop working at any time. To the extent allowed by law, we\'re not liable for indirect damages or losses arising from its use.',
+        ],
+      },
+      {
+        heading: "Governing law",
+        paragraphs: [
+          "These terms are governed by the laws of the Argentine Republic, where the site is run from. If you live elsewhere, this doesn't take away any rights your country's consumer protection laws give you.",
         ],
       },
       {
