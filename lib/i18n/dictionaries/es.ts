@@ -27,6 +27,13 @@ export const es: Dictionary = {
     closeMenu: "Cerrar menú",
     settings: "Ajustes",
   },
+  footer: {
+    nav: "Sitio",
+    privacy: "Privacidad",
+    terms: "Términos",
+    legal: "Legal",
+    dataFrom: "Datos de",
+  },
   settings: {
     title: "Ajustes",
     language: "Idioma",
@@ -206,7 +213,7 @@ export const es: Dictionary = {
     inputPlaceholder: "steamcommunity.com/id/tunombre",
     check: "Revisar biblioteca",
     checking: "Revisando…",
-    privacy: "Tu biblioteca se lee una vez desde los datos públicos de Steam. No se guarda nada sobre vos.",
+    privacy: "Se lee de los datos públicos de Steam y se guarda 30 minutos como máximo, para no consultar a Steam dos veces. No se guarda nada más.",
     errors: {
       invalid_input: "Eso no parece un perfil de Steam. Pegá el link completo de tu perfil.",
       profile_not_found: "Ningún perfil de Steam coincide con ese link. Revisá que esté copiado completo.",

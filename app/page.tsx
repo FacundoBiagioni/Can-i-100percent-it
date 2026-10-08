@@ -9,8 +9,6 @@ import type { GameTileData } from "@/components/home/GameTile";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
 import { getCachedAnalysis } from "@/lib/pipeline/getOrRunAnalysis";
 import { getT } from "@/lib/i18n/server";
-import { getRegion } from "@/lib/pricing/server";
-import { countryName } from "@/lib/pricing/regions";
 
 // Shown to first-time visitors in place of their (empty) recents. A mix of
 // verdicts on purpose, so it reads as a real sample of what the tool says.
@@ -39,7 +37,7 @@ async function getRecommended(): Promise<GameTileData[]> {
 }
 
 export default async function Home() {
-  const [recommended, t, region] = await Promise.all([getRecommended(), getT(), getRegion()]);
+  const [recommended, t] = await Promise.all([getRecommended(), getT()]);
 
   return (
     <main className="flex flex-1 flex-col">
@@ -95,22 +93,6 @@ export default async function Home() {
         </div>
       </div>
 
-      <footer className="border-t border-carbon">
-        <div className="mx-auto flex max-w-page flex-col gap-2 px-4 py-6 text-caption text-graphite sm:flex-row sm:justify-between sm:px-6">
-          <span className="flex gap-4">
-            <span>can i 100% it?</span>
-            <Link href="/how-it-works" className="text-ash transition-colors hover:text-chalk">
-              {t.nav.howItWorks}
-            </Link>
-            <Link href="/about" className="text-ash transition-colors hover:text-chalk">
-              {t.nav.about}
-            </Link>
-          </span>
-          <span>
-            {t.priceRegion(countryName(region.cc, t.numberLocale))}. {t.home.notAffiliated}
-          </span>
-        </div>
-      </footer>
     </main>
   );
 }

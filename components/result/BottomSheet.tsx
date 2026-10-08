@@ -112,6 +112,7 @@ export default function BottomSheet({
   return (
     <div
       ref={sheetRef}
+      data-bottom-sheet
       className={`fixed inset-x-0 bottom-0 z-30 flex h-[min(70dvh,42rem)] flex-col border-x border-t border-carbon bg-void sm:left-auto sm:right-6 sm:w-104 ${
         dragPx === null ? `transition-transform duration-300 ease-out ${expanded ? "translate-y-0" : "translate-y-[calc(100%-5.5rem)]"}` : ""
       }`}

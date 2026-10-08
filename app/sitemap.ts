@@ -19,6 +19,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE}/library`, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE}/how-it-works`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE}/about`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${SITE}/privacy`, changeFrequency: "yearly", priority: 0.2 },
+    { url: `${SITE}/terms`, changeFrequency: "yearly", priority: 0.2 },
     ...games.map((g) => ({ url: `${SITE}/games/${g.id}`, lastModified: g.at, changeFrequency: "weekly" as const, priority: 0.7 })),
   ];
 }

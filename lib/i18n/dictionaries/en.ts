@@ -26,6 +26,13 @@ export const en = {
     closeMenu: "Close menu",
     settings: "Settings",
   },
+  footer: {
+    nav: "Site",
+    privacy: "Privacy",
+    terms: "Terms",
+    legal: "Legal",
+    dataFrom: "Data from",
+  },
   settings: {
     title: "Settings",
     language: "Language",
@@ -203,7 +210,7 @@ export const en = {
     inputPlaceholder: "steamcommunity.com/id/yourname",
     check: "Check library",
     checking: "Checking…",
-    privacy: "Your library is read once from Steam's public data. Nothing is stored about you.",
+    privacy: "Read from Steam's public data and kept 30 minutes at most, so Steam isn't asked twice. Nothing else is stored.",
     errors: {
       invalid_input: "That doesn't look like a Steam profile. Paste the full link to your profile page.",
       profile_not_found: "No Steam profile matches that link. Check it's copied completely.",

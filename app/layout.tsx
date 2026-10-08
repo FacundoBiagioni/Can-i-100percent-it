@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Header from "@/components/layout/Header";
 import PageTransition from "@/components/layout/PageTransition";
+import Footer from "@/components/layout/Footer";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { RegionProvider } from "@/lib/pricing/client";
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             <PreferencesProvider initial={prefs}>
               <Header />
               <PageTransition>{children}</PageTransition>
+              <Footer />
             </PreferencesProvider>
           </RegionProvider>
         </I18nProvider>
