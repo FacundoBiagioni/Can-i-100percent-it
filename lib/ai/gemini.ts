@@ -14,7 +14,12 @@ const MODEL = "gemini-3.5-flash-lite";
 // game whose forum posts/guides haven't changed costs no quota at all.
 const ANSWER_TTL = 60 * 60 * 24 * 90;
 const EXHAUSTED_KEY = "gemini:exhausted";
-const usageKey = () => `gemini:calls:${new Date().toISOString().slice(0, 10)}`;
+// The free quota resets at midnight Pacific time, so "today" is counted on
+// that clock (en-CA formats as YYYY-MM-DD).
+const quotaDay = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" });
+const usageKey = () => `gemini:calls:${quotaDay()}`;
+// Requests per day on the free tier for MODEL. Override if the plan changes.
+const DAILY_LIMIT = Number(process.env.GEMINI_DAILY_LIMIT) || 500;
 
 /** True while the daily free quota is known to be used up. Callers use it to
  * skip AI work up front and fall back to what's already stored. */
@@ -25,6 +30,12 @@ export async function aiExhausted(): Promise<boolean> {
 /** Real Gemini requests made today (cached answers don't count). */
 export async function aiCallsToday(): Promise<number> {
   return redis ? ((await redis.get<number>(usageKey())) ?? 0) : 0;
+}
+
+/** Requests left in today's quota (0 once it's known to be used up). */
+export async function aiCallsLeft(): Promise<number> {
+  if (await aiExhausted()) return 0;
+  return Math.max(0, DAILY_LIMIT - (await aiCallsToday()));
 }
 
 /**

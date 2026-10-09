@@ -149,6 +149,11 @@ export const steamHuntersAppResponseSchema = z.object({
   // Minutes, median over the players who unlocked every achievement.
   medianCompletionTime: z.number().nullable().optional(),
   playersPerfectedCount: z.number().nullable().optional(),
+  // Hunters who unlocked at least one achievement, and the app's basics.
+  playersStartedCount: z.number().nullable().optional(),
+  achievementCount: z.number().nullable().optional(),
+  name: z.string().optional(),
+  isRemoved: z.boolean().optional(),
 });
 
 // --- IStoreBrowseService/GetItems — verified live 2026-10-02. Batch store
