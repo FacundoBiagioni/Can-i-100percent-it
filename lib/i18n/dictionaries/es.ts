@@ -253,6 +253,10 @@ export const es: Dictionary = {
     seeAll: "Ver todos",
     follow: "Seguir",
     followingNow: "Siguiendo",
+    noteTitle: "Estás siguiendo este juego",
+    noteBody:
+      "Se va a marcar en el inicio y en Siguiendo si cambia su veredicto o entra en oferta a su mínimo histórico. Se guarda solo en este navegador, sin cuenta.",
+    noteLink: "Ver los juegos que seguís",
     unfollow: "Dejar de seguir",
     verdictChanged: (was: string) => `Cambió el veredicto, antes: ${was}`,
     allTimeLow: (cut: number) => `Mínimo histórico: -${cut}%`,

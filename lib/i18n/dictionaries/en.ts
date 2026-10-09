@@ -249,6 +249,10 @@ export const en = {
     seeAll: "See all",
     follow: "Follow",
     followingNow: "Following",
+    noteTitle: "You're following this game",
+    noteBody:
+      "It will be flagged on the home page and in Following if its verdict changes or it goes on sale at its all-time low. Saved in this browser only, no account needed.",
+    noteLink: "See the games you follow",
     unfollow: "Unfollow",
     verdictChanged: (was: string) => `Verdict changed, was ${was}`,
     allTimeLow: (cut: number) => `All-time low: -${cut}%`,
