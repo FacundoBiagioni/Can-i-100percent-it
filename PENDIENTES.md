@@ -23,8 +23,7 @@ Cómo se lee:
 
 ## 2. Diseño
 
-- [ ] **(vos)** Diseñar tu propio logo y pasármelo (idealmente en SVG; si no, PNG con fondo transparente).
-- [ ] **(Claude)** Reemplazar el logo actual por el tuyo en el navbar, el footer, el favicon, el ícono del celular y las imágenes para compartir. Mantener la animación de giro al pasar el mouse (te gustó).
+- (nada pendiente por ahora)
 
 ## 3. Funcionalidades
 
@@ -49,6 +48,7 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Tu logo pixel-art reemplaza al anterior en todo el sitio, vectorizado para que se vea nítido en cualquier tamaño (mantiene el giro al pasar el mouse). Original en `assets/brand/logo-original.jpg`, versión pública en `/logo.svg`.
 - [x] Logo nuevo: marca geométrica (un "%" naranja en un cuadro) en el navbar, el footer, el favicon y el ícono del celular. Gira un cuarto al pasar el mouse.
 - [x] Imágenes para compartir propias para "Cómo funciona" (con el diagrama) y "Biblioteca" (con tarjetas de ejemplo).
 - [x] "Ocultar spoilers" también tapa los logros ocultos en el texto del veredicto, en "Necesario para:" de los DLC (con "Mostrar") y en la vista previa al compartir.

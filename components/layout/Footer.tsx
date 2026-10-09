@@ -1,5 +1,5 @@
 import Link from "next/link";
-import LogoMark from "./LogoMark";
+import LogoMark from "@/components/brand/LogoMark";
 import { getT } from "@/lib/i18n/server";
 import { getRegion } from "@/lib/pricing/server";
 import { countryName } from "@/lib/pricing/regions";
@@ -26,7 +26,7 @@ export default async function Footer() {
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
           <nav aria-label={t.footer.nav} className="flex flex-wrap gap-x-4 gap-y-2">
             <span className="flex items-center gap-2 text-chalk">
-              <LogoMark size={14} />
+              <LogoMark size={20} />
               can i 100% it?
             </span>
             <Link href="/library" className={LINK}>
