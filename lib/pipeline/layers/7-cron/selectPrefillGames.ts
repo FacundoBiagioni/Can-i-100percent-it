@@ -4,8 +4,8 @@ import { analysisResults } from "@/lib/db/schema";
 import { redis } from "@/lib/cache/redis";
 import { getAppStats } from "@/lib/steamhunters/stats";
 
-const TOP_SELLER_PAGES = 3; // 100 games each
-const POOL_KEY = "prefill:pool:v1";
+const TOP_SELLER_PAGES = 10; // 100 games each
+const POOL_KEY = "prefill:pool:v2";
 const POOL_TTL = 60 * 60 * 12; // one night's runs share the same pool
 const failedKey = (appId: number) => `prefill:failed:${appId}`;
 
