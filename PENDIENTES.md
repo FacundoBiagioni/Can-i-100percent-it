@@ -46,6 +46,7 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Navbar: Inicio, Listas, Biblioteca, Siguiendo, Cómo funciona, Acerca de (sin Recientes ni Veredictos). La página Siguiendo explica cómo funciona, y al tocar "Seguir" aparece un cartel que lo explica.
 - [x] Pre-análisis nocturno: 4 tandas entre las 23 y las 2 (hora argentina) analizan juegos populares sin veredicto (los más jugados y más vendidos de Steam, priorizando los que más cazadores de SteamHunters empezaron), con la cuota de Gemini que sobró del día. Deja 60 llamadas de reserva. Unos 100 juegos por noche si hubo pocas visitas.
 - [x] Listas en `/lists`: ya no se pueden completar, 100% fácil (< 10 h), los 100% más difíciles, necesitan DLC pago y necesitan multijugador. Link en el menú y el footer. Las listas con menos de 5 juegos no aparecen en Google hasta que se llenen (hoy "100% fácil" tiene 1).
 - [x] Panel de reportes en `/admin/<secreto>`: pendientes, aceptados y rechazados; aceptar re-analiza el juego en el momento; re-análisis manual por AppID; llamadas de Gemini que quedan hoy.
