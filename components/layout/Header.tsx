@@ -79,7 +79,7 @@ export default function Header() {
       <div className="mx-auto flex h-12 max-w-page items-center gap-4 px-4 sm:px-6">
         <Link href="/" aria-label="can i 100% it?" className="group flex shrink-0 items-center gap-2.5 text-base font-semibold tracking-tight text-chalk">
           {/* The mark turns a quarter on hover, like a counter ticking over. */}
-          <LogoMark size={30} className="transition-transform duration-500 ease-out group-hover:rotate-90 motion-reduce:transition-none" />
+          <LogoMark size={24} className="transition-transform duration-500 ease-out group-hover:rotate-90 motion-reduce:transition-none" />
           <span aria-hidden>
             can i 100<span className="text-ember">%</span> it?
           </span>
