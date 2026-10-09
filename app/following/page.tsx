@@ -18,6 +18,23 @@ export default async function FollowingPage() {
         <p className="max-w-xl text-body text-ash">{t.following.intro}</p>
       </header>
       <FollowingGames variant="page" />
+
+      <section className="flex flex-col gap-8 border-t border-carbon pt-16">
+        <div className="flex flex-col gap-3">
+          <p className="text-nav text-graphite">{t.following.howLabel}</p>
+          <h2 className="text-heading-lg font-semibold">{t.following.howTitle}</h2>
+        </div>
+        <ol className="grid grid-cols-1 pl-px pt-px sm:grid-cols-2 lg:grid-cols-4">
+          {t.following.howSteps.map((step, i) => (
+            <li key={step.title} className="-ml-px -mt-px flex flex-col gap-3 border border-carbon p-6">
+              <span className="text-nav tabular-nums text-graphite">{String(i + 1).padStart(2, "0")}</span>
+              <h3 className="text-heading-sm font-semibold">{step.title}</h3>
+              <p className="text-body text-ash">{step.body}</p>
+            </li>
+          ))}
+        </ol>
+        <p className="max-w-2xl text-body text-graphite">{t.following.howNote}</p>
+      </section>
     </main>
   );
 }

@@ -29,11 +29,11 @@ export default async function Footer() {
             <Link href="/lists" className={LINK}>
               {t.nav.lists}
             </Link>
-            <Link href="/following" className={LINK}>
-              {t.following.label}
-            </Link>
             <Link href="/library" className={LINK}>
               {t.nav.library}
+            </Link>
+            <Link href="/following" className={LINK}>
+              {t.nav.following}
             </Link>
             <Link href="/how-it-works" className={LINK}>
               {t.nav.howItWorks}

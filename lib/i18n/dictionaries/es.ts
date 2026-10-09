@@ -18,9 +18,8 @@ export const es: Dictionary = {
     main: "Principal",
     pages: "Páginas",
     index: "Inicio",
-    recent: "Recientes",
-    verdicts: "Veredictos",
     lists: "Listas",
+    following: "Siguiendo",
     library: "Biblioteca",
     howItWorks: "Cómo funciona",
     about: "Acerca de",
@@ -258,6 +257,28 @@ export const es: Dictionary = {
       "Se va a marcar en el inicio y en Siguiendo si cambia su veredicto o entra en oferta a su mínimo histórico. Se guarda solo en este navegador, sin cuenta.",
     noteLink: "Ver los juegos que seguís",
     unfollow: "Dejar de seguir",
+    howLabel: "Cómo funciona",
+    howTitle: "Qué hace seguir un juego.",
+    howSteps: [
+      {
+        title: "Seguí un juego",
+        body: "Abrí la página de un juego y tocá Seguir, debajo del veredicto. Podés seguir hasta 50 juegos.",
+      },
+      {
+        title: "Cambio de veredicto",
+        body: "Los veredictos se revisan cada semana. Si cambia el de un juego que seguís, por ejemplo de 100% posible a 100% imposible porque cerraron sus servidores, se marca con el veredicto que tenía antes.",
+      },
+      {
+        title: "Mínimo histórico",
+        body: "Si entra en oferta al precio más bajo de su historia en tu tienda de Steam, se marca con el descuento. La tienda es la región elegida en Ajustes.",
+      },
+      {
+        title: "Visto, borrado",
+        body: "Al abrir el juego, la marca se borra hasta la próxima novedad. Los juegos marcados aparecen primero, acá y en el inicio.",
+      },
+    ],
+    howNote:
+      "Sin cuenta ni email: la lista vive en este navegador. No te llega ningún aviso afuera del sitio, las novedades se ven cuando volvés. Si borrás los datos del sitio o cambiás de navegador o de dispositivo, la lista empieza de cero.",
     verdictChanged: (was: string) => `Cambió el veredicto, antes: ${was}`,
     allTimeLow: (cut: number) => `Mínimo histórico: -${cut}%`,
     updates: (n: number) => (n === 1 ? "1 novedad" : `${n} novedades`),

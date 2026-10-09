@@ -17,9 +17,8 @@ export const en = {
     main: "Main",
     pages: "Pages",
     index: "Index",
-    recent: "Recent",
-    verdicts: "Verdicts",
     lists: "Lists",
+    following: "Following",
     library: "Library",
     howItWorks: "How it works",
     about: "About",
@@ -254,6 +253,28 @@ export const en = {
       "It will be flagged on the home page and in Following if its verdict changes or it goes on sale at its all-time low. Saved in this browser only, no account needed.",
     noteLink: "See the games you follow",
     unfollow: "Unfollow",
+    howLabel: "How it works",
+    howTitle: "What following a game does.",
+    howSteps: [
+      {
+        title: "Follow a game",
+        body: "Open a game's page and press Follow, under the verdict. You can follow up to 50 games.",
+      },
+      {
+        title: "Verdict changes",
+        body: "Verdicts are re-checked every week. If one you follow changes, say from 100% obtainable to 100% impossible because its servers shut down, the game gets flagged with its previous verdict.",
+      },
+      {
+        title: "All-time low",
+        body: "If it goes on sale at the lowest price it has ever had in your Steam store, it gets flagged with the discount. The store is the region set in Settings.",
+      },
+      {
+        title: "Seen, cleared",
+        body: "Opening the game clears its flag until the next change. Flagged games come first, here and on the home page.",
+      },
+    ],
+    howNote:
+      "No account and no email: the list lives in this browser. Nothing is sent to you, so news shows up when you come back to the site. Clearing this site's data, or switching browser or device, starts the list over.",
     verdictChanged: (was: string) => `Verdict changed, was ${was}`,
     allTimeLow: (cut: number) => `All-time low: -${cut}%`,
     updates: (n: number) => (n === 1 ? "1 update" : `${n} updates`),
