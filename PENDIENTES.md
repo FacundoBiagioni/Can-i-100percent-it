@@ -27,7 +27,7 @@ Cómo se lee:
 
 ## 3. Funcionalidades
 
-- [ ] **(vos)** Mañana (10 de octubre) entrar al panel y fijarte que "Juegos analizados" haya subido: confirma que el pre-análisis nocturno corrió. Si no subió, avisame y miro los logs del cron en Vercel.
+- [ ] **(vos)** El 11 de octubre entrar al panel y fijarte que "Juegos analizados" haya subido de 485: confirma que el pre-análisis nocturno automático corrió (la noche del 9 al 10 no va a correr porque la cuota ya se usó a mano). Si no subió, avisame y miro los logs del cron en Vercel.
 - [ ] **(vos)** Guardar el link del panel en un lugar seguro: `https://can-i-100-it.vercel.app/admin/` + el valor de `ADMIN_SECRET` (está en `.env.local` y en Vercel). Quien tenga el link entra; si se filtra, cambiá esa variable en Vercel y volvé a desplegar.
 
 ## 4. Infraestructura y seguridad
@@ -46,6 +46,7 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Pre-análisis a mano el 9 de octubre con el 90% de la cuota del día: 305 juegos nuevos, sin errores (de 180 a 485 analizados). La lista de candidatos ahora sale de los 1.000 más vendidos de Steam (antes 300), para que al cron nocturno no le falten juegos.
 - [x] Navbar: Inicio, Listas, Biblioteca, Siguiendo, Cómo funciona, Acerca de (sin Recientes ni Veredictos). La página Siguiendo explica cómo funciona, y al tocar "Seguir" aparece un cartel que lo explica.
 - [x] Pre-análisis nocturno: 4 tandas entre las 23 y las 2 (hora argentina) analizan juegos populares sin veredicto (los más jugados y más vendidos de Steam, priorizando los que más cazadores de SteamHunters empezaron), con la cuota de Gemini que sobró del día. Deja 60 llamadas de reserva. Unos 100 juegos por noche si hubo pocas visitas.
 - [x] Listas en `/lists`: ya no se pueden completar, 100% fácil (< 10 h), los 100% más difíciles, necesitan DLC pago y necesitan multijugador. Link en el menú y el footer. Las listas con menos de 5 juegos no aparecen en Google hasta que se llenen (hoy "100% fácil" tiene 1).
