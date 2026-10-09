@@ -8,7 +8,9 @@ import { getRegionalPrice } from "@/lib/pricing/steamPrices";
 import { getRegion } from "@/lib/pricing/server";
 import { countryName } from "@/lib/pricing/regions";
 import { getCachedAnalysis, priceDlcForRegion } from "@/lib/pipeline/getOrRunAnalysis";
-import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
+import { getFlaggedAchievements, getHiddenAchievementNames } from "@/lib/db/queries/achievements";
+import { HiddenNamesProvider } from "@/components/result/SpoilerContext";
+import { maskHiddenNames } from "@/lib/spoilers";
 import VerdictBlock from "@/components/result/VerdictBlock";
 import VerdictActions from "@/components/result/VerdictActions";
 import RecordRecent from "@/components/result/RecordRecent";
@@ -28,7 +30,11 @@ export async function generateMetadata(props: PageProps<"/games/[appid]">): Prom
   const [details, analysis, t] = await Promise.all([getAppDetails(appId), getCachedAnalysis(appId), getT()]);
   if (!details) return {};
   const title = analysis ? `${details.name}: ${t.verdict[analysis.status].label}` : details.name;
-  const description = analysis ? localizeReasoning(analysis.reasoning, t) : t.meta.gameDescription(details.name);
+  // Share previews come from crawlers, which have no settings: hidden
+  // achievement names are always covered here.
+  const description = analysis
+    ? maskHiddenNames(localizeReasoning(analysis.reasoning, t), await getHiddenAchievementNames(appId), t.achievements.hiddenTitle)
+    : t.meta.gameDescription(details.name);
   return {
     title: `${title} | can i 100% it?`,
     description,
@@ -57,10 +63,11 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
   // visitor's store, in its own currency, and the biggest % Steam has ever
   // discounted the game there (via IsThereAnyDeal), applied to that store's
   // regular price so both figures are in the same currency.
-  const [game, stored, achievementsIfAny, storePrice, maxDiscountCut] = await Promise.all([
+  const [game, stored, achievementsIfAny, hiddenNames, storePrice, maxDiscountCut] = await Promise.all([
     getOrCreateGame(appId),
     getCachedAnalysis(appId),
     getFlaggedAchievements(appId),
+    getHiddenAchievementNames(appId),
     getRegionalPrice(appId, region.cc),
     getMaxDiscountCut(appId, region.cc),
   ]);
@@ -167,17 +174,21 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
         </div>
 
         {analysis ? (
-          <div className="flex flex-col gap-5">
-            <VerdictBlock analysis={analysis} />
-            <VerdictActions appId={appId} gameName={game.name} status={analysis.status} />
-          </div>
+          <HiddenNamesProvider names={hiddenNames}>
+            <div className="flex flex-col gap-5">
+              <VerdictBlock analysis={analysis} />
+              <VerdictActions appId={appId} gameName={game.name} status={analysis.status} />
+            </div>
+          </HiddenNamesProvider>
         ) : (
           <AnalysisLoader appId={appId} name={game.name} image={game.headerImageUrl ?? null} />
         )}
       </div>
 
       {analysis && analysis.status !== "no_achievements" && (
-        <BottomSheet analysis={analysis} achievements={achievements} />
+        <HiddenNamesProvider names={hiddenNames}>
+          <BottomSheet analysis={analysis} achievements={achievements} />
+        </HiddenNamesProvider>
       )}
     </main>
   );

@@ -8,6 +8,7 @@ import VerdictBlock from "./VerdictBlock";
 import VerdictActions from "./VerdictActions";
 import { recordRecentGame } from "@/lib/recentGames";
 import { useT } from "@/lib/i18n/client";
+import { HiddenNamesProvider } from "./SpoilerContext";
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 30; // 90s ceiling — first analysis is normally done in a few seconds
@@ -16,6 +17,7 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
   const t = useT();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [achievements, setAchievements] = useState<FlaggedAchievement[]>([]);
+  const [hiddenNames, setHiddenNames] = useState<string[]>([]);
   const [timedOut, setTimedOut] = useState(false);
   const [limited, setLimited] = useState(false);
   const attempts = useRef(0);
@@ -35,6 +37,7 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
           if (!cancelled) {
             setAnalysis(data.analysis);
             setAchievements(data.achievements ?? []);
+            setHiddenNames(data.hiddenNames ?? []);
             recordRecentGame({ appId, name, image, status: data.analysis.status });
           }
           return;
@@ -65,13 +68,13 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
 
   if (analysis) {
     return (
-      <>
+      <HiddenNamesProvider names={hiddenNames}>
         <div className="flex flex-col gap-5">
           <VerdictBlock analysis={analysis} />
           <VerdictActions appId={appId} gameName={name} status={analysis.status} />
         </div>
         {analysis.status !== "no_achievements" && <BottomSheet analysis={analysis} achievements={achievements} />}
-      </>
+      </HiddenNamesProvider>
     );
   }
 

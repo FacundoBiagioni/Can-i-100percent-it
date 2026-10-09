@@ -6,10 +6,12 @@ import type { AnalysisResult } from "@/lib/pipeline/types";
 import { useFormatPrice } from "@/lib/pricing/client";
 import { useT } from "@/lib/i18n/client";
 import { localizeReasoning } from "@/lib/i18n/reasoning";
+import { useSpoilers } from "./SpoilerContext";
 
 export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }) {
   const t = useT();
   const formatPrice = useFormatPrice();
+  const { mask } = useSpoilers();
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
   const delistedRequiredDlc = requiredDlc.filter((d) => d.isDelisted);
 
@@ -88,7 +90,7 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
       <StatusIcon
         icon={structuralBlock ? Ban : CircleOff}
         state={structuralBlock ? "warning" : "off"}
-        label={structuralBlock ? localizeReasoning(analysis.reasoning, t) : t.icons.noBlockers}
+        label={structuralBlock ? mask(localizeReasoning(analysis.reasoning, t)) : t.icons.noBlockers}
         badge={structuralBlock && analysis.unobtainableAchievementCount > 0 ? analysis.unobtainableAchievementCount : undefined}
       />
       {analysis.estimatedHours !== null && (

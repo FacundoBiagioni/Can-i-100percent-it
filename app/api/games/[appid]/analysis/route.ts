@@ -1,7 +1,7 @@
 import { getCachedAnalysis, getOrRunAnalysis, priceDlcForRegion } from "@/lib/pipeline/getOrRunAnalysis";
 import { overRateLimit } from "@/lib/rateLimit";
 import { getRegion } from "@/lib/pricing/server";
-import { getFlaggedAchievements } from "@/lib/db/queries/achievements";
+import { getFlaggedAchievements, getHiddenAchievementNames } from "@/lib/db/queries/achievements";
 
 export async function GET(
   request: Request,
@@ -26,6 +26,6 @@ export async function GET(
   if (outcome.state === "pending") {
     return Response.json({ status: "pending" }, { status: 202 });
   }
-  const [achievements, region] = await Promise.all([getFlaggedAchievements(appId), getRegion()]);
-  return Response.json({ analysis: await priceDlcForRegion(outcome.analysis, region.cc), achievements });
+  const [achievements, hiddenNames, region] = await Promise.all([getFlaggedAchievements(appId), getHiddenAchievementNames(appId), getRegion()]);
+  return Response.json({ analysis: await priceDlcForRegion(outcome.analysis, region.cc), achievements, hiddenNames });
 }

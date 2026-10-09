@@ -7,7 +7,7 @@ Cómo se lee:
 - **(vos)**: lo tenés que hacer vos, no se resuelve con código.
 - **(Claude)**: lo hago yo cuando me digas.
 
-Última actualización: 8 de octubre de 2026
+Última actualización: 9 de octubre de 2026
 
 ---
 
@@ -23,9 +23,7 @@ Cómo se lee:
 
 ## 2. Diseño
 
-- [ ] **(Claude)** Cambiar el logo del navbar ("can i 100% it?" en texto) por uno mejor. Arrancar proponiendo opciones.
-- [ ] **(Claude)** Imágenes para compartir propias para "Cómo funciona" y "Biblioteca" (hoy usan la genérica del sitio).
-- [ ] **(Claude)** Opcional: que "Ocultar spoilers" también tape los nombres de logros ocultos en el texto del veredicto y en "Necesario para:" de los DLC.
+- (nada pendiente por ahora)
 
 ## 3. Funcionalidades
 
@@ -50,6 +48,9 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Logo nuevo: marca geométrica (un "%" naranja en un cuadro) en el navbar, el footer, el favicon y el ícono del celular. Gira un cuarto al pasar el mouse.
+- [x] Imágenes para compartir propias para "Cómo funciona" (con el diagrama) y "Biblioteca" (con tarjetas de ejemplo).
+- [x] "Ocultar spoilers" también tapa los logros ocultos en el texto del veredicto, en "Necesario para:" de los DLC (con "Mostrar") y en la vista previa al compartir.
 - [x] Emails de reportes: se borran solos al resolver el reporte, o a los 6 meses como máximo.
 - [x] Términos regidos por la ley argentina; aviso de la Ley 25.326 en Privacidad.
 - [x] Páginas de Privacidad y Términos (inglés y español) y footer en todas las páginas.

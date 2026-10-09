@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LogoMark from "./LogoMark";
 import { getT } from "@/lib/i18n/server";
 import { getRegion } from "@/lib/pricing/server";
 import { countryName } from "@/lib/pricing/regions";
@@ -24,7 +25,10 @@ export default async function Footer() {
       <div className="mx-auto flex max-w-page flex-col gap-4 px-4 py-8 text-caption text-graphite sm:px-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
           <nav aria-label={t.footer.nav} className="flex flex-wrap gap-x-4 gap-y-2">
-            <span className="text-chalk">can i 100% it?</span>
+            <span className="flex items-center gap-2 text-chalk">
+              <LogoMark size={14} />
+              can i 100% it?
+            </span>
             <Link href="/library" className={LINK}>
               {t.nav.library}
             </Link>

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import SearchBox from "@/components/search/SearchBox";
 import SettingsMenu from "./SettingsMenu";
+import LogoMark from "./LogoMark";
 import { useT } from "@/lib/i18n/client";
 import type { Dictionary } from "@/lib/i18n/dictionaries/en";
 
@@ -76,8 +77,12 @@ export default function Header() {
   return (
     <header ref={menuRef} className="sticky top-0 z-40 border-b border-carbon bg-void">
       <div className="mx-auto flex h-12 max-w-page items-center gap-4 px-4 sm:px-6">
-        <Link href="/" className="shrink-0 text-base font-semibold tracking-tight text-chalk">
-          can i 100% it?
+        <Link href="/" aria-label="can i 100% it?" className="group flex shrink-0 items-center gap-2.5 text-base font-semibold tracking-tight text-chalk">
+          {/* The mark turns a quarter on hover, like a counter ticking over. */}
+          <LogoMark size={22} className="transition-transform duration-500 ease-out group-hover:rotate-90 motion-reduce:transition-none" />
+          <span aria-hidden>
+            can i 100<span className="text-ember">%</span> it?
+          </span>
         </Link>
 
         {/* Home: links sit at the right edge, next to the language switch. Other

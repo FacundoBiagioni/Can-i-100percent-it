@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { AnalysisResult } from "@/lib/pipeline/types";
+import { useSpoilers } from "./SpoilerContext";
 import { useFormatPrice, useRegion } from "@/lib/pricing/client";
 import { countryName } from "@/lib/pricing/regions";
 import { useT } from "@/lib/i18n/client";
@@ -11,6 +13,10 @@ import { useT } from "@/lib/i18n/client";
  * its tooltip already cover it. */
 export default function RequirementsSummary({ analysis }: { analysis: AnalysisResult }) {
   const t = useT();
+  const { isHidden } = useSpoilers();
+  // One tap reveals every covered name in the list.
+  const [revealed, setRevealed] = useState(false);
+  const covered = (name: string) => !revealed && isHidden(name);
   const formatPrice = useFormatPrice();
   const { cc } = useRegion();
   const requiredDlc = analysis.dlcRequired.filter((d) => d.required);
@@ -33,7 +39,19 @@ export default function RequirementsSummary({ analysis }: { analysis: AnalysisRe
                     {d.unlisted ? t.requirements.unlistedName : d.name}
                     {d.isDelisted && !d.unlisted && <span className="ml-2 text-fail">{t.requirements.delisted}</span>}
                     {d.evidence && d.evidence.length > 0 && (
-                      <span className="mt-0.5 block text-caption text-graphite">{t.requirements.neededFor} {d.evidence.join(", ")}</span>
+                      <span className="mt-0.5 block text-caption text-graphite">
+                        {t.requirements.neededFor}{" "}
+                        {d.evidence.map((n) => (covered(n) ? t.achievements.hiddenTitle : n)).join(", ")}
+                        {d.evidence.some(covered) && (
+                          <button
+                            type="button"
+                            onClick={() => setRevealed(true)}
+                            className="ml-2 cursor-pointer text-ash underline underline-offset-2 transition-colors hover:text-chalk"
+                          >
+                            {t.achievements.reveal}
+                          </button>
+                        )}
+                      </span>
                     )}
                   </td>
                   <td className="py-2 text-right align-top tabular-nums text-graphite">

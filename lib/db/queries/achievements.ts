@@ -66,3 +66,13 @@ export async function getFlaggedAchievements(gameId: number): Promise<FlaggedAch
 
   return [...byAchievement.values()];
 }
+
+/** Display names of a game's achievements Steam marks hidden (spoilers until
+ * unlocked), so they can be covered wherever a name shows up in text. */
+export async function getHiddenAchievementNames(gameId: number): Promise<string[]> {
+  const rows = await db
+    .select({ name: achievements.displayName })
+    .from(achievements)
+    .where(and(eq(achievements.gameId, gameId), eq(achievements.hidden, true)));
+  return rows.map((r) => r.name);
+}
