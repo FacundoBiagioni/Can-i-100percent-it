@@ -177,11 +177,22 @@ export default async function GamePage(props: PageProps<"/games/[appid]">) {
           <HiddenNamesProvider names={hiddenNames}>
             <div className="flex flex-col gap-5">
               <VerdictBlock analysis={analysis} />
-              <VerdictActions appId={appId} gameName={game.name} status={analysis.status} />
+              <VerdictActions
+                appId={appId}
+                gameName={game.name}
+                image={game.headerImageUrl ?? null}
+                status={analysis.status}
+                lowestCut={atAllTimeLow && activeDiscount ? activeDiscount.percent : null}
+              />
             </div>
           </HiddenNamesProvider>
         ) : (
-          <AnalysisLoader appId={appId} name={game.name} image={game.headerImageUrl ?? null} />
+          <AnalysisLoader
+            appId={appId}
+            name={game.name}
+            image={game.headerImageUrl ?? null}
+            lowestCut={atAllTimeLow && activeDiscount ? activeDiscount.percent : null}
+          />
         )}
       </div>
 

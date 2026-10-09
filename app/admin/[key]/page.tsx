@@ -74,7 +74,7 @@ export default async function AdminPage(props: PageProps<"/admin/[key]">) {
         <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-carbon bg-carbon sm:max-w-xl">
           {[
             ["Pendientes", countOf("pending")],
-            ["Juegos analizados", analyzed.n],
+            ["Juegos analizados", analyzed?.n ?? 0],
             ["Gemini hoy (restan)", callsLeft],
           ].map(([label, value]) => (
             <div key={label} className="flex flex-col gap-1 bg-void p-4">

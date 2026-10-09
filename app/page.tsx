@@ -4,6 +4,7 @@ import SearchBox from "@/components/search/SearchBox";
 import HeroAnimation from "@/components/home/HeroAnimation";
 import DriftingDigits from "@/components/home/DriftingDigits";
 import RecentGames from "@/components/home/RecentGames";
+import FollowingGames from "@/components/following/FollowingGames";
 import VerdictLegend from "@/components/home/VerdictLegend";
 import type { GameTileData } from "@/components/home/GameTile";
 import { getAppDetails } from "@/lib/pipeline/layers/1-steam/client";
@@ -84,7 +85,8 @@ export default async function Home() {
       <div className="relative">
         <DriftingDigits />
         <div className="relative mx-auto flex w-full max-w-page flex-col gap-32 px-4 py-32 sm:px-6">
-          <section id="recent" className="scroll-mt-20">
+          <section id="recent" className="flex scroll-mt-20 flex-col gap-24">
+            <FollowingGames variant="home" />
             <RecentGames recommended={recommended} />
           </section>
           <section id="verdicts" className="scroll-mt-20">

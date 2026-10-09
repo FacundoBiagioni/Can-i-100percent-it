@@ -19,6 +19,7 @@ export const en = {
     index: "Index",
     recent: "Recent",
     verdicts: "Verdicts",
+    lists: "Lists",
     library: "Library",
     howItWorks: "How it works",
     about: "About",
@@ -179,6 +180,79 @@ export const en = {
     unconfirmed: "Unconfirmed:",
     notEnoughData: "Not enough data to confirm this game yet: no curated achievement data, and community sources couldn't be read.",
     noAchievements: "This app has no Steam achievements to track.",
+  },
+  lists: {
+    label: "Lists",
+    indexTitle: "Lists",
+    indexDescription: "Steam games grouped by what 100% takes: no longer possible, quick, the hardest, paid DLC or multiplayer needed.",
+    indexIntro:
+      "Steam games grouped by what getting 100% takes. Built from every verdict on the site, so they grow as more games get checked.",
+    games: (n: number) => (n === 1 ? "1 game" : `${n} games`),
+    updated: "Updated as more games get checked.",
+    empty: "No games here yet. This list fills up as more games get checked.",
+    more: "More lists",
+    all: "All lists",
+    items: {
+      "impossible-100": {
+        title: "Steam games you can no longer 100%",
+        short: "No longer possible",
+        description:
+          "Steam games where 100% of the achievements is no longer possible: achievements that can't be unlocked anymore, or DLC that's no longer sold.",
+        intro:
+          "Games with at least one achievement nobody can unlock anymore (shut-down servers, removed content, ended events), or that need DLC Steam no longer sells.",
+      },
+      "easy-100": {
+        title: "Easy 100%: Steam games under 10 hours",
+        short: "Easy 100%",
+        description: "Steam games you can 100% in under 10 hours, alone, with every achievement still obtainable.",
+        intro:
+          "Every achievement still obtainable, no multiplayer needed, and a median under 10 hours among the players who got 100% on SteamHunters.",
+      },
+      "hardest-100": {
+        title: "The hardest 100% on Steam",
+        short: "Hardest 100%",
+        description:
+          "Steam games played by many achievement hunters where very few reach 100%. Still possible, just rarely done.",
+        intro:
+          "Still possible, rarely done: the lowest share of SteamHunters players who reached 100% among those who started the game. Only games with at least 500 hunters count.",
+      },
+      "needs-paid-dlc": {
+        title: "Steam games that need paid DLC for 100%",
+        short: "Paid DLC needed",
+        description: "Steam games whose 100% needs buying DLC, and how many DLC it takes.",
+        intro: "Games where some achievements are locked behind DLC you have to buy. Sorted by how many DLC 100% needs.",
+      },
+      "needs-multiplayer": {
+        title: "Steam games that need multiplayer for 100%",
+        short: "Multiplayer needed",
+        description: "Steam games with achievements that need online play or other players, and whether their servers are up.",
+        intro: "Games with achievements that need online play or other players. Check the servers before you start.",
+      },
+    },
+    detail: {
+      unobtainable: (n: number) => (n === 1 ? "1 achievement can't be unlocked" : `${n} achievements can't be unlocked`),
+      unlistedDlc: "Needs DLC no longer sold",
+      hours: (h: string) => `About ${h} h to 100%`,
+      perfectRate: (pct: string, started: string) => `${pct}% of ${started} hunters got 100%`,
+      dlc: (n: number) => (n === 1 ? "1 DLC needed" : `${n} DLC needed`),
+      servers: { online: "Servers online", offline: "Servers offline", unknown: "Server status unknown" },
+    },
+  },
+  following: {
+    label: "Following",
+    title: "Games you follow",
+    description: "The Steam games you follow, flagged when their verdict changes or they hit their all-time low.",
+    intro:
+      "Saved in this browser only. A game gets flagged when its verdict changes or it's on sale at its all-time low in your Steam store. Opening it clears the flag.",
+    homeTitle: "Games you follow.",
+    empty: "You don't follow any game yet. Open a game and press Follow to get flagged here when its verdict changes or it hits its all-time low.",
+    seeAll: "See all",
+    follow: "Follow",
+    followingNow: "Following",
+    unfollow: "Unfollow",
+    verdictChanged: (was: string) => `Verdict changed, was ${was}`,
+    allTimeLow: (cut: number) => `All-time low: -${cut}%`,
+    updates: (n: number) => (n === 1 ? "1 update" : `${n} updates`),
   },
   notFound: {
     label: "Error 404",

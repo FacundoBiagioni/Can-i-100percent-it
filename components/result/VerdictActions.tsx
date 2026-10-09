@@ -5,6 +5,7 @@ import { Flag, Share2, Check, X } from "lucide-react";
 import type { AnalysisStatus } from "@/lib/pipeline/types";
 import { VERDICT } from "@/lib/ui/verdict";
 import { useT } from "@/lib/i18n/client";
+import FollowButton from "@/components/following/FollowButton";
 
 const REPORT_TYPES = ["dispute", "bug_report", "server_status", "confirmation"] as const;
 
@@ -14,8 +15,20 @@ type SubmitState = "idle" | "sending" | "sent" | "error" | "rate_limited";
 const BUTTON =
   "inline-flex cursor-pointer items-center gap-1.5 border border-carbon px-2 py-1 text-nav font-medium text-ash transition-colors hover:border-fog hover:text-chalk";
 
-/** Share + "Is this verdict wrong?" under a game's verdict. */
-export default function VerdictActions({ appId, gameName, status }: { appId: number; gameName: string; status: AnalysisStatus }) {
+/** Follow, Share and "Is this verdict wrong?" under a game's verdict. */
+export default function VerdictActions({
+  appId,
+  gameName,
+  image,
+  status,
+  lowestCut,
+}: {
+  appId: number;
+  gameName: string;
+  image: string | null;
+  status: AnalysisStatus;
+  lowestCut: number | null;
+}) {
   const t = useT();
   const [copied, setCopied] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -71,6 +84,7 @@ export default function VerdictActions({ appId, gameName, status }: { appId: num
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <FollowButton appId={appId} name={gameName} image={image} status={status} lowestCut={lowestCut} className={BUTTON} />
       <button type="button" onClick={share} className={BUTTON}>
         {copied ? <Check aria-hidden className="h-3.5 w-3.5" /> : <Share2 aria-hidden className="h-3.5 w-3.5" />}
         {copied ? t.report.linkCopied : t.report.share}

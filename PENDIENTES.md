@@ -7,7 +7,7 @@ Cómo se lee:
 - **(vos)**: lo tenés que hacer vos, no se resuelve con código.
 - **(Claude)**: lo hago yo cuando me digas.
 
-Última actualización: 9 de octubre de 2026
+Última actualización: 9 de octubre de 2026 (tarde)
 
 ---
 
@@ -27,10 +27,8 @@ Cómo se lee:
 
 ## 3. Funcionalidades
 
-- [ ] **(Claude)** Proceso diario que analice de antemano los juegos más populares con la cuota sobrante de Gemini. Es lo que más mejora la cobertura (hoy hay unos 160 juegos analizados).
-- [ ] **(Claude)** Páginas de listas para atraer visitas desde Google: "Juegos que ya no se pueden completar", "100% fácil en menos de 10 horas", "Juegos con logros perdibles".
-- [ ] **(Claude)** Panel para revisar los reportes de usuarios (hoy se revisan desde la base con `bun run db:studio`).
-- [ ] **(Claude)** Seguir un juego y recibir un aviso si cambia su veredicto o baja de precio.
+- [ ] **(vos)** Mañana (10 de octubre) entrar al panel y fijarte que "Juegos analizados" haya subido: confirma que el pre-análisis nocturno corrió. Si no subió, avisame y miro los logs del cron en Vercel.
+- [ ] **(vos)** Guardar el link del panel en un lugar seguro: `https://can-i-100-it.vercel.app/admin/` + el valor de `ADMIN_SECRET` (está en `.env.local` y en Vercel). Quien tenga el link entra; si se filtra, cambiá esa variable en Vercel y volvé a desplegar.
 
 ## 4. Infraestructura y seguridad
 
@@ -48,6 +46,10 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Pre-análisis nocturno: 4 tandas entre las 23 y las 2 (hora argentina) analizan juegos populares sin veredicto (los más jugados y más vendidos de Steam, priorizando los que más cazadores de SteamHunters empezaron), con la cuota de Gemini que sobró del día. Deja 60 llamadas de reserva. Unos 100 juegos por noche si hubo pocas visitas.
+- [x] Listas en `/lists`: ya no se pueden completar, 100% fácil (< 10 h), los 100% más difíciles, necesitan DLC pago y necesitan multijugador. Link en el menú y el footer. Las listas con menos de 5 juegos no aparecen en Google hasta que se llenen (hoy "100% fácil" tiene 1).
+- [x] Panel de reportes en `/admin/<secreto>`: pendientes, aceptados y rechazados; aceptar re-analiza el juego en el momento; re-análisis manual por AppID; llamadas de Gemini que quedan hoy.
+- [x] Seguir un juego: botón "Seguir" bajo el veredicto. Página `/following` y fila en el inicio, con marca cuando cambia el veredicto o el juego está en su mínimo histórico en tu tienda. Sin cuenta ni email, se guarda en el navegador. Privacidad actualizada.
 - [x] Logo: tu "%" pixel-art (versión sin marco) va dentro del nombre, "can i 100[%] it?", en lugar del signo de porcentaje; gira al pasar el mouse. También en el favicon, el ícono del celular y las imágenes para compartir. Original en `assets/brand/logo-original.jpg`, la versión con marco en `assets/brand/logo-v1-framed.jpg`, pública en `/logo.svg`.
 - [x] Logo nuevo: marca geométrica (un "%" naranja en un cuadro) en el navbar, el footer, el favicon y el ícono del celular. Gira un cuarto al pasar el mouse.
 - [x] Imágenes para compartir propias para "Cómo funciona" (con el diagrama) y "Biblioteca" (con tarjetas de ejemplo).

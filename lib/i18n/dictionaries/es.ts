@@ -20,6 +20,7 @@ export const es: Dictionary = {
     index: "Inicio",
     recent: "Recientes",
     verdicts: "Veredictos",
+    lists: "Listas",
     library: "Biblioteca",
     howItWorks: "Cómo funciona",
     about: "Acerca de",
@@ -182,6 +183,80 @@ export const es: Dictionary = {
     notEnoughData:
       "Todavía no hay datos suficientes para confirmar este juego: no hay datos curados de logros y no se pudieron leer las fuentes de la comunidad.",
     noAchievements: "Esta app no tiene logros de Steam.",
+  },
+  lists: {
+    label: "Listas",
+    indexTitle: "Listas",
+    indexDescription:
+      "Juegos de Steam agrupados según lo que pide el 100%: ya imposibles, rápidos, los más difíciles, con DLC pago o multijugador.",
+    indexIntro:
+      "Juegos de Steam agrupados según lo que pide conseguir el 100%. Salen de todos los veredictos del sitio, así que crecen a medida que se analizan más juegos.",
+    games: (n: number) => (n === 1 ? "1 juego" : `${n} juegos`),
+    updated: "Se actualizan a medida que se analizan más juegos.",
+    empty: "Todavía no hay juegos acá. La lista se va llenando a medida que se analizan más juegos.",
+    more: "Más listas",
+    all: "Todas las listas",
+    items: {
+      "impossible-100": {
+        title: "Juegos de Steam que ya no se pueden completar al 100%",
+        short: "Ya no se pueden completar",
+        description:
+          "Juegos de Steam donde el 100% de los logros ya no es posible: logros que no se pueden desbloquear o DLC que ya no se vende.",
+        intro:
+          "Juegos con al menos un logro que ya nadie puede desbloquear (servidores cerrados, contenido eliminado, eventos terminados), o que piden un DLC que Steam ya no vende.",
+      },
+      "easy-100": {
+        title: "100% fácil: juegos de Steam de menos de 10 horas",
+        short: "100% fácil",
+        description: "Juegos de Steam que podés completar al 100% en menos de 10 horas, solo y con todos los logros disponibles.",
+        intro:
+          "Todos los logros siguen disponibles, no hace falta multijugador y la mediana entre quienes lo completaron en SteamHunters es de menos de 10 horas.",
+      },
+      "hardest-100": {
+        title: "Los 100% más difíciles de Steam",
+        short: "Los 100% más difíciles",
+        description:
+          "Juegos de Steam que juegan muchos cazadores de logros pero muy pocos completan al 100%. Posibles, pero casi nadie lo logra.",
+        intro:
+          "Posibles, pero casi nadie lo logra: el menor porcentaje de jugadores de SteamHunters que llegó al 100% entre quienes empezaron el juego. Solo cuentan juegos con al menos 500 cazadores.",
+      },
+      "needs-paid-dlc": {
+        title: "Juegos de Steam que necesitan DLC pago para el 100%",
+        short: "Necesitan DLC pago",
+        description: "Juegos de Steam que piden comprar DLC para el 100%, y cuántos.",
+        intro: "Juegos con logros que dependen de DLC que hay que comprar. Ordenados por cuántos DLC pide el 100%.",
+      },
+      "needs-multiplayer": {
+        title: "Juegos de Steam que necesitan multijugador para el 100%",
+        short: "Necesitan multijugador",
+        description: "Juegos de Steam con logros que piden jugar online o con otras personas, y si sus servidores siguen andando.",
+        intro: "Juegos con logros que piden jugar online o con otras personas. Fijate el estado de los servidores antes de empezar.",
+      },
+    },
+    detail: {
+      unobtainable: (n: number) => (n === 1 ? "1 logro imposible de desbloquear" : `${n} logros imposibles de desbloquear`),
+      unlistedDlc: "Pide un DLC que ya no se vende",
+      hours: (h: string) => `Unas ${h} h para el 100%`,
+      perfectRate: (pct: string, started: string) => `${pct}% de ${started} cazadores llegó al 100%`,
+      dlc: (n: number) => (n === 1 ? "1 DLC necesario" : `${n} DLC necesarios`),
+      servers: { online: "Servidores andando", offline: "Servidores caídos", unknown: "Estado de servidores desconocido" },
+    },
+  },
+  following: {
+    label: "Siguiendo",
+    title: "Juegos que seguís",
+    description: "Los juegos de Steam que seguís, marcados cuando cambia su veredicto o llegan a su mínimo histórico.",
+    intro:
+      "Se guarda solo en este navegador. Un juego se marca cuando cambia su veredicto o está en oferta a su mínimo histórico en tu tienda de Steam. Al abrirlo, la marca se borra.",
+    homeTitle: "Juegos que seguís.",
+    empty: "Todavía no seguís ningún juego. Abrí uno y tocá Seguir para que se marque acá si cambia su veredicto o llega a su mínimo histórico.",
+    seeAll: "Ver todos",
+    follow: "Seguir",
+    followingNow: "Siguiendo",
+    unfollow: "Dejar de seguir",
+    verdictChanged: (was: string) => `Cambió el veredicto, antes: ${was}`,
+    allTimeLow: (cut: number) => `Mínimo histórico: -${cut}%`,
+    updates: (n: number) => (n === 1 ? "1 novedad" : `${n} novedades`),
   },
   notFound: {
     label: "Error 404",

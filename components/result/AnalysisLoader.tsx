@@ -13,7 +13,17 @@ import { HiddenNamesProvider } from "./SpoilerContext";
 const POLL_INTERVAL_MS = 3000;
 const MAX_ATTEMPTS = 30; // 90s ceiling — first analysis is normally done in a few seconds
 
-export default function AnalysisLoader({ appId, name, image }: { appId: number; name: string; image: string | null }) {
+export default function AnalysisLoader({
+  appId,
+  name,
+  image,
+  lowestCut,
+}: {
+  appId: number;
+  name: string;
+  image: string | null;
+  lowestCut: number | null;
+}) {
   const t = useT();
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [achievements, setAchievements] = useState<FlaggedAchievement[]>([]);
@@ -71,7 +81,7 @@ export default function AnalysisLoader({ appId, name, image }: { appId: number; 
       <HiddenNamesProvider names={hiddenNames}>
         <div className="flex flex-col gap-5">
           <VerdictBlock analysis={analysis} />
-          <VerdictActions appId={appId} gameName={name} status={analysis.status} />
+          <VerdictActions appId={appId} gameName={name} image={image} status={analysis.status} lowestCut={lowestCut} />
         </div>
         {analysis.status !== "no_achievements" && <BottomSheet analysis={analysis} achievements={achievements} />}
       </HiddenNamesProvider>

@@ -16,6 +16,7 @@ const NAV: { href: string; label: keyof Dictionary["nav"] }[] = [
   { href: "/", label: "index" },
   { href: "/#recent", label: "recent" },
   { href: "/#verdicts", label: "verdicts" },
+  { href: "/lists", label: "lists" },
   { href: "/library", label: "library" },
   { href: "/how-it-works", label: "howItWorks" },
   { href: "/about", label: "about" },
@@ -55,7 +56,7 @@ export default function Header() {
   }, [isHome]);
 
   const isActive = (href: string) => {
-    if (!isHome) return href === pathname;
+    if (!isHome) return href === pathname || (href.length > 1 && pathname.startsWith(`${href}/`));
     return href === "/" ? section === "" : section !== "" && href === `/${section}`;
   };
 

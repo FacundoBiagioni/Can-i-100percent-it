@@ -12,6 +12,10 @@ export type GameTileData = {
   name: string;
   image: string | null;
   status: AnalysisStatus | null;
+  /** An extra fact under the name (a list's reason for including it). */
+  detail?: string;
+  /** The detail is news for the visitor (a followed game changed). */
+  alert?: boolean;
 };
 
 /** One cell of a collapsed-border grid: every tile draws its full border
@@ -52,6 +56,12 @@ export default function GameTile({ game }: { game: GameTileData }) {
       </div>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <span className="line-clamp-2 text-body font-medium text-ash transition-colors duration-300 group-hover:text-chalk">{game.name}</span>
+        {game.detail && (
+          <span className={`flex items-start gap-1.5 text-caption ${game.alert ? "text-ember" : "text-graphite"}`}>
+            {game.alert && <span aria-hidden className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-ember" />}
+            {game.detail}
+          </span>
+        )}
         <span className={`mt-auto flex items-center gap-1.5 text-caption ${verdict ? verdict.text : "text-graphite"}`}>
           {Icon && <Icon aria-hidden className="h-3.5 w-3.5 shrink-0" />}
           {game.status ? t.verdict[game.status].label : t.home.notChecked}

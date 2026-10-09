@@ -27,7 +27,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
   if (locale === "es") {
     return {
       title: "Política de privacidad",
-      updated: "Última actualización: 8 de octubre de 2026",
+      updated: "Última actualización: 9 de octubre de 2026",
       intro:
         "can i 100% it? no tiene cuentas, ni publicidad, ni rastreo. Guarda lo mínimo para funcionar, y casi todo por minutos u horas. Esta página explica qué datos se usan, para qué y por cuánto tiempo.",
       sections: [
@@ -48,7 +48,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
         {
           heading: "Lo que queda solo en tu dispositivo",
           paragraphs: [
-            "Los juegos que revisaste hace poco y el último link de perfil de Steam que usaste en Biblioteca se guardan en el almacenamiento local de tu navegador. Nunca salen de tu dispositivo. Podés borrar los recientes desde el inicio, o todo borrando los datos de este sitio en tu navegador.",
+            "Los juegos que revisaste hace poco, los juegos que seguís y el último link de perfil de Steam que usaste en Biblioteca se guardan en el almacenamiento local de tu navegador. Para avisarte novedades de los juegos que seguís, el sitio envía sus números de Steam al servidor, que responde y no los guarda. Podés borrar los recientes desde el inicio, dejar de seguir un juego desde Siguiendo, o borrar todo borrando los datos de este sitio en tu navegador.",
           ],
         },
         {
@@ -97,7 +97,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
   }
   return {
     title: "Privacy policy",
-    updated: "Last updated: October 8, 2026",
+    updated: "Last updated: October 9, 2026",
     intro:
       "can i 100% it? has no accounts, ads or tracking. It keeps as little as it needs to work, and almost all of it for minutes or hours. This page explains what data is used, what for, and for how long.",
     sections: [
@@ -118,7 +118,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
       {
         heading: "What stays on your device",
         paragraphs: [
-          "The games you checked recently and the last Steam profile link you used in Library are saved in your browser's local storage. They never leave your device. You can clear recent games from the home page, or everything by clearing this site's data in your browser.",
+          "The games you checked recently, the games you follow and the last Steam profile link you used in Library are saved in your browser's local storage. To flag news on the games you follow, the site sends their Steam IDs to its server, which answers and doesn't keep them. You can clear recent games from the home page, unfollow a game from Following, or clear everything by clearing this site's data in your browser.",
         ],
       },
       {

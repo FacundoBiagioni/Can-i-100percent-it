@@ -26,6 +26,12 @@ export default async function Footer() {
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
           <nav aria-label={t.footer.nav} className="flex flex-wrap gap-x-4 gap-y-2">
             <Wordmark className="text-chalk" />
+            <Link href="/lists" className={LINK}>
+              {t.nav.lists}
+            </Link>
+            <Link href="/following" className={LINK}>
+              {t.following.label}
+            </Link>
             <Link href="/library" className={LINK}>
               {t.nav.library}
             </Link>
