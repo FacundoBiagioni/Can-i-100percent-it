@@ -23,7 +23,8 @@ Cómo se lee:
 
 ## 2. Diseño
 
-- (nada pendiente por ahora)
+- [ ] **(vos)** Diseñar tu propio logo y pasármelo (idealmente en SVG; si no, PNG con fondo transparente).
+- [ ] **(Claude)** Reemplazar el logo actual por el tuyo en el navbar, el footer, el favicon, el ícono del celular y las imágenes para compartir. Mantener la animación de giro al pasar el mouse (te gustó).
 
 ## 3. Funcionalidades
 
