@@ -48,7 +48,7 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
-- [x] Tu logo pixel-art reemplaza al anterior en todo el sitio, vectorizado para que se vea nítido en cualquier tamaño (mantiene el giro al pasar el mouse). Original en `assets/brand/logo-original.jpg`, versión pública en `/logo.svg`.
+- [x] Logo: tu "%" pixel-art (versión sin marco) va dentro del nombre, "can i 100[%] it?", en lugar del signo de porcentaje; gira al pasar el mouse. También en el favicon, el ícono del celular y las imágenes para compartir. Original en `assets/brand/logo-original.jpg`, la versión con marco en `assets/brand/logo-v1-framed.jpg`, pública en `/logo.svg`.
 - [x] Logo nuevo: marca geométrica (un "%" naranja en un cuadro) en el navbar, el footer, el favicon y el ícono del celular. Gira un cuarto al pasar el mouse.
 - [x] Imágenes para compartir propias para "Cómo funciona" (con el diagrama) y "Biblioteca" (con tarjetas de ejemplo).
 - [x] "Ocultar spoilers" también tapa los logros ocultos en el texto del veredicto, en "Necesario para:" de los DLC (con "Mostrar") y en la vista previa al compartir.
