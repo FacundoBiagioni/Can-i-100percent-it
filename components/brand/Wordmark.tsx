@@ -12,7 +12,7 @@ export default function Wordmark({ spin = false, className = "" }: { spin?: bool
       <span aria-hidden>
         can i 100
         <PercentGlyph
-          className={`mx-[0.04em] ${spin ? "transition-transform duration-500 ease-out group-hover:rotate-90 motion-reduce:transition-none" : ""}`}
+          className={`ml-[0.1em] mr-[0.04em] ${spin ? "transition-transform duration-500 ease-out group-hover:rotate-90 motion-reduce:transition-none" : ""}`}
         />{" "}
         it?
       </span>
