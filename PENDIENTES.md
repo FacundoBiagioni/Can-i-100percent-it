@@ -32,7 +32,7 @@ Cómo se lee:
 
 ## 4. Infraestructura y seguridad
 
-- [ ] **(vos)** Activar Web Analytics en Vercel: proyecto can-i-100-it, pestaña **Analytics**, botón **Enable**. El código ya está subido; hasta que lo actives, no se cuenta nada.
+- (nada pendiente por ahora)
 
 ## 5. Ideas sueltas (sin decidir)
 
@@ -45,7 +45,7 @@ Cómo se lee:
 ## Hecho (últimos)
 
 - [x] Monitoreo de errores propio: los errores del servidor, del navegador y de las tareas diarias quedan en el panel, pestaña **Errores** (`/admin/<secreto>/errores`), agrupados, con cuántas veces pasó y el detalle técnico. Se borran solos a los 30 días.
-- [x] Web Analytics de Vercel en el código (sin cookies; nunca envía el panel). Falta activarlo en Vercel (ver arriba). Privacidad actualizada.
+- [x] Web Analytics de Vercel activo (sin cookies; nunca envía el panel). Las visitas se ven en Vercel, pestaña Analytics del proyecto. Privacidad actualizada.
 - [x] Content Security Policy completa con nonces: solo corren los scripts del propio sitio; imágenes solo de Steam.
 - [x] Listas más robustas: "Los más difíciles" queda guardada una hora y las consultas a SteamHunters tienen tiempo límite. Conexión a la base ajustada a lo que pide Supabase para su pooler (sin consultas preparadas).
 - [x] Páginas de error propias (en inglés y español), en lugar de la pantalla genérica.
