@@ -279,6 +279,13 @@ export const en = {
     allTimeLow: (cut: number) => `All-time low: -${cut}%`,
     updates: (n: number) => (n === 1 ? "1 update" : `${n} updates`),
   },
+  errorPage: {
+    label: "Error",
+    title: "Something broke.",
+    body: "This page hit an error. It has been logged. Try again, and if it keeps happening, come back in a while.",
+    retry: "Try again",
+    home: "Back to home",
+  },
   notFound: {
     label: "Error 404",
     title: ["Game not", "found."],

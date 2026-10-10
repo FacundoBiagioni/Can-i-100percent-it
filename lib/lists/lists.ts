@@ -1,4 +1,6 @@
+import { cache } from "react";
 import { and, asc, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
+import { redis } from "@/lib/cache/redis";
 import { db } from "@/lib/db";
 import { analysisResults, games } from "@/lib/db/schema";
 import { getAppStats } from "@/lib/steamhunters/stats";
@@ -56,9 +58,22 @@ const entry = (r: Row, detail: ListDetail): ListEntry => ({
   detail,
 });
 
+const HARDEST_KEY = "lists:hardest:v1";
+const HARDEST_TTL = 60 * 60; // it ranks ~500 games by SteamHunters stats
+
 /** Every game in a list, from the verdicts already stored (nothing here
- * starts an analysis). Lists grow as more games get analyzed. */
-export async function getList(slug: ListSlug): Promise<ListEntry[]> {
+ * starts an analysis). Lists grow as more games get analyzed. Deduplicated
+ * per request: a page and its metadata share one read. */
+export const getList = cache(async (slug: ListSlug): Promise<ListEntry[]> => {
+  if (slug !== "hardest-100") return readList(slug);
+  const cached = redis ? await redis.get<ListEntry[]>(HARDEST_KEY) : null;
+  if (cached) return cached;
+  const fresh = await readList(slug);
+  if (redis && fresh.length > 0) await redis.set(HARDEST_KEY, fresh, { ex: HARDEST_TTL });
+  return fresh;
+});
+
+async function readList(slug: ListSlug): Promise<ListEntry[]> {
   switch (slug) {
     case "impossible-100": {
       const rows = await base()

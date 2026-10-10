@@ -27,9 +27,9 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
   if (locale === "es") {
     return {
       title: "Política de privacidad",
-      updated: "Última actualización: 9 de octubre de 2026",
+      updated: "Última actualización: 10 de octubre de 2026",
       intro:
-        "can i 100% it? no tiene cuentas, ni publicidad, ni rastreo. Guarda lo mínimo para funcionar, y casi todo por minutos u horas. Esta página explica qué datos se usan, para qué y por cuánto tiempo.",
+        "can i 100% it? no tiene cuentas, ni publicidad, ni cookies de rastreo. Guarda lo mínimo para funcionar, y casi todo por minutos u horas. Esta página explica qué datos se usan, para qué y por cuánto tiempo.",
       sections: [
         {
           heading: "Tu dirección IP",
@@ -43,6 +43,18 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
           paragraphs: [
             "El idioma, la región de la tienda y los ajustes de spoilers y animaciones se guardan en cookies en tu dispositivo durante un año. Solo este sitio las lee, para mostrarte las páginas como elegiste.",
             "No usamos cookies de publicidad ni de analíticas, por eso no hay aviso de cookies: las que hay son necesarias para recordar lo que vos configuraste.",
+          ],
+        },
+        {
+          heading: "Estadísticas de visitas",
+          paragraphs: [
+            "Para saber cuánta gente usa el sitio y qué páginas sirven, usamos Vercel Web Analytics. No usa cookies ni identifica a nadie: cada visita registra la página (sin lo que hayas escrito en la dirección), el sitio desde el que llegaste, el país y la región, el tipo de dispositivo, el sistema operativo y el navegador. Para contar visitantes sin cookies, Vercel arma un código a partir de la conexión que se descarta a las 24 horas. Solo vemos totales, nunca visitas individuales.",
+          ],
+        },
+        {
+          heading: "Errores",
+          paragraphs: [
+            "Si algo falla, el sitio guarda el error para poder arreglarlo: el mensaje técnico, la página donde pasó (sin lo que hayas escrito en la dirección) y en qué parte del código. No guarda tu IP ni nada que te identifique. Cada error se borra 30 días después de la última vez que pasó.",
           ],
         },
         {
@@ -67,13 +79,13 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
         {
           heading: "Lo que no hacemos",
           paragraphs: [
-            "No vendemos ni compartimos datos con fines comerciales, no mostramos publicidad, no usamos herramientas de analíticas ni de rastreo y no armamos perfiles de quienes visitan el sitio.",
+            "No vendemos ni compartimos datos con fines comerciales, no mostramos publicidad, no usamos herramientas de rastreo y no armamos perfiles de quienes visitan el sitio. Las estadísticas de visitas son anónimas y solo se ven sumadas.",
           ],
         },
         {
           heading: "Proveedores",
           paragraphs: [
-            "Vercel (hosting), Supabase (base de datos, alojada en Amazon Web Services en Estados Unidos) y Upstash (caché) procesan datos en nuestro nombre. Los datos pueden procesarse en Estados Unidos.",
+            "Vercel (hosting y estadísticas de visitas), Supabase (base de datos, alojada en Amazon Web Services en Estados Unidos) y Upstash (caché) procesan datos en nuestro nombre. Los datos pueden procesarse en Estados Unidos.",
             "Para armar los veredictos consultamos a Steam (Valve), SteamHunters, Achievement Scouts e IsThereAnyDeal; a ellos solo se les envían identificadores de juegos, o el perfil de Steam que vos pegaste en Biblioteca. Google Gemini lee textos públicos sobre juegos (foros y guías): nunca recibe datos tuyos.",
           ],
         },
@@ -97,9 +109,9 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
   }
   return {
     title: "Privacy policy",
-    updated: "Last updated: October 9, 2026",
+    updated: "Last updated: October 10, 2026",
     intro:
-      "can i 100% it? has no accounts, ads or tracking. It keeps as little as it needs to work, and almost all of it for minutes or hours. This page explains what data is used, what for, and for how long.",
+      "can i 100% it? has no accounts, ads or tracking cookies. It keeps as little as it needs to work, and almost all of it for minutes or hours. This page explains what data is used, what for, and for how long.",
     sections: [
       {
         heading: "Your IP address",
@@ -113,6 +125,18 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
         paragraphs: [
           "Language, store region, and the spoiler and animation settings are saved in cookies on your device for one year. Only this site reads them, to show pages the way you chose.",
           "There are no advertising or analytics cookies, which is why there's no cookie banner: the ones used are needed to remember what you set.",
+        ],
+      },
+      {
+        heading: "Visit statistics",
+        paragraphs: [
+          "To know how many people use the site and which pages help, we use Vercel Web Analytics. It uses no cookies and identifies no one: each visit records the page (without anything you typed into the address), the site you came from, your country and region, device type, operating system and browser. To count visitors without cookies, Vercel builds a code from the connection that is discarded after 24 hours. We only see totals, never individual visits.",
+        ],
+      },
+      {
+        heading: "Errors",
+        paragraphs: [
+          "If something breaks, the site keeps the error so it can be fixed: the technical message, the page it happened on (without anything you typed into the address) and where in the code. It doesn't keep your IP or anything that identifies you. Each error is deleted 30 days after it last happened.",
         ],
       },
       {
@@ -137,13 +161,13 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
       {
         heading: "What we don't do",
         paragraphs: [
-          "We don't sell or share data for commercial purposes, show ads, use analytics or tracking tools, or build profiles of visitors.",
+          "We don't sell or share data for commercial purposes, show ads, use tracking tools, or build profiles of visitors. Visit statistics are anonymous and only seen as totals.",
         ],
       },
       {
         heading: "Service providers",
         paragraphs: [
-          "Vercel (hosting), Supabase (database, hosted on Amazon Web Services in the United States) and Upstash (cache) process data on our behalf. Data may be processed in the United States.",
+          "Vercel (hosting and visit statistics), Supabase (database, hosted on Amazon Web Services in the United States) and Upstash (cache) process data on our behalf. Data may be processed in the United States.",
           "To build verdicts we query Steam (Valve), SteamHunters, Achievement Scouts and IsThereAnyDeal; they only receive game IDs, or the Steam profile you pasted in Library. Google Gemini reads public text about games (forums and guides): it never receives any data about you.",
         ],
       },

@@ -283,6 +283,13 @@ export const es: Dictionary = {
     allTimeLow: (cut: number) => `Mínimo histórico: -${cut}%`,
     updates: (n: number) => (n === 1 ? "1 novedad" : `${n} novedades`),
   },
+  errorPage: {
+    label: "Error",
+    title: "Algo se rompió.",
+    body: "Esta página tuvo un error y quedó registrado. Probá de nuevo, y si sigue pasando, volvé en un rato.",
+    retry: "Reintentar",
+    home: "Volver al inicio",
+  },
   notFound: {
     label: "Error 404",
     title: ["Juego no", "encontrado."],

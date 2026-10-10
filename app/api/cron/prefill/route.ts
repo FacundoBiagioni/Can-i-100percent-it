@@ -1,6 +1,7 @@
 import { aiCallsLeft } from "@/lib/ai/gemini";
 import { redis } from "@/lib/cache/redis";
 import { isCronRequest } from "@/lib/cron/auth";
+import { recordException } from "@/lib/errors/record";
 import { runPipeline } from "@/lib/pipeline/orchestrator";
 import { markPrefillFailed, selectPrefillGames } from "@/lib/pipeline/layers/7-cron/selectPrefillGames";
 
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
       results.push({ appId, status: result.status });
     } catch (err) {
       await markPrefillFailed(appId);
+      await recordException("cron", err, `/games/${appId}`);
       results.push({ appId, status: `error: ${err instanceof Error ? err.message : "unknown"}` });
     }
   }

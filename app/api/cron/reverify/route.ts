@@ -4,6 +4,7 @@ import { runPipeline } from "@/lib/pipeline/orchestrator";
 import { aiExhausted } from "@/lib/ai/gemini";
 import { purgeReportEmails } from "@/lib/db/queries/reports";
 import { isCronRequest } from "@/lib/cron/auth";
+import { purgeOldErrors, recordException } from "@/lib/errors/record";
 
 // Processes up to 10 games sequentially (Steam + scraper + occasional AI
 // calls each) — generous headroom under Vercel's default budget.
@@ -16,9 +17,10 @@ export async function GET(request: NextRequest) {
 
   // Privacy housekeeping first, so it runs even on days the re-check waits.
   const emailsPurged = await purgeReportEmails().catch(() => 0);
+  const errorsPurged = await purgeOldErrors().catch(() => 0);
 
   // Without AI a re-check could only repeat what's stored; wait for the quota.
-  if (await aiExhausted()) return Response.json({ checked: 0, emailsPurged, skipped: "ai_quota_exhausted" });
+  if (await aiExhausted()) return Response.json({ checked: 0, emailsPurged, errorsPurged, skipped: "ai_quota_exhausted" });
 
   const staleAppIds = await selectStaleGames();
   const results: { appId: number; status: string }[] = [];
@@ -29,9 +31,10 @@ export async function GET(request: NextRequest) {
       const result = await runPipeline(appId, "cron");
       results.push({ appId, status: result.status });
     } catch (err) {
+      await recordException("cron", err, `/games/${appId}`);
       results.push({ appId, status: `error: ${err instanceof Error ? err.message : "unknown"}` });
     }
   }
 
-  return Response.json({ checked: results.length, emailsPurged, results });
+  return Response.json({ checked: results.length, emailsPurged, errorsPurged, results });
 }

@@ -7,7 +7,7 @@ Cómo se lee:
 - **(vos)**: lo tenés que hacer vos, no se resuelve con código.
 - **(Claude)**: lo hago yo cuando me digas.
 
-Última actualización: 9 de octubre de 2026 (tarde)
+Última actualización: 10 de octubre de 2026
 
 ---
 
@@ -32,9 +32,7 @@ Cómo se lee:
 
 ## 4. Infraestructura y seguridad
 
-- [ ] **(Claude)** Monitoreo de errores (Sentry o el de Vercel), para enterarte si algo falla en producción.
-- [ ] **(Claude)** Analíticas que respeten la privacidad (Vercel Analytics). Si se agregan, hay que actualizar la política de privacidad.
-- [ ] **(Claude)** Content Security Policy completa (con nonces). Hoy solo está la parte que impide meter el sitio dentro de otra página.
+- [ ] **(vos)** Activar Web Analytics en Vercel: proyecto can-i-100-it, pestaña **Analytics**, botón **Enable**. El código ya está subido; hasta que lo actives, no se cuenta nada.
 
 ## 5. Ideas sueltas (sin decidir)
 
@@ -46,6 +44,11 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Monitoreo de errores propio: los errores del servidor, del navegador y de las tareas diarias quedan en el panel, pestaña **Errores** (`/admin/<secreto>/errores`), agrupados, con cuántas veces pasó y el detalle técnico. Se borran solos a los 30 días.
+- [x] Web Analytics de Vercel en el código (sin cookies; nunca envía el panel). Falta activarlo en Vercel (ver arriba). Privacidad actualizada.
+- [x] Content Security Policy completa con nonces: solo corren los scripts del propio sitio; imágenes solo de Steam.
+- [x] Listas más robustas: "Los más difíciles" queda guardada una hora y las consultas a SteamHunters tienen tiempo límite. Conexión a la base ajustada a lo que pide Supabase para su pooler (sin consultas preparadas).
+- [x] Páginas de error propias (en inglés y español), en lugar de la pantalla genérica.
 - [x] Pre-análisis a mano el 9 de octubre con el 90% de la cuota del día: 305 juegos nuevos, sin errores (de 180 a 485 analizados). La lista de candidatos ahora sale de los 1.000 más vendidos de Steam (antes 300), para que al cron nocturno no le falten juegos.
 - [x] Navbar: Inicio, Listas, Biblioteca, Siguiendo, Cómo funciona, Acerca de (sin Recientes ni Veredictos). La página Siguiendo explica cómo funciona, y al tocar "Seguir" aparece un cartel que lo explica.
 - [x] Pre-análisis nocturno: 4 tandas entre las 23 y las 2 (hora argentina) analizan juegos populares sin veredicto (los más jugados y más vendidos de Steam, priorizando los que más cazadores de SteamHunters empezaron), con la cuota de Gemini que sobró del día. Deja 60 llamadas de reserva. Unos 100 juegos por noche si hubo pocas visitas.

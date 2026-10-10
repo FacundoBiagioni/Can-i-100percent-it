@@ -1,13 +1,12 @@
 import type { NextConfig } from "next";
 
 // Baseline security headers on every response. (Vercel already adds HSTS.)
-// No full Content-Security-Policy yet: Next's inline scripts would need
-// nonces; frame-ancestors alone stops the site being framed (clickjacking).
+// The Content-Security-Policy is set per request in proxy.ts: it carries a
+// fresh nonce for each page view, which a static header can't.
 const SECURITY_HEADERS = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
 ];
 

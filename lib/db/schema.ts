@@ -201,6 +201,28 @@ export const communityReports = pgTable("community_reports", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// --- error_events (the site's own error log, read in the admin panel) -------
+// One row per distinct error (same fingerprint = same place, same message):
+// a repeat only bumps count and lastSeenAt. A new occurrence of a resolved
+// error reopens it. Rows unseen for 30 days are deleted by the daily cron.
+export const errorEvents = pgTable(
+  "error_events",
+  {
+    id: serial("id").primaryKey(),
+    fingerprint: text("fingerprint").notNull().unique(),
+    source: text("source").notNull(), // "server" | "client" | "cron"
+    message: text("message").notNull(),
+    stack: text("stack"),
+    path: text("path"),
+    digest: text("digest"),
+    count: integer("count").notNull().default(1),
+    resolved: boolean("resolved").notNull().default(false),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("error_events_last_seen_idx").on(t.lastSeenAt)],
+);
+
 // --- relations ---------------------------------------------------------------
 export const gamesRelations = relations(games, ({ many, one }) => ({
   achievements: many(achievements),

@@ -3,11 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { count, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { achievements, analysisResults, communityReports, games } from "@/lib/db/schema";
+import { achievements, analysisResults, communityReports, errorEvents, games } from "@/lib/db/schema";
 import { isAdminKey } from "@/lib/admin/auth";
 import { aiCallsLeft } from "@/lib/ai/gemini";
 import { reanalyze, setReportStatus } from "./actions";
 import SubmitButton from "./SubmitButton";
+import AdminNav from "./AdminNav";
 
 // Accepting a report re-runs the game's analysis inside the action.
 export const maxDuration = 120;
@@ -40,7 +41,7 @@ export default async function AdminPage(props: PageProps<"/admin/[key]">) {
   const { estado } = await props.searchParams;
   const status: ReportStatus = STATUSES.includes(estado as ReportStatus) ? (estado as ReportStatus) : "pending";
 
-  const [reports, counts, [analyzed], callsLeft] = await Promise.all([
+  const [reports, counts, [analyzed], callsLeft, [openErrors]] = await Promise.all([
     db
       .select({
         id: communityReports.id,
@@ -63,17 +64,18 @@ export default async function AdminPage(props: PageProps<"/admin/[key]">) {
     db.select({ status: communityReports.status, n: count() }).from(communityReports).groupBy(communityReports.status),
     db.select({ n: count() }).from(analysisResults),
     aiCallsLeft(),
+    db.select({ n: count() }).from(errorEvents).where(eq(errorEvents.resolved, false)),
   ]);
   const countOf = (s: ReportStatus) => counts.find((c) => c.status === s)?.n ?? 0;
 
   return (
     <main className="mx-auto flex w-full max-w-page flex-1 flex-col gap-12 px-4 pb-32 pt-24 sm:px-6">
       <header className="flex flex-col gap-6">
-        <p className="text-nav text-graphite">Panel</p>
-        <h1 className="text-heading-lg font-semibold">Reportes</h1>
-        <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-carbon bg-carbon sm:max-w-xl">
+        <AdminNav adminKey={key} active="reports" />
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-carbon bg-carbon sm:max-w-2xl sm:grid-cols-4">
           {[
-            ["Pendientes", countOf("pending")],
+            ["Reportes pendientes", countOf("pending")],
+            ["Errores sin resolver", openErrors?.n ?? 0],
             ["Juegos analizados", analyzed?.n ?? 0],
             ["Gemini hoy (restan)", callsLeft],
           ].map(([label, value]) => (

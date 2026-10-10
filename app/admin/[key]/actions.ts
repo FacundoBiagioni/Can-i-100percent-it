@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { communityReports } from "@/lib/db/schema";
+import { communityReports, errorEvents } from "@/lib/db/schema";
 import { isAdminKey } from "@/lib/admin/auth";
 import { runPipeline } from "@/lib/pipeline/orchestrator";
 
@@ -40,4 +40,16 @@ export async function reanalyze(formData: FormData) {
   if (!Number.isInteger(appId) || appId <= 0) return;
   await runPipeline(appId, "manual").catch(() => null);
   revalidatePath(`/admin/${key}`);
+}
+
+/** Marks one error (or, without an id, every open one) as resolved. It
+ * reopens by itself if it happens again. */
+export async function resolveErrors(formData: FormData) {
+  const key = authorize(formData);
+  const id = Number(formData.get("id"));
+  await db
+    .update(errorEvents)
+    .set({ resolved: true })
+    .where(Number.isInteger(id) && id > 0 ? eq(errorEvents.id, id) : eq(errorEvents.resolved, false));
+  revalidatePath(`/admin/${key}/errores`);
 }
