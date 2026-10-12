@@ -60,7 +60,12 @@ export default function StatusIconRow({ analysis }: { analysis: AnalysisResult }
   // otherwise has no dedicated icon of its own, so a red verdict driven
   // purely by that signal would show as five "off" icons and no visible
   // reason. This surfaces it, reusing the verdict's own reasoning text.
-  const structuralBlock = analysis.status === "red" && delistedRequiredDlc.length === 0 && serversState !== "warning";
+  // Unobtainable achievements always show here with their count, even when
+  // the servers icon already says why (Arkham Origins: 11 of them, gone
+  // with its multiplayer).
+  const structuralBlock =
+    analysis.status === "red" &&
+    (analysis.unobtainableAchievementCount > 0 || (delistedRequiredDlc.length === 0 && serversState !== "warning"));
 
   return (
     <div className="flex flex-wrap items-center gap-2">
