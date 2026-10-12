@@ -4,8 +4,8 @@ import { analysisResults } from "@/lib/db/schema";
 import { redis } from "@/lib/cache/redis";
 import { getAppStats } from "@/lib/steamhunters/stats";
 
-const TOP_SELLER_PAGES = 10; // 100 games each
-const POOL_KEY = "prefill:pool:v2";
+const TOP_SELLER_PAGES = 30; // 100 games each
+const POOL_KEY = "prefill:pool:v3";
 const POOL_TTL = 60 * 60 * 12; // one night's runs share the same pool
 const failedKey = (appId: number) => `prefill:failed:${appId}`;
 
@@ -27,23 +27,25 @@ async function mostPlayed(): Promise<number[]> {
  * (".../steam/apps/{appid}/..."); bundles and packages are skipped.
  */
 async function topSellers(): Promise<number[]> {
-  const ids: number[] = [];
-  for (let page = 0; page < TOP_SELLER_PAGES; page++) {
-    try {
-      const res = await fetch(
-        `https://store.steampowered.com/search/results/?filter=topsellers&category1=998&json=1&count=100&start=${page * 100}`,
-      );
-      if (!res.ok) break;
-      const data = (await res.json()) as { items?: { logo?: string }[] };
-      for (const item of data.items ?? []) {
-        const m = item.logo?.match(/\/steam\/apps\/(\d+)\//);
-        if (m) ids.push(Number(m[1]));
+  const pages = await Promise.all(
+    Array.from({ length: TOP_SELLER_PAGES }, async (_, page) => {
+      try {
+        const res = await fetch(
+          `https://store.steampowered.com/search/results/?filter=topsellers&category1=998&json=1&count=100&start=${page * 100}`,
+          { signal: AbortSignal.timeout(15_000) },
+        );
+        if (!res.ok) return [];
+        const data = (await res.json()) as { items?: { logo?: string }[] };
+        return (data.items ?? []).flatMap((item) => {
+          const m = item.logo?.match(/\/steam\/apps\/(\d+)\//);
+          return m ? [Number(m[1])] : [];
+        });
+      } catch {
+        return [];
       }
-    } catch {
-      break;
-    }
-  }
-  return ids;
+    }),
+  );
+  return pages.flat();
 }
 
 /**
