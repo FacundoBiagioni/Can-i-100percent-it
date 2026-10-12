@@ -27,7 +27,6 @@ Cómo se lee:
 
 ## 3. Funcionalidades
 
-- [ ] **(vos)** El 11 de octubre entrar al panel y fijarte que "Juegos analizados" haya subido de 485: confirma que el pre-análisis nocturno automático corrió (la noche del 9 al 10 no va a correr porque la cuota ya se usó a mano). Si no subió, avisame y miro los logs del cron en Vercel.
 - [ ] **(vos)** Guardar el link del panel en un lugar seguro: `https://can-i-100-it.vercel.app/admin/` + el valor de `ADMIN_SECRET` (está en `.env.local` y en Vercel). Quien tenga el link entra; si se filtra, cambiá esa variable en Vercel y volvé a desplegar.
 
 ## 4. Infraestructura y seguridad
@@ -42,6 +41,7 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Pre-análisis nocturno confirmado: corrió solo las noches del 10 y del 11 de octubre (de 485 a 765 juegos), sin errores. El 12 de octubre, a mano, 369 juegos más con la cuota del día (quedaron 60 llamadas de reserva). Los candidatos ahora salen de los 3.000 más vendidos de Steam.
 - [x] "Borrar mis datos" en Ajustes (el engranaje): con confirmación, borra de ese navegador los recientes, los seguidos, el perfil de Biblioteca y los ajustes. Privacidad actualizada. El formato de horas queda como está (decisión tuya).
 - [x] Monitoreo de errores propio: los errores del servidor, del navegador y de las tareas diarias quedan en el panel, pestaña **Errores** (`/admin/<secreto>/errores`), agrupados, con cuántas veces pasó y el detalle técnico. Se borran solos a los 30 días.
 - [x] Web Analytics de Vercel activo (sin cookies; nunca envía el panel). Las visitas se ven en Vercel, pestaña Analytics del proyecto. Privacidad actualizada.
