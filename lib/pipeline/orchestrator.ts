@@ -17,6 +17,7 @@ import { applyRules, deriveStatus, steamHuntersTracks } from "./layers/3-rules/e
 import { applyRecencyDecay } from "./layers/4-recency/scorer";
 import { fetchAcceptedCommunityClaims } from "./layers/5-community/reports";
 import { matchAchievementName } from "./achievementMatcher";
+import { isMultiplayerAchievement } from "./multiplayerAchievements";
 import type { AnalysisResult, EvidenceClaim, DlcRequirement } from "./types";
 
 export const PIPELINE_VERSION = "2";
@@ -29,9 +30,11 @@ function buildFacts(
   foundOnSteam: boolean,
   dlcNeeded: DlcRequirement[],
   multiplayerRequired: boolean,
+  multiplayerAchievements: string[],
+  isMmo: boolean,
   claims: EvidenceClaim[],
 ) {
-  return applyRules({ gameId: appId, gameName, foundOnSteam, dlcNeeded, multiplayerRequired }, claims);
+  return applyRules({ gameId: appId, gameName, foundOnSteam, dlcNeeded, multiplayerRequired, multiplayerAchievements, isMmo }, claims);
 }
 
 export async function runPipeline(appId: number, trigger: Trigger = "manual"): Promise<AnalysisResult> {
@@ -41,7 +44,14 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
   const gameName = steamResult.gameName ?? `AppID ${appId}`;
   const foundOnSteam = steamResult.foundOnSteam ?? false;
   let dlcNeeded = steamResult.dlcNeeded ?? [];
-  const multiplayerFromSteam = steamResult.multiplayerRequired ?? false;
+  // An MMO runs on its servers. One with no single-player mode needs them for
+  // every achievement, whatever its text says; one that can also be played
+  // alone (ARK, DayZ) is left to its achievements' text.
+  const storeInfo = foundOnSteam ? await getAppDetails(appId) : null; // cached by layer 1
+  const isMmo = storeInfo?.isMmo ?? false;
+  const onlineOnly = isMmo && !(storeInfo?.hasSinglePlayer ?? true);
+  // Achievements that need other players (apiNames).
+  let multiplayerAchievements: string[] = [];
 
   let allClaims: EvidenceClaim[] = [...steamResult.claims];
   // Set when some AI step couldn't run and older findings stood in for it.
@@ -59,6 +69,9 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
     // having no achievements at all.
     await getOrCreateGame(appId);
     const achievementRows = await getAchievementsForGame(appId);
+    multiplayerAchievements = achievementRows
+      .filter((a) => onlineOnly || a.requiresMultiplayer || isMultiplayerAchievement(a.displayName, a.description))
+      .map((a) => a.apiName);
     if (achievementRows.length === 0) {
       const result: AnalysisResult = {
         gameId: appId,
@@ -158,7 +171,7 @@ export async function runPipeline(appId: number, trigger: Trigger = "manual"): P
 
   allClaims = applyRecencyDecay(allClaims);
 
-  const facts = buildFacts(appId, gameName, foundOnSteam, dlcNeeded, multiplayerFromSteam, allClaims);
+  const facts = buildFacts(appId, gameName, foundOnSteam, dlcNeeded, multiplayerAchievements.length > 0, multiplayerAchievements, isMmo, allClaims);
   const { status, confidence, reasoning } = deriveStatus(facts);
   // AI took part in the verdict's inputs when it mapped achievements to DLC.
   const aiUsed = allClaims.some((c) => c.claim.type === "required_dlc_resolution" && c.claim.method === "ai_mapped");

@@ -1,6 +1,6 @@
 import { getOrFetch } from "@/lib/cache/redis";
 import { CacheKeys, CacheTTL } from "@/lib/cache/keys";
-import { STEAM_ENDPOINTS, MULTIPLAYER_CATEGORY_MARKERS } from "@/lib/steam/constants";
+import { STEAM_ENDPOINTS } from "@/lib/steam/constants";
 import {
   storeSearchResponseSchema,
   appDetailsResponseSchema,
@@ -77,7 +77,10 @@ export type SteamAppDetails = {
   dlcAppIds: number[];
   /** For a DLC app: the base game it belongs to. */
   fullGameAppId?: number;
-  multiplayerRequired: boolean;
+  /** Steam lists it as an MMO: the game itself runs on its servers. */
+  isMmo: boolean;
+  /** Steam lists a single-player mode. */
+  hasSinglePlayer: boolean;
   releaseDate?: string;
   isFree: boolean;
 };
@@ -104,7 +107,8 @@ export async function getAppDetails(appId: number): Promise<SteamAppDetails | nu
       heroImage: entry.data.screenshots[0]?.path_full ?? entry.data.background_raw,
       dlcAppIds: entry.data.dlc,
       fullGameAppId: entry.data.fullgame?.appid,
-      multiplayerRequired: categories.some((c) => MULTIPLAYER_CATEGORY_MARKERS.includes(c)),
+      isMmo: categories.includes("MMO"),
+      hasSinglePlayer: categories.includes("Single-player"),
       releaseDate: entry.data.release_date?.date,
       isFree: entry.data.is_free ?? false,
     };
@@ -206,7 +210,7 @@ export const steamAnalyzer: Analyzer = {
 
     claims.push({
       sourceKey: "steam_api",
-      claim: { type: "app_details", multiplayerRequired: details.multiplayerRequired, dlcCount: dlcNeeded.length },
+      claim: { type: "app_details", isMmo: details.isMmo, hasSinglePlayer: details.hasSinglePlayer, dlcCount: dlcNeeded.length },
       confidence: "high",
       reasoning: "Steam Storefront appdetails categories + dlc list",
       checkedAt,
@@ -236,7 +240,6 @@ export const steamAnalyzer: Analyzer = {
       foundOnSteam: true,
       gameName: details.name,
       dlcNeeded,
-      multiplayerRequired: details.multiplayerRequired,
       claims,
     };
   },

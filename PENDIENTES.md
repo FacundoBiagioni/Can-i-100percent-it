@@ -41,6 +41,7 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Arreglo de "requiere multijugador": antes salía de las categorías de la tienda (dice si el juego *tiene* multijugador, no si un logro lo pide, y Steam las borra cuando cierra el multijugador). Ahora sale del texto de cada logro, más los MMO que solo se juegan online. Servidores "caídos" cuando SteamHunters marca como imposibles la mayoría de los logros multijugador. Corregidos los 1.121 juegos: "requiere multijugador" pasó de 621 a 302, y Arkham Origins y CoD: Infinite Warfare quedaron con servidores caídos.
 - [x] Pre-análisis nocturno confirmado: corrió solo las noches del 10 y del 11 de octubre (de 485 a 765 juegos), sin errores. El 12 de octubre, a mano, 369 juegos más con la cuota del día (quedaron 60 llamadas de reserva). Los candidatos ahora salen de los 3.000 más vendidos de Steam.
 - [x] "Borrar mis datos" en Ajustes (el engranaje): con confirmación, borra de ese navegador los recientes, los seguidos, el perfil de Biblioteca y los ajustes. Privacidad actualizada. El formato de horas queda como está (decisión tuya).
 - [x] Monitoreo de errores propio: los errores del servidor, del navegador y de las tareas diarias quedan en el panel, pestaña **Errores** (`/admin/<secreto>/errores`), agrupados, con cuántas veces pasó y el detalle técnico. Se borran solos a los 30 días.

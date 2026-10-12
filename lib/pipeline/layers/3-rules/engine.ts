@@ -6,12 +6,55 @@ type BaseFacts = {
   foundOnSteam: boolean;
   dlcNeeded: DlcRequirement[];
   multiplayerRequired: boolean;
+  /** apiNames of the achievements that need other players (all of them in an MMO). */
+  multiplayerAchievements: string[];
+  /** Steam lists it as an MMO: the game itself runs on its servers. */
+  isMmo: boolean;
 };
 
 /** SteamHunters tracks this game: its curated list of unobtainable
  * achievements is then the source of truth for "is 100% still possible". */
 export function steamHuntersTracks(claims: EvidenceClaim[]): boolean {
   return claims.some((c) => c.sourceKey === "steamhunters" && c.claim.type === "unobtainable_count");
+}
+
+/**
+ * Are the servers a game's achievements need still up?
+ * A shutdown shows up in SteamHunters' curated list: the online achievements
+ * get marked unobtainable. Most of them gone = the servers are gone, even if
+ * people still play the single-player part (Batman: Arkham Origins has
+ * players, but its multiplayer closed in 2016). An MMO is the exception: the
+ * game itself is online, so players mean the servers are up. Zero players at one moment
+ * doesn't prove a shutdown (off-peak hours, a small game), so for a game
+ * SteamHunters tracks it only leaves the answer "unknown".
+ */
+export function serversStatusFor(input: {
+  multiplayerRequired: boolean;
+  multiplayerAchievements: string[];
+  unobtainableAchievements: string[];
+  curated: boolean;
+  currentPlayers: number | null;
+  isMmo: boolean;
+}): ServerStatus {
+  const { multiplayerRequired, multiplayerAchievements, curated, currentPlayers } = input;
+  if (!multiplayerRequired) return "online"; // no multiplayer dependency to worry about
+  // An MMO with players is up. Its lost online achievements mean a mode was
+  // removed (Lost Ark's PvP), not that the servers closed.
+  if (input.isMmo && currentPlayers !== null && currentPlayers > 0) return "online";
+  const unobtainable = new Set(input.unobtainableAchievements);
+  const lost = multiplayerAchievements.filter((a) => unobtainable.has(a)).length;
+  if (curated && multiplayerAchievements.length > 0 && lost * 2 >= multiplayerAchievements.length) return "offline";
+  if (currentPlayers !== null && currentPlayers > 0) return "online";
+  if (currentPlayers === 0) return curated ? "unknown" : "offline";
+  return "unknown";
+}
+
+/** The reasoning of a green verdict, naming what 100% needs. */
+export function greenReasoningFor(needsDlc: boolean, needsMultiplayer: boolean): string {
+  const requirements = [...(needsDlc ? ["DLC"] : []), ...(needsMultiplayer ? ["multiplayer"] : [])];
+  return requirements.length > 0
+    ? `100% appears obtainable. Requires: ${requirements.join(", ")}.`
+    : "100% appears obtainable with no known blockers.";
 }
 
 /** Pure function: combines every analyzer's claims into one Facts object. */
@@ -72,17 +115,14 @@ export function applyRules(base: BaseFacts, allClaims: EvidenceClaim[]): Facts {
       ? (currentPlayersClaim.claim.value as number)
       : null;
 
-  let serversStatus: ServerStatus = "unknown";
-  if (multiplayerRequired) {
-    if (currentPlayers !== null && currentPlayers > 0) serversStatus = "online";
-    // Zero players at one moment doesn't prove servers are gone (off-peak
-    // hours, a small game). When SteamHunters tracks the game, a real
-    // shutdown shows up as its online achievements marked unobtainable, so
-    // only call servers "offline" when that has happened.
-    else if (currentPlayers === 0) serversStatus = curated && unobtainableAchievements.length === 0 ? "unknown" : "offline";
-  } else {
-    serversStatus = "online"; // no multiplayer dependency to worry about
-  }
+  const serversStatus = serversStatusFor({
+    multiplayerRequired,
+    multiplayerAchievements: base.multiplayerAchievements,
+    unobtainableAchievements,
+    curated,
+    currentPlayers,
+    isMmo: base.isMmo,
+  });
 
   return {
     gameId: base.gameId,
@@ -150,13 +190,10 @@ export function deriveStatus(facts: Facts): StatusDerivation {
     };
   }
 
-  const requirements: string[] = [];
-  if (facts.dlcNeeded.some((d) => d.required)) requirements.push("DLC");
-  if (facts.multiplayerRequired) requirements.push("multiplayer");
-  const greenReasoning =
-    requirements.length > 0
-      ? `100% appears obtainable. Requires: ${requirements.join(", ")}.`
-      : "100% appears obtainable with no known blockers.";
+  const greenReasoning = greenReasoningFor(
+    facts.dlcNeeded.some((d) => d.required),
+    facts.multiplayerRequired,
+  );
 
   if (steamHuntersTracks(facts.claims)) {
     if (facts.unobtainableAchievements.length > 0) {

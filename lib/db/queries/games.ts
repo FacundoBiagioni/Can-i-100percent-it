@@ -1,4 +1,5 @@
 import { asc, eq } from "drizzle-orm";
+import { isMultiplayerAchievement } from "@/lib/pipeline/multiplayerAchievements";
 import { db } from "@/lib/db";
 import { games, dlc, achievements } from "@/lib/db/schema";
 import { getDlcCatalog } from "@/lib/steam/dlcCatalog";
@@ -37,6 +38,7 @@ async function persistAchievements(appId: number) {
       description: a.description,
       iconUrl: a.icon,
       hidden: a.hidden,
+      requiresMultiplayer: isMultiplayerAchievement(a.displayName, a.description),
       globalUnlockPercent: globalPct[a.name]?.toFixed(2),
     })),
   ).onConflictDoNothing();
