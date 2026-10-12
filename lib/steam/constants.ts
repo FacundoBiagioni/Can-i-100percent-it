@@ -9,16 +9,3 @@ export const STEAM_ENDPOINTS = {
   globalAchievementPercentages: `${STEAM_WEB_API_BASE}/ISteamUserStats/GetGlobalAchievementPercentagesForApp/v2/`,
   currentPlayers: `${STEAM_WEB_API_BASE}/ISteamUserStats/GetNumberOfCurrentPlayers/v1/`,
 };
-
-// Category descriptions from appdetails().categories that signal a multiplayer/co-op requirement.
-export const MULTIPLAYER_CATEGORY_MARKERS = [
-  "Multi-player",
-  "Co-op",
-  "Online Co-op",
-  "Online PvP",
-  "PvP",
-  "Shared/Split Screen Co-op",
-  "Shared/Split Screen PvP",
-  "Cross-Platform Multiplayer",
-  "MMO",
-];
