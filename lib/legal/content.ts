@@ -60,7 +60,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
         {
           heading: "Lo que queda solo en tu dispositivo",
           paragraphs: [
-            "Los juegos que revisaste hace poco, los juegos que seguís y el último link de perfil de Steam que usaste en Biblioteca se guardan en el almacenamiento local de tu navegador. Para avisarte novedades de los juegos que seguís, el sitio envía sus números de Steam al servidor, que responde y no los guarda. Podés borrar los recientes desde el inicio, dejar de seguir un juego desde Siguiendo, o borrar todo borrando los datos de este sitio en tu navegador.",
+            "Los juegos que revisaste hace poco, los juegos que seguís y el último link de perfil de Steam que usaste en Biblioteca se guardan en el almacenamiento local de tu navegador. Para avisarte novedades de los juegos que seguís, el sitio envía sus números de Steam al servidor, que responde y no los guarda. Podés borrar los recientes desde el inicio, dejar de seguir un juego desde Siguiendo, o borrar todo, ajustes incluidos, con “Borrar mis datos” en Ajustes (el engranaje de arriba).",
           ],
         },
         {
@@ -142,7 +142,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
       {
         heading: "What stays on your device",
         paragraphs: [
-          "The games you checked recently, the games you follow and the last Steam profile link you used in Library are saved in your browser's local storage. To flag news on the games you follow, the site sends their Steam IDs to its server, which answers and doesn't keep them. You can clear recent games from the home page, unfollow a game from Following, or clear everything by clearing this site's data in your browser.",
+          "The games you checked recently, the games you follow and the last Steam profile link you used in Library are saved in your browser's local storage. To flag news on the games you follow, the site sends their Steam IDs to its server, which answers and doesn't keep them. You can clear recent games from the home page, unfollow a game from Following, or clear everything, settings included, with “Clear my data” in Settings (the gear at the top).",
         ],
       },
       {

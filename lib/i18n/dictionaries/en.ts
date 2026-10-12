@@ -45,6 +45,13 @@ export const en = {
     hideSpoilersHint: "Hidden achievements stay covered until you tap them.",
     reduceMotion: "Reduce animations",
     reduceMotionHint: "Stops the background animations and motion effects.",
+    yourData: "Your data",
+    clearDataHint: "Removes from this browser your recent and followed games, the Library profile link, and these settings.",
+    clearData: "Clear my data",
+    clearConfirm: "Clear everything? This can't be undone.",
+    clearYes: "Yes, clear",
+    clearCancel: "Cancel",
+    cleared: "Done, your data was cleared.",
   },
   search: {
     placeholder: "Search a Steam game",

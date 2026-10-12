@@ -46,6 +46,13 @@ export const es: Dictionary = {
     hideSpoilersHint: "Los logros ocultos quedan tapados hasta que los tocás.",
     reduceMotion: "Reducir animaciones",
     reduceMotionHint: "Frena las animaciones de fondo y los efectos de movimiento.",
+    yourData: "Tus datos",
+    clearDataHint: "Borra de este navegador los juegos recientes y los que seguís, el perfil de Biblioteca y estos ajustes.",
+    clearData: "Borrar mis datos",
+    clearConfirm: "¿Borrar todo? No se puede deshacer.",
+    clearYes: "Sí, borrar",
+    clearCancel: "Cancelar",
+    cleared: "Listo, se borraron tus datos.",
   },
   search: {
     placeholder: "Buscá un juego de Steam",

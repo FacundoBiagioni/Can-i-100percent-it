@@ -2,12 +2,13 @@
 
 import { useEffect, useId, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Settings } from "lucide-react";
+import { ChevronDown, Settings, Trash2 } from "lucide-react";
 import { LOCALE_COOKIE, type Locale } from "@/lib/i18n/config";
 import { useLocale, useT } from "@/lib/i18n/client";
 import { useRegion } from "@/lib/pricing/client";
 import { AUTO_REGION, REGION_COOKIE, STORE_REGIONS, countryName } from "@/lib/pricing/regions";
 import { usePreferences } from "@/lib/preferences/client";
+import { clearSiteData } from "@/lib/clearData";
 
 const LANGUAGES: { value: Locale; label: string }[] = [
   { value: "en", label: "English" },
@@ -51,6 +52,62 @@ function Switch({ label, hint, checked, onChange }: { label: string; hint: strin
           }`}
         />
       </button>
+    </div>
+  );
+}
+
+/** "Clear my data": asks once, clears, then reloads so every page (and the
+ * server-rendered language and region) starts over from the defaults. */
+function ClearData() {
+  const t = useT();
+  const [step, setStep] = useState<"idle" | "confirm" | "done">("idle");
+
+  function clear() {
+    clearSiteData();
+    setStep("done");
+    setTimeout(() => window.location.reload(), 900);
+  }
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-carbon pt-4">
+      <p className="text-caption text-graphite">{t.settings.yourData}</p>
+      <p className="text-caption text-graphite">{t.settings.clearDataHint}</p>
+      {step === "idle" && (
+        <button
+          type="button"
+          onClick={() => setStep("confirm")}
+          className="flex h-9 cursor-pointer items-center justify-center gap-2 border border-carbon text-nav font-medium text-ash transition-colors hover:border-fail hover:text-fail"
+        >
+          <Trash2 aria-hidden className="h-3.5 w-3.5" />
+          {t.settings.clearData}
+        </button>
+      )}
+      {step === "confirm" && (
+        <div role="alert" className="flex flex-col gap-2">
+          <p className="text-nav text-chalk">{t.settings.clearConfirm}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={clear}
+              className="h-9 cursor-pointer border border-fail bg-fail text-nav font-semibold text-void transition-opacity hover:opacity-90"
+            >
+              {t.settings.clearYes}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep("idle")}
+              className="h-9 cursor-pointer border border-carbon text-nav font-medium text-ash transition-colors hover:border-fog hover:text-chalk"
+            >
+              {t.settings.clearCancel}
+            </button>
+          </div>
+        </div>
+      )}
+      {step === "done" && (
+        <p role="status" className="text-nav text-pass">
+          {t.settings.cleared}
+        </p>
+      )}
     </div>
   );
 }
@@ -134,7 +191,7 @@ export default function SettingsMenu({ className = "" }: { className?: string })
           id={panelId}
           role="dialog"
           aria-label={t.settings.title}
-          className="absolute right-0 top-full z-50 mt-1 flex w-[min(18rem,calc(100vw-2rem))] flex-col gap-5 border border-carbon bg-void p-4 shadow-[0_24px_48px_-16px_rgb(0_0_0/0.9)]"
+          className="absolute right-0 top-full z-50 mt-1 flex max-h-[calc(100dvh-4rem)] w-[min(18rem,calc(100vw-2rem))] flex-col gap-5 overflow-y-auto border border-carbon bg-void p-4 shadow-[0_24px_48px_-16px_rgb(0_0_0/0.9)]"
         >
           <p className="text-caption text-graphite">{t.settings.title}</p>
 
@@ -199,6 +256,8 @@ export default function SettingsMenu({ className = "" }: { className?: string })
               onChange={prefs.setReduceMotion}
             />
           </div>
+
+          <ClearData />
         </div>
       )}
     </div>

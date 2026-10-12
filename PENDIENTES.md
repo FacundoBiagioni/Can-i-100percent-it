@@ -36,14 +36,13 @@ Cómo se lee:
 
 ## 5. Ideas sueltas (sin decidir)
 
-- [ ] Ajuste "Formato de horas": mostrar "91 h" o "3,8 días".
-- [ ] Botón "Borrar mis datos" en ajustes: limpia recientes y el perfil guardado de la biblioteca.
 - [ ] **(vos)** Si el sitio crece o genera ingresos: que un abogado revise Privacidad y Términos.
 
 ---
 
 ## Hecho (últimos)
 
+- [x] "Borrar mis datos" en Ajustes (el engranaje): con confirmación, borra de ese navegador los recientes, los seguidos, el perfil de Biblioteca y los ajustes. Privacidad actualizada. El formato de horas queda como está (decisión tuya).
 - [x] Monitoreo de errores propio: los errores del servidor, del navegador y de las tareas diarias quedan en el panel, pestaña **Errores** (`/admin/<secreto>/errores`), agrupados, con cuántas veces pasó y el detalle técnico. Se borran solos a los 30 días.
 - [x] Web Analytics de Vercel activo (sin cookies; nunca envía el panel). Las visitas se ven en Vercel, pestaña Analytics del proyecto. Privacidad actualizada.
 - [x] Content Security Policy completa con nonces: solo corren los scripts del propio sitio; imágenes solo de Steam.
