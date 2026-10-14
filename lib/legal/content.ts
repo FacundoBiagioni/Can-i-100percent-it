@@ -9,10 +9,10 @@ import type { Locale } from "@/lib/i18n/config";
 export type LegalSection = { heading: string; paragraphs: string[] };
 export type LegalDoc = { title: string; updated: string; intro: string; sections: LegalSection[] };
 
-/** Contact for privacy requests and anything legal. CONTACT_EMAIL overrides
- * it (the creator's personal address is a stand-in until the site has its
- * own); with none, the text falls back to the report form. */
-export const CONTACT_EMAIL: string | null = process.env.CONTACT_EMAIL ?? "facundobiagioni@gmail.com";
+/** The site's own contact address, for privacy requests and anything legal.
+ * CONTACT_EMAIL overrides it; with none, the text falls back to the report
+ * form. */
+export const CONTACT_EMAIL: string | null = process.env.CONTACT_EMAIL ?? "biagiotrysixty@gmail.com";
 
 const contactEn = (email: string | null) =>
   email
@@ -27,7 +27,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
   if (locale === "es") {
     return {
       title: "Política de privacidad",
-      updated: "Última actualización: 10 de octubre de 2026",
+      updated: "Última actualización: 14 de octubre de 2026",
       intro:
         "can i 100% it? no tiene cuentas, ni publicidad, ni cookies de rastreo. Guarda lo mínimo para funcionar, y casi todo por minutos u horas. Esta página explica qué datos se usan, para qué y por cuánto tiempo.",
       sections: [
@@ -109,7 +109,7 @@ export function privacyPolicy(locale: Locale, email: string | null): LegalDoc {
   }
   return {
     title: "Privacy policy",
-    updated: "Last updated: October 10, 2026",
+    updated: "Last updated: October 14, 2026",
     intro:
       "can i 100% it? has no accounts, ads or tracking cookies. It keeps as little as it needs to work, and almost all of it for minutes or hours. This page explains what data is used, what for, and for how long.",
     sections: [
@@ -194,7 +194,7 @@ export function termsOfUse(locale: Locale, email: string | null): LegalDoc {
   if (locale === "es") {
     return {
       title: "Términos de uso",
-      updated: "Última actualización: 8 de octubre de 2026",
+      updated: "Última actualización: 14 de octubre de 2026",
       intro: "Al usar can i 100% it? aceptás estos términos. Son cortos a propósito: leelos.",
       sections: [
         {
@@ -264,7 +264,7 @@ export function termsOfUse(locale: Locale, email: string | null): LegalDoc {
   }
   return {
     title: "Terms of use",
-    updated: "Last updated: October 8, 2026",
+    updated: "Last updated: October 14, 2026",
     intro: "By using can i 100% it? you agree to these terms. They're short on purpose: please read them.",
     sections: [
       {

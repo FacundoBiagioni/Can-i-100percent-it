@@ -13,8 +13,6 @@ Cómo se lee:
 
 ## 1. Antes de lanzar (bloqueantes)
 
-- [ ] **(vos)** Crear un email de contacto propio para el sitio (un Gmail nuevo o `contacto@` en un dominio propio) y pasármelo. Hoy las páginas de Privacidad y Términos muestran tu email personal como reemplazo temporal.
-- [ ] **(Claude)** Cambiar el email de contacto por el nuevo: variable `CONTACT_EMAIL` en Vercel o el valor por defecto en `lib/legal/content.ts`.
 - [ ] **(vos)** Escribirle a SteamHunters para pedir permiso de uso de su API. El sitio depende de ella para los veredictos y no es una API pública oficial.
 - [ ] **(vos)** Revisar las condiciones del plan gratis de Gemini para un sitio público: restricciones por región y uso de datos.
 - [ ] **(vos)** Comprar un dominio propio (unos USD 10 al año). `can-i-100-it.vercel.app` resta confianza.
@@ -41,6 +39,7 @@ Cómo se lee:
 
 ## Hecho (últimos)
 
+- [x] Email de contacto propio del sitio: biagiotrysixty@gmail.com, en Privacidad y Términos (reemplaza tu email personal).
 - [x] Arreglo de "requiere multijugador": antes salía de las categorías de la tienda (dice si el juego *tiene* multijugador, no si un logro lo pide, y Steam las borra cuando cierra el multijugador). Ahora sale del texto de cada logro, más los MMO que solo se juegan online. Servidores "caídos" cuando SteamHunters marca como imposibles la mayoría de los logros multijugador. Corregidos los 1.121 juegos: "requiere multijugador" pasó de 621 a 302, y Arkham Origins y CoD: Infinite Warfare quedaron con servidores caídos.
 - [x] Pre-análisis nocturno confirmado: corrió solo las noches del 10 y del 11 de octubre (de 485 a 765 juegos), sin errores. El 12 de octubre, a mano, 369 juegos más con la cuota del día (quedaron 60 llamadas de reserva). Los candidatos ahora salen de los 3.000 más vendidos de Steam.
 - [x] "Borrar mis datos" en Ajustes (el engranaje): con confirmación, borra de ese navegador los recientes, los seguidos, el perfil de Biblioteca y los ajustes. Privacidad actualizada. El formato de horas queda como está (decisión tuya).
